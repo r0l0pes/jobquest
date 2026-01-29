@@ -1,0 +1,5 @@
+notion-client
+playwright
+Jinja2
+beautifulsoup4
+python-dotenv

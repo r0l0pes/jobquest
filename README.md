@@ -1,4 +1,4 @@
-# JobSearch 🚀
+# JobQuest 🚀
 
 An automated system to find, tailor resumes for, and track job applications, specifically designed for Product Manager roles in the European startup ecosystem.
 

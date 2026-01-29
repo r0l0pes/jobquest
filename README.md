@@ -6,7 +6,7 @@ An automated system to find, tailor resumes for, and track job applications, spe
 This system automates the tedious parts of the job search (discovery, keyword tailoring, and answer drafting) while keeping a **"Human-in-the-loop"** for final review and submission to avoid risk (e.g., LinkedIn bans). It leverages **Agentic Skills** and **MCP (Model Context Protocol)** to bridge the gap between AI reasoning and personal knowledge stored in Notion.
 
 ### 🏠 System Architecture
-- **Knowledge Base (Notion)**: Single source of truth for master resume, case studies (WFP, FORVIA, Accenture, C&A), and metric-backed Q&A templates.
+- **Knowledge Base (Notion)**: Single source of truth for master resume, case studies, and metric-backed Q&A templates.
 - **Tracker Board (Notion/Linear)**: Kanban pipeline for application funnel management (To Apply → Ready → Applied → Interview → Offer/Reject).
 - **Agentic Skills**: Specialized modules for resume tailoring and Q&A generation using the applicant's authentic voice.
 

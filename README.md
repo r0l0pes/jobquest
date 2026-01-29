@@ -5,12 +5,6 @@ An automated system to find, tailor resumes for, and track job applications, spe
 ## 🎯 Project Overview
 This system automates the tedious parts of the job search (discovery, keyword tailoring, and answer drafting) while keeping a **"Human-in-the-loop"** for final review and submission to avoid risk (e.g., LinkedIn bans). It leverages **Agentic Skills** and **MCP (Model Context Protocol)** to bridge the gap between AI reasoning and personal knowledge stored in Notion.
 
-### 👤 The Candidate (About Me)
-- **Role**: Senior Product Manager (IC - Individual Contributor focus).
-- **Profile**: A builder who happens to be a PM. Direct, metric-backed, and focused on shipping value rather than corporate posturing.
-- **Key Milestones**: Validated AI voice agents for 5k+ users at WFP, managed post-merger B2B integrations at FORVIA, and scaled e-commerce platforms at Accenture and C&A.
-- **Voice**: Authentic, structured, and fluff-free. Every claim is backed by a metric or a concrete story.
-
 ### 🏠 System Architecture
 - **Knowledge Base (Notion)**: Single source of truth for master resume, case studies, and metric-backed Q&A templates.
 - **Tracker Board (Notion/Linear)**: Kanban pipeline for application funnel management (To Apply → Ready → Applied → Interview → Offer/Reject).

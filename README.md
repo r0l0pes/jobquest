@@ -196,7 +196,7 @@ The scraper detects and uses structured APIs when available:
 
 **ATS-aware, not ATS-obsessed.** Targets 60-80% keyword coverage using semantic matching. Above 80% risks over-optimization. Modern ATS flags keyword stuffing.
 
-**Rodrigo's voice.** Q&A answers are direct, builder-focused, metric-backed, and free of corporate buzzwords. No "passionate," no "synergy," no "I believe my experience aligns."
+**Applicant's voice.** Q&A answers are direct, builder-focused, metric-backed, and free of corporate buzzwords. 
 
 ## Scripts Reference
 
@@ -242,4 +242,3 @@ venv/bin/python scripts/notion_db_setup.py repair
 - The form filler opens a visible browser and pauses for manual review
 - All metrics and experience come from pre-validated master documents
 - Resume tailoring only adds keywords for skills the candidate actually has
-- No scope inflation: "coordinated" stays "coordinated," never becomes "led"

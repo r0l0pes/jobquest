@@ -5,7 +5,7 @@ Automated job application pipeline for Product Manager roles in the European sta
 ## How It Works
 
 ```
-python apply.py https://boards.greenhouse.io/company/jobs/12345
+python apply.py [url]
 ```
 
 That single command runs a 10-step pipeline:
@@ -20,10 +20,10 @@ Job URL
   ├─ 5. Run ATS keyword coverage check (60-80% target)
   ├─ 6. Review & apply ATS edits (auto if ≥80%, asks you if <80%)
   ├─ 7. Compile PDF via pdflatex
-  ├─ 8. Generate Q&A answers (company research + Rodrigo's voice)
+  ├─ 8. Generate Q&A answers (company research + Applicant's voice)
   ├─ 9. Create Notion tracker entry
   └─ 10. Open form filler (browser opens, you review and submit)
-          │
+          │ 
           ▼
      YOU click Submit
 ```

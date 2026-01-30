@@ -10,6 +10,9 @@ APPLICATIONS_DB_ID = os.getenv("NOTION_APPLICATIONS_DB_ID", "")
 QA_TEMPLATES_DB_ID = os.getenv("NOTION_QA_TEMPLATES_DB_ID", "")
 SKILLS_KEYWORDS_DB_ID = os.getenv("NOTION_SKILLS_KEYWORDS_DB_ID", "")
 
+# LLM Configuration
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
 # Applicant Info
 APPLICANT_NAME = os.getenv("APPLICANT_NAME", "")
 APPLICANT_EMAIL = os.getenv("APPLICANT_EMAIL", "")

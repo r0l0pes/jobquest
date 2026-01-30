@@ -8,6 +8,15 @@ output/*.log
 output/*.out
 .DS_Store
 
+# Pipeline run outputs (per-company directories)
+output/*/
+
+# Legacy output files
+output/Resume_Rodrigo-Lopes.pdf
+output/Resume_Rodrigo-Lopes.tex
+output/ats_report_*.json
+output/ats_report_*.md
+
 # User requested exclusions
 Articles.md
 JOB_SEARCH_SYSTEM_HANDOFF.md
@@ -15,7 +24,5 @@ prd_ats_fixer.md
 prompt_pack_ats_fixer.md
 Resume_Rodrigo-Lopes.pdf
 Resume_Rodrigo-Lopes.tex
-output/Resume_Rodrigo-Lopes.pdf
-output/Resume_Rodrigo-Lopes.tex
-output/ats_report_*.json
-output/ats_report_*.md
+found_jobs.md
+germany_startups_by_city_*.md

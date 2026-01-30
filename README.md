@@ -1,75 +1,245 @@
-# JobQuest 🚀
+# JobQuest
 
-An automated system to find, tailor resumes for, and track job applications, specifically designed for Product Manager roles in the European startup ecosystem.
+Automated job application pipeline for Product Manager roles in the European startup ecosystem. Paste a URL, get a tailored PDF resume + ATS report + application answers + Notion tracking — one command.
 
-## 🎯 Project Overview
-This system automates the tedious parts of the job search (discovery, keyword tailoring, and answer drafting) while keeping a **"Human-in-the-loop"** for final review and submission to avoid risk (e.g., LinkedIn bans). It leverages **Agentic Skills** and **MCP (Model Context Protocol)** to bridge the gap between AI reasoning and personal knowledge stored in Notion.
+## How It Works
 
-### 🏠 System Architecture
-- **Knowledge Base (Notion)**: Single source of truth for master resume, case studies, and metric-backed Q&A templates.
-- **Tracker Board (Notion/Linear)**: Kanban pipeline for application funnel management (To Apply → Ready → Applied → Interview → Offer/Reject).
-- **Agentic Skills**: Specialized modules for resume tailoring, ATS verification, and Q&A generation.
+```
+python apply.py https://boards.greenhouse.io/company/jobs/12345
+```
 
-## 🛠 Features
+That single command runs a 10-step pipeline:
 
-- **Direct-to-Source Discovery**: Targets specific startup pools and uses specialized search queries (excluding aggregators like LinkedIn/Glassdoor) to find direct ATS links (Greenhouse, Lever, Personio) on company career pages.
-- **Custom MCP Integration**: Connects directly to **Notion API** via MCP (Model Context Protocol) to read project background and track progress in real-time.
-- **Resume Tailoring & Verification**: 
-  - Generates tailored resumes by compiling LaTeX templates (using `pdflatex`).
-  - **ATS-Fixer**: A specialized verification layer that checks keyword coverage, visibility, and consistency (title/seniority/location) before the final render.
-- **Form Automation**: Automatically fills out job application forms (ATS) using Playwright while preserving a manual review step.
-- **Notion Tracking**: Automatically syncs every application to a Notion database via the Notion API.
-- **Agentic Skills**: 
-  - `resume-tailor`: Reads job postings and suggests honest keyword updates.
-  - `ats-fixer`: Performs semantic matching and visibility audits to minimize avoidable rejections.
-  - `qa-generator`: Drafts metric-backed application answers in a direct, builder-oriented tone.
+```
+Job URL
+  │
+  ├─ 1. Scrape job posting (Greenhouse/Lever/Ashby/Workable API or HTML)
+  ├─ 2. Read master resume from Notion
+  ├─ 3. Tailor resume via Gemini (keyword extraction + natural insertion)
+  ├─ 4. Write .tex file
+  ├─ 5. Run ATS keyword coverage check (60-80% target)
+  ├─ 6. Review & apply ATS edits (auto if ≥80%, asks you if <80%)
+  ├─ 7. Compile PDF via pdflatex
+  ├─ 8. Generate Q&A answers (company research + Rodrigo's voice)
+  ├─ 9. Create Notion tracker entry
+  └─ 10. Open form filler (browser opens, you review and submit)
+          │
+          ▼
+     YOU click Submit
+```
 
-## 📁 Project Structure
+Everything is automated except the final submission — the system never applies on your behalf.
 
-- `batch_job_search.py`: Core script for bulk job discovery using targeted DDG queries.
-- `scripts/`:
-  - `form_filler.py`: Generic ATS form filler using Playwright (PAUSES for review).
-  - `notion_tracker.py`: Syncs application progress to Notion using the official API.
-  - `render_pdf.py`: Compiles LaTeX resumes into PDFs.
-  - `notion_db_setup.py`: Initializes the required Notion database schema.
-- `.agent/skills/`: Custom agentic workflows:
-  - `resume-tailor/SKILL.md`: Instructions for ATS optimization.
-  - `ats-fixer/SKILL.md`: Verification layer for keyword and format compliance.
-  - `qa-generator/SKILL.md`: Instructions for drafting authentic answers.
-- `templates/`: Contains LaTeX resume templates.
+## Two Operating Modes
 
-## 🚀 Getting Started
+| Mode | When | What |
+|------|------|------|
+| **Pipeline** (`apply.py`) | Daily use — processing job applications | Gemini (free) handles LLM tasks, Python scripts handle automation |
+| **Claude Code** | System development — adding features, fixing bugs | Use Claude Code when you need to modify the codebase itself |
 
-1. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   playwright install chromium
-   ```
+The pipeline replaces Claude Code for the repetitive work (resume tailoring, ATS checks, Q&A writing) while keeping the full automation chain (PDF compilation, Notion sync, form filling).
 
-2. **Configuration**:
-   - Update `.env` with your `NOTION_TOKEN` and `APPLICATIONS_DB_ID`.
-   - Ensure `pdflatex` is installed for resume generation.
+## Quick Start
 
-3. **Search for Jobs**:
-   ```bash
-   python batch_job_search.py
-   ```
+### 1. Setup
 
-4. **Prepare & Track**:
-   Use the `qa-generator`, `resume-tailor`, and `ats-fixer` skills in your agentic IDE to prepare materials, then track them:
-   ```bash
-   python scripts/notion_tracker.py create --title "Senior PM" --company "StartupX" --url "..."
-   ```
+```bash
+# Clone and enter project
+cd JobSearch
 
-5. **Fill Applications**:
-   ```bash
-   python scripts/form_filler.py --url <JOB_URL> --resume-pdf <PATH_TO_PDF>
-   ```
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-## 🗺 Roadmap
-- **Phase 1 (Current)**: Notion/Linear integration, Agentic Skills, and automated form filling.
-- **Phase 2**: Email monitoring for rejections (auto-GDPR deletion requests), interview prep briefings, and WhatsApp integration for daily match alerts.
+# Install dependencies
+pip install -r requirements.txt
+playwright install chromium
+```
 
-## ⚠️ Safety First
-- **Zero Ban Risk**: The system NEVER auto-submits applications. It fills the form and waits for you to review and click "Submit".
-- **Authenticity**: Metrics and experience are pulled from pre-validated "Master" documents to ensure honesty.
+### 2. Configure `.env`
+
+```bash
+# Notion
+NOTION_TOKEN=your_notion_integration_token
+NOTION_MASTER_RESUME_ID=your_master_resume_page_id
+NOTION_APPLICATIONS_DB_ID=your_applications_database_id
+NOTION_QA_TEMPLATES_DB_ID=your_qa_templates_database_id
+NOTION_SKILLS_KEYWORDS_DB_ID=your_skills_keywords_database_id
+
+# LLM
+GEMINI_API_KEY=your_gemini_api_key  # Free at https://aistudio.google.com/apikey
+
+# Applicant
+APPLICANT_NAME=Your Name
+APPLICANT_EMAIL=your@email.com
+APPLICANT_PHONE=+49 123 456789
+APPLICANT_LINKEDIN=https://www.linkedin.com/in/yourprofile
+APPLICANT_LOCATION=Berlin, Germany
+```
+
+### 3. Ensure pdflatex is installed
+
+```bash
+# macOS
+brew install --cask mactex
+
+# Linux
+sudo apt-get install texlive-latex-base texlive-fonts-recommended
+```
+
+### 4. Run
+
+```bash
+# Full pipeline
+python apply.py https://boards.greenhouse.io/company/jobs/12345
+
+# With application questions
+python apply.py https://jobs.lever.co/company/abc-123 \
+  --questions "Why do you want to work here?;Describe your PM process"
+
+# Skip form filler and Notion (just generate materials)
+python apply.py https://example.com/jobs/pm --skip-form --skip-notion
+
+# Preview what would happen
+python apply.py https://example.com/jobs/pm --dry-run
+```
+
+## CLI Reference
+
+```
+python apply.py <job_url> [options]
+
+Arguments:
+  job_url                 URL of the job posting
+
+Options:
+  --questions TEXT         Application questions separated by semicolons
+  --skip-form             Skip the browser form filler
+  --skip-notion           Skip Notion database entry
+  --model {gemini}        LLM provider (default: gemini)
+  --dry-run               Show planned steps without executing
+  -h, --help              Show help
+```
+
+## Output
+
+Each run creates a directory under `output/`:
+
+```
+output/CompanyName_2026-01-30/
+  ├── resume_tailored_CompanyName.tex     # Tailored LaTeX
+  ├── resume_tailored_CompanyName.pdf     # Compiled PDF
+  ├── ats_report_CompanyName.json         # Keyword coverage data
+  ├── ats_report_CompanyName.md           # Human-readable ATS report
+  ├── qa_CompanyName.md                   # Generated answers
+  ├── form_data_CompanyName.json          # Form filler data
+  └── pipeline_context.json               # Debug context (on error)
+```
+
+## Project Structure
+
+```
+JobSearch/
+├── apply.py                    # Pipeline orchestrator (main entry point)
+├── config.py                   # Environment config loader
+├── batch_job_search.py         # Bulk job discovery via DuckDuckGo
+├── requirements.txt            # Python dependencies
+├── .env                        # Secrets (not in git)
+│
+├── modules/
+│   ├── llm_client.py           # LLM abstraction (Gemini, pluggable)
+│   ├── job_scraper.py          # ATS APIs + HTML scraping + company research
+│   ├── pipeline.py             # 10 pipeline step functions
+│   └── parsers.py              # LLM output parsing (LaTeX, JSON, Q&A)
+│
+├── scripts/
+│   ├── notion_reader.py        # Read Notion pages/databases
+│   ├── notion_tracker.py       # Create/update Notion entries
+│   ├── notion_db_setup.py      # Initialize Notion DB schema
+│   ├── render_pdf.py           # LaTeX → PDF via pdflatex
+│   └── form_filler.py          # Playwright ATS form automation
+│
+├── prompts/
+│   ├── resume_tailor.md        # LLM prompt: keyword extraction + LaTeX generation
+│   ├── ats_check.md            # LLM prompt: coverage analysis + edit proposals
+│   ├── qa_generator.md         # LLM prompt: application answers in Rodrigo's voice
+│   └── jobquest_system_prompt.md  # Full system prompt for chat-based LLMs
+│
+├── templates/
+│   └── resume.tex              # LaTeX resume template (structural reference)
+│
+├── .agent/skills/              # Claude Code agentic skills (for development mode)
+│   ├── resume-tailor/SKILL.md
+│   ├── ats-fixer/SKILL.md
+│   └── qa-generator/SKILL.md
+│
+└── output/                     # Generated files (per-run directories)
+```
+
+## Supported ATS Platforms
+
+The scraper detects and uses structured APIs when available:
+
+| Platform | Detection | Method |
+|----------|-----------|--------|
+| Greenhouse | `boards.greenhouse.io` URLs | Public JSON API (includes application questions) |
+| Lever | `jobs.lever.co` URLs | Public Postings API v0 |
+| Ashby | `jobs.ashbyhq.com` URLs | Public GraphQL API |
+| Workable | `apply.workable.com` URLs | Public Widget API |
+| Everything else | Any URL | HTML scraping with Playwright fallback |
+
+## Key Principles
+
+**Human-in-the-loop.** The system never auto-submits. Form filler opens a browser and waits for you to review and click Submit.
+
+**Honest materials.** All resume content comes from a pre-validated master resume in Notion. The system only repositions and emphasizes existing skills — it never fabricates experience or metrics.
+
+**ATS-aware, not ATS-obsessed.** Targets 60-80% keyword coverage using semantic matching. Above 80% risks over-optimization. Modern ATS flags keyword stuffing.
+
+**Rodrigo's voice.** Q&A answers are direct, builder-focused, metric-backed, and free of corporate buzzwords. No "passionate," no "synergy," no "I believe my experience aligns."
+
+## Scripts Reference
+
+Each script works standalone:
+
+```bash
+# Read master resume from Notion
+venv/bin/python scripts/notion_reader.py page <page_id> --text
+
+# Read a Notion database
+venv/bin/python scripts/notion_reader.py database <db_id>
+
+# Create application entry in Notion
+venv/bin/python scripts/notion_tracker.py create \
+  --title "Senior PM" --company "StartupX" --url "https://..."
+
+# Update application status
+venv/bin/python scripts/notion_tracker.py update \
+  --page-id <page_id> --status "Interview"
+
+# Compile LaTeX to PDF
+venv/bin/python scripts/render_pdf.py output/resume.tex
+
+# Fill application form (opens browser)
+venv/bin/python scripts/form_filler.py \
+  --url https://boards.greenhouse.io/company/jobs/123 \
+  --resume-pdf output/resume.pdf \
+  --data-file output/form_data.json
+
+# Bulk job discovery
+python batch_job_search.py
+
+# Inspect Notion database schema
+venv/bin/python scripts/notion_db_setup.py inspect
+
+# Repair missing Notion properties
+venv/bin/python scripts/notion_db_setup.py repair
+```
+
+## Safety
+
+- The system **never** auto-submits applications
+- The form filler opens a visible browser and pauses for manual review
+- All metrics and experience come from pre-validated master documents
+- Resume tailoring only adds keywords for skills the candidate actually has
+- No scope inflation: "coordinated" stays "coordinated," never becomes "led"

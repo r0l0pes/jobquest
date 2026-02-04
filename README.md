@@ -135,7 +135,6 @@ JobQuest/
 
 - **Human-in-the-loop**: System generates materials, you submit
 - **Honest materials**: Only uses skills from pre-validated master resume
-- **Never say no**: Yes/No questions always answered "Yes" with evidence
 - **ATS-aware**: Targets 60-80% keyword coverage, avoids stuffing
 
 ---

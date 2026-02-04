@@ -14,13 +14,14 @@ from notion_client import Client
 notion = Client(auth=NOTION_TOKEN)
 
 
-def create_entry(title, company, url, status="Applied", qa=None):
+def create_entry(title, company, url, status="Applied", qa=None, variant=None):
     """Create a new application entry in the Applications database."""
     print(f"Creating entry: {title} at {company}...", file=sys.stderr)
 
     # Actual DB schema (discovered via API):
     # Company: title, Status: select, Job Title: select,
     # URL: url, Date applied: date, Tailored Resume: files, Q/A: rich_text
+    # Resume Variant: select (optional - for A/B testing resume layouts)
     properties = {
         "Company": {
             "title": [{"text": {"content": company}}]
@@ -46,10 +47,29 @@ def create_entry(title, company, url, status="Applied", qa=None):
             qa_blocks.append({"text": {"content": qa[i:i+2000]}})
         properties["Q/A"] = {"rich_text": qa_blocks}
 
-    response = notion.pages.create(
-        parent={"database_id": APPLICATIONS_DB_ID},
-        properties=properties,
-    )
+    # Try to create entry, handling optional Resume Variant property
+    def _create_page(props):
+        return notion.pages.create(
+            parent={"database_id": APPLICATIONS_DB_ID},
+            properties=props,
+        )
+
+    # First attempt: with variant if provided
+    if variant:
+        properties["Resume Variant"] = {"select": {"name": variant}}
+        try:
+            response = _create_page(properties)
+        except Exception as e:
+            error_msg = str(e)
+            # If Resume Variant property doesn't exist, retry without it
+            if "Resume Variant" in error_msg or "is not a property" in error_msg:
+                print("Resume Variant property not found in Notion DB, retrying without it...", file=sys.stderr)
+                del properties["Resume Variant"]
+                response = _create_page(properties)
+            else:
+                raise
+    else:
+        response = _create_page(properties)
 
     result = {
         "success": True,
@@ -102,6 +122,7 @@ def main():
     create_parser.add_argument("--url", required=True, help="Job posting URL")
     create_parser.add_argument("--status", default="Applied", help="Application status")
     create_parser.add_argument("--qa", help="Q&A content (questions and answers)")
+    create_parser.add_argument("--variant", help="Resume variant for A/B testing (e.g., Tech-First, Exp-First)")
 
     # Update command
     update_parser = subparsers.add_parser("update", help="Update existing entry")
@@ -118,6 +139,7 @@ def main():
             url=args.url,
             status=args.status,
             qa=args.qa,
+            variant=args.variant,
         )
     elif args.command == "update":
         result = update_entry(

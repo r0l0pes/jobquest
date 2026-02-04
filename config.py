@@ -19,3 +19,7 @@ APPLICANT_EMAIL = os.getenv("APPLICANT_EMAIL", "")
 APPLICANT_PHONE = os.getenv("APPLICANT_PHONE", "")
 APPLICANT_LINKEDIN = os.getenv("APPLICANT_LINKEDIN", "")
 APPLICANT_LOCATION = os.getenv("APPLICANT_LOCATION", "")
+
+# Resume A/B Testing
+# Options: "Tech-First" (Technical Proficiency before Experience), "Exp-First" (default)
+RESUME_VARIANT = os.getenv("RESUME_VARIANT", "Tech-First")

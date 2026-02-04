@@ -15,14 +15,24 @@ from rich.console import Console
 
 # ─── ATS URL Patterns ────────────────────────────────────────────
 
-# Greenhouse: boards.greenhouse.io/{board}/jobs/{id}
+# Greenhouse: boards.greenhouse.io/{board}/jobs/{id} or job-boards.eu.greenhouse.io/{board}/jobs/{id}
 _GREENHOUSE_PATTERN = re.compile(
-    r"boards\.greenhouse\.io/([\w-]+)/jobs/(\d+)"
+    r"(?:boards|job-boards\.eu)\.greenhouse\.io/([\w-]+)/jobs/(\d+)"
 )
 
 # Lever: jobs.lever.co/{company}/{uuid}
 _LEVER_PATTERN = re.compile(
     r"jobs\.lever\.co/([\w-]+)/([\w-]+)"
+)
+
+# Personio: {company}.jobs.personio.de/job/{id} or {company}.jobs.personio.com/job/{id}
+_PERSONIO_PATTERN = re.compile(
+    r"([\w-]+)\.jobs\.personio\.(?:de|com)/job/(\d+)"
+)
+
+# Screenloop: app.screenloop.com/careers/{company}/job_posts/{id}
+_SCREENLOOP_PATTERN = re.compile(
+    r"app\.screenloop\.com/careers/([\w-]+)/job_posts/(\d+)"
 )
 
 # Ashby: jobs.ashbyhq.com/{company}/{slug}  (slug is optional for listing)
@@ -68,9 +78,18 @@ def _scrape_greenhouse(board: str, job_id: str) -> dict:
         if q.get("label")
     ]
 
+    # Company can be nested under "company" or directly as "company_name"
+    # Also fallback to board name (usually matches company slug)
+    company = data.get("company", {}).get("name", "")
+    if not company:
+        company = data.get("company_name", "")
+    if not company:
+        # Use board name as fallback, title-cased
+        company = board.replace("-", " ").title()
+
     return {
         "title": data.get("title", ""),
-        "company": data.get("company", {}).get("name", ""),
+        "company": company,
         "description": description,
         "url": data.get("absolute_url", ""),
         "source": "greenhouse_api",
@@ -274,6 +293,111 @@ def _scrape_workable(company: str, slug: str) -> dict:
     }
 
 
+# ─── Personio & Screenloop ────────────────────────────────────────
+
+
+def _scrape_personio(company: str, job_id: str) -> dict:
+    """Personio job postings - uses HTML scraping with better selectors."""
+    url = f"https://{company}.jobs.personio.de/job/{job_id}"
+    resp = requests.get(url, headers=_HEADERS, timeout=15)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # Personio-specific selectors for title
+    title = ""
+    for selector in [
+        "h1.job-title",
+        "h1[data-testid='job-title']",
+        ".job-details h1",
+        "h1",
+        "[class*='JobTitle']",
+        "[class*='job-title']",
+    ]:
+        title_el = soup.select_one(selector)
+        if title_el and title_el.get_text(strip=True):
+            title = title_el.get_text(strip=True)
+            break
+
+    # Try extracting from og:title meta tag
+    if not title:
+        og_title = soup.select_one("meta[property='og:title']")
+        if og_title:
+            title = og_title.get("content", "")
+
+    # Company name from subdomain or page
+    company_name = company.replace("-", " ").title()
+    company_el = soup.select_one(".company-name, [data-testid='company-name']")
+    if company_el:
+        company_name = company_el.get_text(strip=True)
+
+    # Job description
+    desc_el = soup.select_one(".job-description, [data-testid='job-description'], .job-details")
+    if desc_el:
+        description = desc_el.get_text(separator="\n", strip=True)
+    else:
+        for tag in soup(["script", "style", "nav", "footer", "header"]):
+            tag.decompose()
+        description = soup.get_text(separator="\n", strip=True)
+
+    return {
+        "title": title,
+        "company": company_name,
+        "description": description,
+        "url": url,
+        "source": "personio",
+        "questions": [],
+    }
+
+
+def _scrape_screenloop(company: str, job_id: str) -> dict:
+    """Screenloop job postings - JS-heavy, requires Playwright."""
+    from playwright.sync_api import sync_playwright
+
+    url = f"https://app.screenloop.com/careers/{company}/job_posts/{job_id}"
+    company_name = company.replace("-", " ").title()
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, wait_until="networkidle", timeout=30000)
+        html = page.content()
+        browser.close()
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Extract title
+    title = ""
+    for selector in ["h1", ".job-title", "[data-testid='job-title']"]:
+        title_el = soup.select_one(selector)
+        if title_el and title_el.get_text(strip=True):
+            title = title_el.get_text(strip=True)
+            break
+
+    # Try og:title
+    if not title:
+        og_title = soup.select_one("meta[property='og:title']")
+        if og_title:
+            title = og_title.get("content", "")
+
+    # Company from og:site_name
+    og_site = soup.select_one("meta[property='og:site_name']")
+    if og_site:
+        company_name = og_site.get("content", company_name)
+
+    for tag in soup(["script", "style", "nav", "footer", "header"]):
+        tag.decompose()
+    description = soup.get_text(separator="\n", strip=True)
+
+    return {
+        "title": title,
+        "company": company_name,
+        "description": description,
+        "url": url,
+        "source": "screenloop",
+        "questions": [],
+    }
+
+
 # ─── Generic Scraping ────────────────────────────────────────────
 
 
@@ -298,59 +422,141 @@ def _scrape_with_playwright(url: str) -> dict:
 
 
 def _extract_from_html(html: str, url: str) -> dict:
-    """Parse HTML and extract job posting data."""
+    """Parse HTML and extract job posting data using multiple strategies."""
     soup = BeautifulSoup(html, "html.parser")
 
-    for tag in soup(["script", "style", "nav", "footer", "header"]):
+    title = ""
+    company = ""
+    description = ""
+
+    # Strategy 1: JSON-LD structured data (most reliable when present)
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(script.string)
+            # Handle array of objects
+            if isinstance(data, list):
+                for item in data:
+                    if item.get("@type") == "JobPosting":
+                        data = item
+                        break
+            if data.get("@type") == "JobPosting":
+                title = title or data.get("title", "")
+                company = company or data.get("hiringOrganization", {}).get("name", "")
+                description = description or data.get("description", "")
+                if "<" in description:
+                    description = BeautifulSoup(description, "html.parser").get_text(
+                        separator="\n", strip=True
+                    )
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            continue
+
+    # Strategy 2: Open Graph meta tags (widely used)
+    if not title:
+        og_title = soup.select_one("meta[property='og:title']")
+        if og_title:
+            title = og_title.get("content", "")
+
+    if not company:
+        og_site = soup.select_one("meta[property='og:site_name']")
+        if og_site:
+            company = og_site.get("content", "")
+
+    # Strategy 3: Common CSS selectors for job boards
+    if not title:
+        for selector in [
+            "h1.job-title",
+            "h1.posting-headline",
+            "[data-qa='job-title']",
+            "[data-testid='job-title']",
+            ".job-title h1",
+            ".job-title",
+            ".posting-title",
+            "[class*='JobTitle']",
+            "[class*='job-title']",
+            "h1",
+        ]:
+            el = soup.select_one(selector)
+            if el and el.get_text(strip=True):
+                title = el.get_text(strip=True)
+                break
+
+    if not company:
+        for selector in [
+            ".company-name",
+            "[data-qa='company-name']",
+            "[data-testid='company-name']",
+            "[class*='CompanyName']",
+            "[class*='company-name']",
+            ".employer-name",
+            ".hiring-company",
+        ]:
+            el = soup.select_one(selector)
+            if el and el.get_text(strip=True):
+                company = el.get_text(strip=True)
+                break
+
+    # Strategy 4: Extract company from URL subdomain or path
+    if not company:
+        parsed = urlparse(url)
+        domain = parsed.hostname or ""
+        path = parsed.path
+
+        # Known ATS patterns where company is in subdomain
+        ats_with_subdomain = ["personio", "recruitee", "bamboohr", "workday"]
+        for ats in ats_with_subdomain:
+            if ats in domain:
+                # Company is likely the subdomain: company.jobs.personio.de
+                parts = domain.split(".")
+                if len(parts) > 2:
+                    company = parts[0].replace("-", " ").title()
+                break
+
+        # Known ATS patterns where company is in path
+        ats_with_path = ["greenhouse", "lever", "ashby", "workable", "screenloop"]
+        if not company:
+            for ats in ats_with_path:
+                if ats in domain:
+                    # Company is in path: /careers/{company}/ or /{company}/jobs/
+                    path_parts = [p for p in path.split("/") if p]
+                    if path_parts:
+                        company = path_parts[0].replace("-", " ").title()
+                    break
+
+        # Last resort: use domain name if not a known ATS
+        if not company:
+            known_ats = [
+                "greenhouse", "lever", "ashby", "workable", "personio",
+                "smartrecruiters", "bamboohr", "recruitee", "screenloop",
+                "workday", "icims", "taleo", "jobvite", "breezy",
+            ]
+            if not any(ats in domain for ats in known_ats):
+                company = domain.split(".")[0].title()
+
+    # Clean up HTML for description
+    for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
         tag.decompose()
 
-    # Title extraction — try common selectors
-    title = ""
-    for selector in [
-        "h1.job-title",
-        "h1.posting-headline",
-        "[data-qa='job-title']",
-        ".job-title",
-        ".posting-title",
-        "h1",
-    ]:
-        el = soup.select_one(selector)
-        if el and el.get_text(strip=True):
-            title = el.get_text(strip=True)
-            break
+    if not description:
+        # Try to find job description container
+        for selector in [
+            ".job-description",
+            "[data-testid='job-description']",
+            ".posting-description",
+            ".job-details",
+            "[class*='JobDescription']",
+            "[class*='job-description']",
+            "main",
+            "article",
+        ]:
+            el = soup.select_one(selector)
+            if el:
+                description = el.get_text(separator="\n", strip=True)
+                if len(description) > 200:
+                    break
 
-    # Company extraction
-    company = ""
-    for selector in [
-        ".company-name",
-        "[data-qa='company-name']",
-    ]:
-        el = soup.select_one(selector)
-        if el:
-            company = el.get_text(strip=True)
-            break
-
-    if not company:
-        meta = soup.select_one("meta[property='og:site_name']")
-        if meta:
-            company = meta.get("content", "")
-
-    if not company:
-        domain = urlparse(url).hostname or ""
-        ats_domains = [
-            "greenhouse",
-            "lever",
-            "ashby",
-            "workable",
-            "personio",
-            "smartrecruiters",
-            "bamboohr",
-            "recruitee",
-        ]
-        if not any(ats in domain for ats in ats_domains):
-            company = domain.split(".")[0].title()
-
-    description = soup.get_text(separator="\n", strip=True)
+        # Fallback to full page text
+        if len(description) < 200:
+            description = soup.get_text(separator="\n", strip=True)
 
     return {
         "title": title,
@@ -419,6 +625,22 @@ def scrape_job_posting(
         except Exception as e:
             log(f"  [yellow]Workable API failed: {e}. Falling back to HTML.[/yellow]")
 
+    personio = _PERSONIO_PATTERN.search(url)
+    if personio:
+        log("  [dim]Personio detected...[/dim]")
+        try:
+            return _scrape_personio(personio.group(1), personio.group(2))
+        except Exception as e:
+            log(f"  [yellow]Personio scrape failed: {e}. Falling back to generic.[/yellow]")
+
+    screenloop = _SCREENLOOP_PATTERN.search(url)
+    if screenloop:
+        log("  [dim]Screenloop detected...[/dim]")
+        try:
+            return _scrape_screenloop(screenloop.group(1), screenloop.group(2))
+        except Exception as e:
+            log(f"  [yellow]Screenloop scrape failed: {e}. Falling back to generic.[/yellow]")
+
     # Generic HTML scraping
     log("  [dim]Fetching page...[/dim]")
     try:
@@ -427,13 +649,27 @@ def scrape_job_posting(
         log(f"  [yellow]HTTP fetch failed: {e}. Trying Playwright...[/yellow]")
         result = _scrape_with_playwright(url)
 
-    # If content is too short, JS probably didn't render
-    if len(result.get("description", "")) < 100:
-        log("  [yellow]Content too short — retrying with Playwright...[/yellow]")
+    # If content is too short or missing title/company, JS probably didn't render
+    needs_playwright = (
+        len(result.get("description", "")) < 200
+        or not result.get("title")
+        or not result.get("company")
+    )
+
+    if needs_playwright:
+        log("  [yellow]Incomplete data — retrying with Playwright...[/yellow]")
         try:
-            result = _scrape_with_playwright(url)
+            pw_result = _scrape_with_playwright(url)
+            # Merge: prefer Playwright results but keep any good data from HTML
+            if pw_result.get("title") or not result.get("title"):
+                result["title"] = pw_result.get("title") or result.get("title", "")
+            if pw_result.get("company") or not result.get("company"):
+                result["company"] = pw_result.get("company") or result.get("company", "")
+            if len(pw_result.get("description", "")) > len(result.get("description", "")):
+                result["description"] = pw_result["description"]
+            result["source"] = "playwright"
         except Exception as e:
-            log(f"  [red]Playwright also failed: {e}[/red]")
+            log(f"  [yellow]Playwright failed: {e}. Using partial data.[/yellow]")
 
     return result
 
@@ -442,33 +678,95 @@ def scrape_job_posting(
 
 
 def research_company(
-    company_name: str, console: Console | None = None
+    company_name: str, company_url: str | None = None, console: Console | None = None
 ) -> str:
-    """Research a company using Google (primary) with DuckDuckGo fallback.
-    Returns concatenated search results as text.
+    """Research a company. Uses direct URL if provided, otherwise searches.
+    Returns company information as text.
     """
     log = console.print if console else print
     log(f"  [dim]Researching {company_name}...[/dim]")
 
-    queries = [
-        f"{company_name} recent news product launches 2025 2026",
-        f"{company_name} product features latest",
-    ]
+    results_text = []
 
-    # Try Google first
-    results = _search_google(queries)
-    if results:
-        log("  [dim]Found research via Google[/dim]")
-        return results
+    # Strategy 1: Direct URL (most reliable)
+    if company_url:
+        log(f"  [dim]Fetching company website: {company_url}[/dim]")
+        try:
+            direct_info = _fetch_company_page(company_url)
+            if direct_info:
+                results_text.append(f"Source: {company_url}\n\n{direct_info}")
+                log("  [dim]✓ Company website fetched[/dim]")
+        except Exception as e:
+            log(f"  [yellow]Could not fetch company URL: {e}[/yellow]")
 
-    # Fallback to DuckDuckGo
-    log("  [dim]Google unavailable, using DuckDuckGo...[/dim]")
-    results = _search_duckduckgo(queries)
-    if results:
-        return results
+    # Strategy 2: Search (fallback)
+    if not results_text:
+        queries = [
+            f"{company_name} recent news product launches 2025 2026",
+            f"{company_name} product features latest",
+        ]
 
-    log("  [yellow]No research results found.[/yellow]")
-    return ""
+        # Try Google first
+        search_results = _search_google(queries)
+        if search_results:
+            log("  [dim]Found research via Google[/dim]")
+            results_text.append(search_results)
+        else:
+            # Fallback to DuckDuckGo
+            log("  [dim]Google unavailable, using DuckDuckGo...[/dim]")
+            search_results = _search_duckduckgo(queries)
+            if search_results:
+                results_text.append(search_results)
+
+    if not results_text:
+        log("  [yellow]No research results found.[/yellow]")
+        return ""
+
+    return "\n\n---\n\n".join(results_text)
+
+
+def _fetch_company_page(url: str) -> str:
+    """Fetch and extract key info from company website."""
+    resp = requests.get(url, headers=_HEADERS, timeout=15)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # Remove noise
+    for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+        tag.decompose()
+
+    info_parts = []
+
+    # Get meta description
+    meta = soup.find("meta", attrs={"name": "description"})
+    if meta and meta.get("content"):
+        info_parts.append(f"About: {meta['content']}")
+
+    # Get og:description
+    og_desc = soup.find("meta", attrs={"property": "og:description"})
+    if og_desc and og_desc.get("content") and og_desc["content"] not in str(info_parts):
+        info_parts.append(f"Description: {og_desc['content']}")
+
+    # Get main headings and their following paragraphs
+    for h in soup.find_all(["h1", "h2"], limit=5):
+        heading = h.get_text(strip=True)
+        if len(heading) > 5 and len(heading) < 100:
+            # Get following paragraph
+            next_p = h.find_next("p")
+            if next_p:
+                para = next_p.get_text(strip=True)[:300]
+                if para:
+                    info_parts.append(f"{heading}: {para}")
+
+    # Get first few paragraphs from main content
+    main = soup.find("main") or soup.find("article") or soup.find("body")
+    if main:
+        for p in main.find_all("p", limit=5):
+            text = p.get_text(strip=True)
+            if len(text) > 50 and text not in str(info_parts):
+                info_parts.append(text[:400])
+
+    return "\n\n".join(info_parts[:8]) if info_parts else ""
 
 
 def _search_google(queries: list[str]) -> str:

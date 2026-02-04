@@ -54,7 +54,7 @@ def _safe_filename(name: str) -> str:
 
 
 def step_scrape_job(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    console.print("\n[bold]Step 1/10:[/bold] Scraping job posting...")
+    console.print("\n[bold]Step 1/9:[/bold] Scraping job posting...")
 
     job = scrape_job_posting(ctx["job_url"], console=console)
     ctx["job"] = job
@@ -93,7 +93,7 @@ def step_scrape_job(ctx: dict, llm: LLMClient, console: Console) -> dict:
 def step_read_master_resume(
     ctx: dict, llm: LLMClient, console: Console
 ) -> dict:
-    console.print("\n[bold]Step 2/10:[/bold] Reading master resume from Notion...")
+    console.print("\n[bold]Step 2/9:[/bold] Reading master resume from Notion...")
 
     from config import MASTER_RESUME_ID
 
@@ -109,7 +109,7 @@ def step_read_master_resume(
 
 
 def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    console.print("\n[bold]Step 3/10:[/bold] Tailoring resume via {model}...".format(
+    console.print("\n[bold]Step 3/9:[/bold] Tailoring resume via {model}...".format(
         model=llm.model_name()
     ))
 
@@ -146,7 +146,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
 
 
 def step_write_tex(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    console.print("\n[bold]Step 4/10:[/bold] Writing .tex file...")
+    console.print("\n[bold]Step 4/9:[/bold] Writing .tex file...")
 
     run_dir = Path(ctx["run_dir"])
     filename = f"resume_tailored_{ctx['company_safe']}.tex"
@@ -163,7 +163,7 @@ def step_write_tex(ctx: dict, llm: LLMClient, console: Console) -> dict:
 
 
 def step_ats_check(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    console.print("\n[bold]Step 5/10:[/bold] Running ATS keyword check...")
+    console.print("\n[bold]Step 5/9:[/bold] Running ATS keyword check...")
 
     system_prompt = _load_prompt("ats_check")
     user_prompt = (
@@ -212,7 +212,7 @@ def step_ats_check(ctx: dict, llm: LLMClient, console: Console) -> dict:
 def step_apply_ats_edits(
     ctx: dict, llm: LLMClient, console: Console
 ) -> dict:
-    console.print("\n[bold]Step 6/10:[/bold] Reviewing ATS edits...")
+    console.print("\n[bold]Step 6/9:[/bold] Reviewing ATS edits...")
 
     report = ctx.get("ats_report", {})
     ats_json = report.get("json") or {}
@@ -283,7 +283,7 @@ def step_apply_ats_edits(
 
 
 def step_compile_pdf(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    console.print("\n[bold]Step 7/10:[/bold] Compiling PDF...")
+    console.print("\n[bold]Step 7/9:[/bold] Compiling PDF...")
 
     output = _run_script("render_pdf.py", [ctx["tex_path"]])
     result = json.loads(output)
@@ -305,18 +305,20 @@ def step_compile_pdf(ctx: dict, llm: LLMClient, console: Console) -> dict:
 def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     questions = ctx.get("all_questions", [])
     if not questions:
-        console.print("\n[bold]Step 8/10:[/bold] No questions — skipping.")
+        console.print("\n[bold]Step 8/9:[/bold] No questions — skipping.")
         ctx["qa_answers"] = []
         return ctx
 
     console.print(
-        f"\n[bold]Step 8/10:[/bold] Generating answers for "
+        f"\n[bold]Step 8/9:[/bold] Generating answers for "
         f"{len(questions)} questions..."
     )
 
-    # Company research
+    # Company research - use direct URL if provided, otherwise search
+    company_url = ctx.get("company_url")
+    company_name = ctx["job"].get("company", "")
     company_research = research_company(
-        ctx["job"].get("company", ""), console=console
+        company_name, company_url=company_url, console=console
     )
     ctx["company_research"] = company_research
 
@@ -389,14 +391,16 @@ def step_create_notion_entry(
     ctx: dict, llm: LLMClient, console: Console
 ) -> dict:
     if ctx.get("skip_notion"):
-        console.print("\n[bold]Step 9/10:[/bold] Skipping Notion (--skip-notion).")
+        console.print("\n[bold]Step 9/9:[/bold] Skipping Notion (--skip-notion).")
         return ctx
 
-    console.print("\n[bold]Step 9/10:[/bold] Creating Notion entry...")
+    console.print("\n[bold]Step 9/9:[/bold] Creating Notion entry...")
 
     qa_text = ""
     for qa in ctx.get("qa_answers", []):
         qa_text += f"Q: {qa['question']}\nA: {qa['answer']}\n\n"
+
+    from config import RESUME_VARIANT
 
     args = [
         "create",
@@ -406,19 +410,22 @@ def step_create_notion_entry(
     ]
     if qa_text:
         args += ["--qa", qa_text[:4000]]
+    if RESUME_VARIANT:
+        args += ["--variant", RESUME_VARIANT]
 
     try:
         output = _run_script("notion_tracker.py", args)
         result = json.loads(output)
         if result.get("success"):
             ctx["notion_page_id"] = result.get("page_id")
-            console.print(f"  [green]Created: {result.get('url', '')}[/green]")
+            console.print(f"  [green]✓ Created Notion entry: {result.get('url', '')}[/green]")
         else:
-            console.print(f"  [red]Failed: {result}[/red]")
+            console.print(f"  [red]✗ Notion failed: {result}[/red]")
     except Exception as e:
-        console.print(f"  [red]Notion error: {e}[/red]")
+        console.print(f"  [red]✗ Notion error: {e}[/red]")
         console.print("  Continuing without Notion entry.")
 
+    console.print("  [dim]Step 9/9 complete.[/dim]")
     return ctx
 
 

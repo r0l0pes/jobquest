@@ -9,6 +9,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import json
 from pathlib import Path
@@ -28,7 +29,6 @@ from modules.pipeline import (
     step_compile_pdf,
     step_generate_qa,
     step_create_notion_entry,
-    step_run_form_filler,
 )
 
 console = Console()
@@ -47,15 +47,16 @@ def parse_args():
     )
     parser.add_argument("job_url", help="URL of the job posting")
     parser.add_argument(
-        "--questions",
+        "--company-url",
         type=str,
         default=None,
-        help="Application questions separated by semicolons",
+        help="Company website URL for research (e.g., https://company.com)",
     )
     parser.add_argument(
-        "--skip-form",
-        action="store_true",
-        help="Skip the form filler step",
+        "--questions",
+        action="append",
+        default=[],
+        help="Application question (use multiple times for multiple questions)",
     )
     parser.add_argument(
         "--skip-notion",
@@ -63,11 +64,11 @@ def parse_args():
         help="Skip Notion tracking step",
     )
     parser.add_argument(
-        "--model",
+        "--provider",
         type=str,
-        default="gemini",
-        choices=["gemini"],
-        help="LLM provider (default: gemini)",
+        default=None,  # Will use LLM_PROVIDER env var or "gemini"
+        choices=["gemini", "groq", "sambanova"],
+        help="LLM provider (default: from LLM_PROVIDER env or gemini)",
     )
     parser.add_argument(
         "--dry-run",
@@ -87,7 +88,6 @@ STEPS = [
     ("compile", "Compile PDF", step_compile_pdf),
     ("qa", "Generate Q&A answers", step_generate_qa),
     ("notion", "Create Notion entry", step_create_notion_entry),
-    ("form", "Open form filler", step_run_form_filler),
 ]
 
 
@@ -102,8 +102,6 @@ def show_dry_run(ctx: dict):
         skip = ""
         if step_id == "notion" and ctx.get("skip_notion"):
             skip = "[yellow]SKIP[/yellow]"
-        elif step_id == "form" and ctx.get("skip_form"):
-            skip = "[yellow]SKIP[/yellow]"
         elif step_id == "qa" and not ctx.get("questions"):
             skip = "[dim]no questions[/dim]"
         else:
@@ -112,7 +110,7 @@ def show_dry_run(ctx: dict):
 
     console.print(table)
     console.print(f"\nJob URL: {ctx['job_url']}")
-    console.print(f"Model: {ctx.get('model', 'gemini')}")
+    console.print(f"Provider: {ctx.get('provider', 'gemini')} (cross-provider fallback enabled)")
     if ctx.get("questions"):
         console.print(f"Questions: {len(ctx['questions'])}")
 
@@ -157,17 +155,16 @@ def show_summary(ctx: dict):
 def main():
     args = parse_args()
 
+    # Resolve provider: CLI arg > env var > default
+    provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")
+
     # Build initial context
     ctx = {
         "job_url": args.job_url,
-        "questions": (
-            [q.strip() for q in args.questions.split(";") if q.strip()]
-            if args.questions
-            else []
-        ),
-        "skip_form": args.skip_form,
+        "company_url": args.company_url,
+        "questions": [q.strip() for q in args.questions if q.strip()],
         "skip_notion": args.skip_notion,
-        "model": args.model,
+        "provider": provider,
     }
 
     # Dry run
@@ -186,14 +183,14 @@ def main():
         Panel(
             f"[bold]JobQuest Pipeline[/bold]\n"
             f"URL: {args.job_url}\n"
-            f"Model: {args.model}",
+            f"Provider: {provider} (cross-provider fallback enabled)",
             style="blue",
         )
     )
 
-    # Initialize LLM
+    # Initialize LLM with cross-provider fallback
     try:
-        llm = create_client(args.model)
+        llm = create_client(provider=provider, fallback=True)
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
         sys.exit(1)
@@ -212,7 +209,8 @@ def main():
             _save_context(ctx)
             sys.exit(1)
 
-    # Done
+    # Done - save context and show summary
+    _save_context(ctx)
     console.print(
         Panel("[bold green]Pipeline complete.[/bold green]", style="green")
     )

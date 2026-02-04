@@ -1,6 +1,6 @@
 # JobQuest
 
-Automated job application pipeline for Product Manager roles in the European startup ecosystem. Paste a URL, get a tailored PDF resume + ATS report + application answers + Notion tracking.
+Automated job application pipeline. Paste a URL, get a tailored PDF resume + ATS report + application answers + Notion tracking.
 
 ## Quick Launch
 

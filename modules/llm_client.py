@@ -119,7 +119,7 @@ class GeminiClient(LLMClient):
                         ),
                     )
                     if model_id != self._model_id:
-                        print(f"  ✓ Success with fallback: {model_id.split('/')[-1]}")
+                        print(f"  ✓ Success with fallback: {model_id.split('/')[-1]}", flush=True)
                     return response.text
                 except Exception as e:
                     last_error = e
@@ -130,14 +130,14 @@ class GeminiClient(LLMClient):
 
                     # Daily limit hit → skip to next model immediately
                     if is_daily_limit:
-                        print(f"  Daily limit for {model_id.split('/')[-1]}, trying next model...")
+                        print(f"  Daily limit for {model_id.split('/')[-1]}, trying next model...", flush=True)
                         break
 
                     # Minute rate limit → short wait then retry or next model
                     if is_rate_limit and attempt < retries_for_model - 1:
                         match = re.search(r"retry in (\d+(?:\.\d+)?)", error_str.lower())
                         delay = min(float(match.group(1)) + 2, 35) if match else 20
-                        print(f"  Rate limit ({model_id.split('/')[-1]}). Waiting {delay:.0f}s...")
+                        print(f"  Rate limit ({model_id.split('/')[-1]}). Waiting {delay:.0f}s...", flush=True)
                         time.sleep(delay)
                     elif not is_rate_limit and attempt < retries_for_model - 1:
                         time.sleep(RETRY_BASE_DELAY * (2**attempt))
@@ -181,6 +181,9 @@ class GroqClient(LLMClient):
     ) -> str:
         import httpx
 
+        # Groq models support max 8192 output tokens
+        timeout = httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
+
         for attempt in range(MAX_RETRIES):
             try:
                 response = httpx.post(
@@ -196,19 +199,35 @@ class GroqClient(LLMClient):
                             {"role": "user", "content": user_prompt},
                         ],
                         "temperature": temperature,
-                        "max_tokens": 16384,
+                        "max_tokens": 8192,
                     },
-                    timeout=120.0,
+                    timeout=timeout,
                 )
                 response.raise_for_status()
-                return response.json()["choices"][0]["message"]["content"]
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            except httpx.TimeoutException as e:
+                print(f"  Timeout (Groq, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"Groq request timed out after {MAX_RETRIES} attempts")
+            except httpx.RequestError as e:
+                print(f"  Network error (Groq, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"Groq network error: {e}")
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 429 and attempt < MAX_RETRIES - 1:
                     delay = RETRY_BASE_DELAY * (2 ** attempt)
-                    print(f"  Rate limit (Groq). Waiting {delay}s...")
+                    print(f"  Rate limit (Groq). Waiting {delay}s...", flush=True)
                     time.sleep(delay)
                 else:
                     raise
+            except (KeyError, IndexError) as e:
+                # Unexpected response structure
+                raise RuntimeError(f"Groq returned unexpected response format: {e}")
 
     def model_name(self) -> str:
         return f"groq/{self._model_id}"
@@ -243,6 +262,9 @@ class SambaNovaClient(LLMClient):
     ) -> str:
         import httpx
 
+        # SambaNova can be slower, use longer read timeout
+        timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
+
         for attempt in range(MAX_RETRIES):
             try:
                 response = httpx.post(
@@ -258,19 +280,35 @@ class SambaNovaClient(LLMClient):
                             {"role": "user", "content": user_prompt},
                         ],
                         "temperature": temperature,
-                        "max_tokens": 16384,
+                        "max_tokens": 8192,
                     },
-                    timeout=180.0,
+                    timeout=timeout,
                 )
                 response.raise_for_status()
-                return response.json()["choices"][0]["message"]["content"]
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            except httpx.TimeoutException as e:
+                print(f"  Timeout (SambaNova, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"SambaNova request timed out after {MAX_RETRIES} attempts")
+            except httpx.RequestError as e:
+                print(f"  Network error (SambaNova, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"SambaNova network error: {e}")
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 429 and attempt < MAX_RETRIES - 1:
                     delay = RETRY_BASE_DELAY * (2 ** attempt)
-                    print(f"  Rate limit (SambaNova). Waiting {delay}s...")
+                    print(f"  Rate limit (SambaNova). Waiting {delay}s...", flush=True)
                     time.sleep(delay)
                 else:
                     raise
+            except (KeyError, IndexError) as e:
+                # Unexpected response structure
+                raise RuntimeError(f"SambaNova returned unexpected response format: {e}")
 
     def model_name(self) -> str:
         return f"sambanova/{self._model_id}"
@@ -320,7 +358,7 @@ class FallbackClient(LLMClient):
             )
 
         # Log available providers
-        print(f"  LLM: Primary={primary_provider}, Fallback chain={self._available_providers}")
+        print(f"  LLM: Primary={primary_provider}, Fallback chain={self._available_providers}", flush=True)
 
     def generate(
         self,
@@ -351,7 +389,7 @@ class FallbackClient(LLMClient):
                 ])
 
                 if is_exhausted:
-                    print(f"  ⚠️  {provider} exhausted, trying next provider...")
+                    print(f"  ⚠️  {provider} exhausted, trying next provider...", flush=True)
                     continue
                 else:
                     # Non-rate-limit error, re-raise

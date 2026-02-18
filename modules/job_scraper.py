@@ -423,15 +423,12 @@ def _scrape_with_firecrawl(url: str) -> dict:
         raise ImportError("firecrawl-py not installed")
 
     app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
-    result = app.scrape_url(url, params={
-        "formats": ["markdown", "html"],
-        "waitFor": 3000,  # Wait for JS to render
-    })
+    doc = app.scrape(url, formats=["markdown", "html"], wait_for=3000)
 
     # Extract from markdown (cleaner) or fall back to HTML
-    markdown = result.get("markdown", "")
-    html = result.get("html", "")
-    metadata = result.get("metadata", {})
+    markdown = doc.markdown or ""
+    html = doc.html or ""
+    metadata = doc.metadata_dict or {}
 
     title = metadata.get("title", "")
     description = markdown if markdown else ""
@@ -740,19 +737,119 @@ def scrape_job_posting(
 # ─── Company Research ─────────────────────────────────────────────
 
 
+def _discover_important_pages(base_url: str) -> list[str]:
+    """Discover important pages on a company website for research.
+
+    Companies use different names for similar content. We look for all variations.
+    """
+    from urllib.parse import urljoin, urlparse
+
+    # Comprehensive list of paths - companies use different naming conventions
+    important_paths = [
+        # About / Company
+        "/about", "/about-us", "/company", "/our-story", "/who-we-are",
+        "/team", "/our-team", "/leadership", "/our-mission",
+        # Products / Solutions / Services
+        "/solutions", "/products", "/services", "/platform", "/offerings",
+        "/what-we-do", "/our-work", "/features", "/capabilities",
+        # Case Studies / Clients / Success
+        "/case-studies", "/case-study", "/customers", "/success-stories",
+        "/clients", "/portfolio", "/our-impact", "/results", "/testimonials",
+        "/partners", "/trusted-by",
+        # Industries / Use Cases
+        "/industries", "/sectors", "/use-cases", "/for-banks", "/for-enterprise",
+        # Insights / News / Blog
+        "/insights", "/blog", "/resources", "/news", "/press",
+        "/updates", "/announcements", "/articles",
+        # Why Us / How it Works
+        "/why-us", "/why-choose-us", "/how-it-works", "/our-approach",
+    ]
+
+    pages = [base_url]  # Always include homepage
+
+    # Try to fetch homepage and find links
+    try:
+        resp = requests.get(base_url, headers=_HEADERS, timeout=10)
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Find links in navigation
+        for nav in soup.find_all(["nav", "header"]):
+            for a in nav.find_all("a", href=True):
+                href = a["href"]
+                # Check if it matches important paths
+                for path in important_paths:
+                    if path in href.lower():
+                        full_url = urljoin(base_url, href)
+                        # Only add if same domain
+                        if urlparse(full_url).netloc == urlparse(base_url).netloc:
+                            if full_url not in pages:
+                                pages.append(full_url)
+                                if len(pages) >= 5:  # Limit to 5 pages
+                                    return pages
+    except Exception:
+        pass
+
+    # Fallback: try common paths directly
+    if len(pages) < 3:
+        for path in ["/about", "/solutions", "/case-studies", "/customers"]:
+            try:
+                test_url = urljoin(base_url, path)
+                resp = requests.head(test_url, headers=_HEADERS, timeout=5, allow_redirects=True)
+                if resp.status_code == 200 and test_url not in pages:
+                    pages.append(test_url)
+                    if len(pages) >= 5:
+                        break
+            except Exception:
+                continue
+
+    return pages
+
+
 def research_company(
     company_name: str, company_url: str | None = None, console: Console | None = None
 ) -> str:
-    """Research a company. Uses direct URL if provided, otherwise searches.
-    Returns company information as text.
+    """Research a company comprehensively for cover letter writing.
+
+    Fetches multiple pages: homepage, about, solutions, case studies, etc.
+    Returns company information as text for LLM context.
     """
     log = console.print if console else print
     log(f"  [dim]Researching {company_name}...[/dim]")
 
     results_text = []
 
-    # Strategy 1: Direct URL (most reliable)
-    if company_url:
+    # Strategy 1: Deep crawl with Firecrawl (best for cover letters)
+    if company_url and FIRECRAWL_API_KEY:
+        log(f"  [dim]Deep research via Firecrawl: {company_url}[/dim]")
+        try:
+            from firecrawl import FirecrawlApp
+            app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
+
+            # Discover important pages first
+            pages_to_fetch = _discover_important_pages(company_url)
+            log(f"  [dim]Found {len(pages_to_fetch)} pages to research[/dim]")
+
+            for page_url in pages_to_fetch[:5]:  # Limit to 5 pages
+                try:
+                    doc = app.scrape(page_url, formats=["markdown"], wait_for=2000)
+                    markdown = doc.markdown or ""
+                    if markdown and len(markdown) > 100:
+                        # Add section header based on URL
+                        section = page_url.split("/")[-1] or "Homepage"
+                        section = section.replace("-", " ").replace("_", " ").title()
+                        results_text.append(f"## {section}\nSource: {page_url}\n\n{markdown[:2500]}")
+                        log(f"  [dim]✓ Fetched: {section}[/dim]")
+                except Exception as e:
+                    continue
+
+            if results_text:
+                log(f"  [green]✓ Deep research complete ({len(results_text)} pages)[/green]")
+
+        except Exception as e:
+            log(f"  [yellow]Firecrawl deep research failed: {e}[/yellow]")
+
+    # Strategy 2: Single page fetch (fallback)
+    if not results_text and company_url:
         log(f"  [dim]Fetching company website: {company_url}[/dim]")
         try:
             direct_info = _fetch_company_page(company_url)
@@ -797,11 +894,8 @@ def _fetch_company_page(url: str) -> str:
         try:
             from firecrawl import FirecrawlApp
             app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
-            result = app.scrape_url(url, params={
-                "formats": ["markdown"],
-                "waitFor": 2000,
-            })
-            markdown = result.get("markdown", "")
+            doc = app.scrape(url, formats=["markdown"], wait_for=2000)
+            markdown = doc.markdown or ""
             if markdown and len(markdown) > 100:
                 # Truncate to reasonable size for company research
                 return markdown[:3000]

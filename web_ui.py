@@ -2,10 +2,12 @@
 """JobQuest Browser UI - Gradio-based interface for job applications."""
 
 import subprocess
+import signal
 import json
 import os
 from pathlib import Path
 from datetime import datetime
+from threading import Lock
 
 import gradio as gr
 
@@ -13,6 +15,10 @@ PROJECT_ROOT = Path(__file__).parent
 VENV_PYTHON = str(PROJECT_ROOT / "venv" / "bin" / "python")
 OUTPUT_DIR = PROJECT_ROOT / "output"
 STATS_FILE = PROJECT_ROOT / ".usage_stats.json"
+
+# Store running processes for each slot
+running_processes = {1: None, 2: None, 3: None}
+process_lock = Lock()
 
 
 def load_stats():
@@ -84,8 +90,28 @@ def get_recent_outputs():
     return f"Recent: {complete} complete, {pending} pending"
 
 
-def run_application(job_url, company_url, questions, provider):
-    """Run the application pipeline."""
+def stop_process(slot_num):
+    """Stop a running process for the given slot."""
+    global running_processes
+    with process_lock:
+        process = running_processes.get(slot_num)
+        if process and process.poll() is None:
+            try:
+                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                return "⏹️ Process stopped"
+            except Exception:
+                try:
+                    process.terminate()
+                    return "⏹️ Process terminated"
+                except:
+                    pass
+        return "No process to stop"
+
+
+def _run_pipeline(job_url, company_url, questions, provider, slot_num):
+    """Internal generator for running the pipeline."""
+    global running_processes
+
     if not job_url or not job_url.strip():
         yield "❌ Please enter a job URL"
         return
@@ -106,29 +132,43 @@ def run_application(job_url, company_url, questions, provider):
 
     yield f"🚀 Starting with {provider}...\n\n"
 
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        cwd=str(PROJECT_ROOT),
-        env=full_env,
-    )
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            cwd=str(PROJECT_ROOT),
+            env=full_env,
+            preexec_fn=os.setsid,
+        )
+    except Exception as e:
+        yield f"❌ Failed to start: {e}"
+        return
+
+    with process_lock:
+        running_processes[slot_num] = process
 
     output_lines = []
     providers_used = set()
 
-    for line in iter(process.stdout.readline, ''):
-        output_lines.append(line)
-        if "exhausted, trying next" in line.lower():
-            for p in ["gemini", "groq", "sambanova"]:
-                if p in line.lower():
-                    providers_used.add(p)
-        yield "".join(output_lines)
+    try:
+        for line in iter(process.stdout.readline, ''):
+            output_lines.append(line)
+            if "exhausted, trying next" in line.lower():
+                for p in ["gemini", "groq", "sambanova"]:
+                    if p in line.lower():
+                        providers_used.add(p)
+            yield "".join(output_lines)
 
-    process.wait()
+        process.wait()
+    finally:
+        with process_lock:
+            running_processes[slot_num] = None
 
+    # Update stats
     stats = load_stats()
     if provider not in stats["providers"]:
         stats["providers"][provider] = {"calls": 0, "apps": 0}
@@ -149,10 +189,23 @@ def run_application(job_url, company_url, questions, provider):
 
     if process.returncode == 0:
         output_lines.append("\n\n✅ **Complete!**")
+    elif process.returncode in (-15, -9):
+        output_lines.append("\n\n⏹️ **Stopped by user**")
     else:
-        output_lines.append("\n\n❌ **Failed** - check output above")
+        output_lines.append(f"\n\n❌ **Failed** (exit code: {process.returncode})")
 
     yield "".join(output_lines)
+
+
+# Create separate generator functions for each slot (can't use lambda with generators)
+def run_slot_1(job_url, company_url, questions, provider):
+    yield from _run_pipeline(job_url, company_url, questions, provider, 1)
+
+def run_slot_2(job_url, company_url, questions, provider):
+    yield from _run_pipeline(job_url, company_url, questions, provider, 2)
+
+def run_slot_3(job_url, company_url, questions, provider):
+    yield from _run_pipeline(job_url, company_url, questions, provider, 3)
 
 
 def create_app_form(slot_num):
@@ -178,25 +231,41 @@ def create_app_form(slot_num):
             value="gemini",
             label="Provider",
         )
-        submit_btn = gr.Button(f"Run #{slot_num}", variant="primary")
-        output = gr.Textbox(
-            label="Output",
-            lines=15,
-            max_lines=30,
-            interactive=False,
-        )
 
-    return job_url, company_url, questions, provider, submit_btn, output
+        with gr.Row():
+            submit_btn = gr.Button("▶ Run", variant="primary", scale=3)
+            stop_btn = gr.Button("⏹ Stop", variant="stop", scale=1)
+
+        with gr.Accordion("Output", open=True):
+            output = gr.Textbox(
+                label=None,
+                lines=15,
+                max_lines=30,
+                interactive=False,
+                show_label=False,
+            )
+
+        with gr.Accordion("Console", open=False):
+            console = gr.Textbox(
+                label=None,
+                value="Console output will appear here when there are errors or debug info.",
+                lines=8,
+                max_lines=15,
+                interactive=False,
+                show_label=False,
+            )
+
+    return job_url, company_url, questions, provider, submit_btn, stop_btn, output, console
 
 
 def create_ui():
     """Create the Gradio interface with 3 parallel forms."""
-    with gr.Blocks(title="JobQuest") as app:
-        gr.Markdown("# JobQuest")
+    with gr.Blocks(title="JobQuest", theme=gr.themes.Soft()) as app:
+        gr.Markdown("# 🎯 JobQuest")
 
         with gr.Row():
             stats_display = gr.Markdown(get_stats_display())
-            refresh_btn = gr.Button("Refresh", size="sm", scale=0)
+            refresh_btn = gr.Button("🔄 Refresh", size="sm", scale=0)
 
         recent_display = gr.Markdown(get_recent_outputs())
 
@@ -205,19 +274,25 @@ def create_ui():
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### Application 1")
-                j1, c1, q1, p1, b1, o1 = create_app_form(1)
+                j1, c1, q1, p1, b1, s1, o1, con1 = create_app_form(1)
 
             with gr.Column():
                 gr.Markdown("### Application 2")
-                j2, c2, q2, p2, b2, o2 = create_app_form(2)
+                j2, c2, q2, p2, b2, s2, o2, con2 = create_app_form(2)
 
             with gr.Column():
                 gr.Markdown("### Application 3")
-                j3, c3, q3, p3, b3, o3 = create_app_form(3)
+                j3, c3, q3, p3, b3, s3, o3, con3 = create_app_form(3)
 
-        b1.click(fn=run_application, inputs=[j1, c1, q1, p1], outputs=o1, concurrency_limit=None)
-        b2.click(fn=run_application, inputs=[j2, c2, q2, p2], outputs=o2, concurrency_limit=None)
-        b3.click(fn=run_application, inputs=[j3, c3, q3, p3], outputs=o3, concurrency_limit=None)
+        # Run buttons - use dedicated generator functions (not lambdas)
+        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1], outputs=[o1], concurrency_limit=None)
+        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2], outputs=[o2], concurrency_limit=None)
+        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3], outputs=[o3], concurrency_limit=None)
+
+        # Stop buttons
+        s1.click(fn=lambda: stop_process(1), outputs=[con1])
+        s2.click(fn=lambda: stop_process(2), outputs=[con2])
+        s3.click(fn=lambda: stop_process(3), outputs=[con3])
 
         refresh_btn.click(
             fn=lambda: (get_stats_display(), get_recent_outputs()),
@@ -235,5 +310,4 @@ if __name__ == "__main__":
         server_port=7860,
         share=False,
         inbrowser=True,
-        theme=gr.themes.Soft(),
     )

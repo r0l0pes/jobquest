@@ -12,14 +12,20 @@ def extract_latex(text: str) -> str | None:
     """Extract LaTeX content from LLM response.
 
     Strategies (in order):
+    0. Strip <think>...</think> blocks (DeepSeek reasoning models)
     1. ```latex ... ``` code block
     2. ```tex ... ``` code block
     3. Any ``` ... ``` block containing \\documentclass
     4. Raw \\documentclass ... \\end{document} substring
     """
+    # Strategy 0: Strip DeepSeek thinking tokens before parsing
+    # These can contain partial code/LaTeX that confuses later patterns
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+
     # Strategy 1 & 2: language-tagged code blocks
+    # Flexible: allow optional whitespace/newline after language tag
     for lang in ["latex", "tex"]:
-        pattern = rf"```{lang}\s*\n(.*?)```"
+        pattern = rf"```{lang}\s*(.*?)```"
         match = re.search(pattern, text, re.DOTALL)
         if match:
             content = match.group(1).strip()
@@ -27,7 +33,7 @@ def extract_latex(text: str) -> str | None:
                 return content
 
     # Strategy 3: untagged code block with LaTeX content
-    pattern = r"```\s*\n(.*?)```"
+    pattern = r"```\s*(.*?)```"
     for match in re.finditer(pattern, text, re.DOTALL):
         content = match.group(1).strip()
         if "\\documentclass" in content:
@@ -49,8 +55,11 @@ def parse_ats_report(text: str) -> dict:
     """
     result = {"json": None, "markdown": None}
 
+    # Strip DeepSeek thinking tokens before parsing
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+
     # --- Extract JSON ---
-    json_match = re.search(r"```json\s*\n(.*?)```", text, re.DOTALL)
+    json_match = re.search(r"```json\s*(.*?)```", text, re.DOTALL)
     if json_match:
         raw = json_match.group(1).strip()
         result["json"] = _safe_parse_json(raw)
@@ -60,7 +69,7 @@ def parse_ats_report(text: str) -> dict:
         result["json"] = _safe_parse_json(text.strip())
 
     # --- Extract Markdown ---
-    md_match = re.search(r"```markdown\s*\n(.*?)```", text, re.DOTALL)
+    md_match = re.search(r"```markdown\s*(.*?)```", text, re.DOTALL)
     if md_match:
         result["markdown"] = md_match.group(1).strip()
     else:
@@ -96,6 +105,9 @@ def parse_qa_answers(text: str) -> list[dict]:
     2. Simpler Q: / A: prefix pattern
     3. Numbered sections split by ---
     """
+    # Strip DeepSeek thinking tokens before parsing
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+
     # Strategy 1: markdown headers
     pattern = re.compile(
         r"###?\s*Q(?:uestion)?[:\s]+(.+?)(?:\n+)"

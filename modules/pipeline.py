@@ -402,11 +402,14 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
 def step_create_notion_entry(
     ctx: dict, llm: LLMClient, console: Console
 ) -> dict:
+    import sys
+
     if ctx.get("skip_notion"):
         console.print("\n[bold]Step 9/9:[/bold] Skipping Notion (--skip-notion).")
         return ctx
 
     console.print("\n[bold]Step 9/9:[/bold] Creating Notion entry...")
+    sys.stdout.flush()
 
     qa_text = ""
     for qa in ctx.get("qa_answers", []):
@@ -414,11 +417,18 @@ def step_create_notion_entry(
 
     from config import RESUME_VARIANT
 
+    job_title = ctx["job"].get("title", "Unknown")
+    company = ctx["job"].get("company", "Unknown")
+    job_url = ctx["job_url"]
+
+    console.print(f"  Job: {job_title} at {company}")
+    sys.stdout.flush()
+
     args = [
         "create",
-        "--title", ctx["job"].get("title", "Unknown"),
-        "--company", ctx["job"].get("company", "Unknown"),
-        "--url", ctx["job_url"],
+        "--title", job_title,
+        "--company", company,
+        "--url", job_url,
     ]
     if qa_text:
         args += ["--qa", qa_text[:4000]]
@@ -433,10 +443,14 @@ def step_create_notion_entry(
             console.print(f"  [green]✓ Created Notion entry: {result.get('url', '')}[/green]")
         else:
             console.print(f"  [red]✗ Notion failed: {result}[/red]")
+    except json.JSONDecodeError as e:
+        console.print(f"  [red]✗ Notion JSON parse error: {e}[/red]")
+        console.print(f"  [red]  Raw output: {output[:200]}[/red]")
     except Exception as e:
-        console.print(f"  [red]✗ Notion error: {e}[/red]")
+        console.print(f"  [red]✗ Notion error: {type(e).__name__}: {e}[/red]")
         console.print("  Continuing without Notion entry.")
 
+    sys.stdout.flush()
     console.print("  [dim]Step 9/9 complete.[/dim]")
     return ctx
 

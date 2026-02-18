@@ -17,6 +17,18 @@ output/Resume_Rodrigo-Lopes.tex
 output/ats_report_*.json
 output/ats_report_*.md
 
+# LaTeX build artifacts (templates/)
+templates/*.aux
+templates/*.log
+templates/*.out
+templates/*.pdf
+
+# Runtime state
+.usage_stats.json
+
+# Temporary analysis/debug docs
+Step-6-breaks-analysis.md
+
 # User requested exclusions
 Articles.md
 JOB_SEARCH_SYSTEM_HANDOFF.md

@@ -113,17 +113,45 @@ Yes — [brief context of where/when]. [Specific example with metric]. [What you
 Example: "Have you owned a B2B SaaS product end-to-end?"
 "Yes — at FORVIA HELLA I owned the B2B e-commerce platform serving 60,000+ workshops. I managed the full product lifecycle: discovery with workshop owners, roadmap prioritization, cross-functional delivery with engineering and data teams, and measuring outcomes (35% reduction in order completion time, 22-point NPS improvement). The platform enabled €12M+ cross-sell revenue in Year 1."
 
-**Cover Letter:** 250-350 words. Structure:
+**Cover Letter:** 250-350 words. Output in EXACT copy-paste format below.
+
+**MANDATORY FORMAT — Output exactly like this:**
 ```
-[Opening: Specific hook about the company/product — NOT generic mission statement]
+[Today's Date]
 
-[Body 1: Most relevant experience with metrics — match to their core need]
+Hiring Manager
+[Company Name]
+[City if known, otherwise omit]
 
-[Body 2: Second relevant experience or skill — show breadth]
+Dear Hiring Team,
 
-[Closing: What you want to build there + availability]
+[Opening paragraph: 2-3 sentences. Hook with something SPECIFIC from company research — a case study, product feature, recent launch. Connect to the role. NOT generic mission statements.]
+
+[Body paragraph 1: 3-4 sentences. Most relevant experience with metrics. Connect YOUR work to THEIR work. Example: "Your work with [Client X] on [problem] mirrors what I tackled at FORVIA HELLA, where I [specific action] resulting in [metric]."]
+
+[Body paragraph 2: 3-4 sentences. Second experience showing breadth — different domain, skill, or scale. Tie back to what they need.]
+
+[Closing paragraph: 2 sentences. What you want to contribute + availability. End with clear call to action.]
+
+Best regards,
+Rodrigo Lopes
+Senior Product Manager
+Berlin, Germany
+rodrigo@lfrcarvalho.com | +49 176 8018 7771
 ```
-Keep it concrete. No fluff. Every sentence should carry information.
+
+**Content Guidelines:**
+- Extract specifics from company research: products, case studies, clients, recent news
+- Reference AT LEAST ONE specific thing from their website (not generic mission)
+- Include at least 2 metrics from Rodrigo's background
+- No banned words (passionate, excited, thrilled, leverage, etc.)
+- Show understanding of their BUSINESS, not just the job posting
+
+**Example Opening (Good):**
+"Oradian's work digitizing rural banks across Southeast Asia — particularly the Cantilan Bank case study enabling 60,000 new accounts — connects directly to my experience at WFP building AI tools for low-literacy users in Tanzania."
+
+**Example Opening (Bad):**
+"I'm excited about Oradian's mission to democratize financial services."
 
 **Motivation:** What problem they're solving → Your relevant experience solving similar → Why now
 "At [Role], I [specific action with metric]. That's the kind of [skill] [Company] needs for [their challenge]."

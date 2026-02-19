@@ -36,6 +36,11 @@ Extract from the .tex file: summary text, each experience entry (role, company, 
 
 ### Step 3: Keyword Coverage Check
 
+If a **Candidate Skill Inventory** is provided in the user message, use it as ground truth for N/A vs MISSING classification:
+- Keyword is in the inventory → candidate has this skill → use COVERED / SEMANTIC / LOW_VIS / MISSING (never N/A)
+- Keyword is NOT in the inventory → candidate doesn't have this skill → N/A
+- No inventory provided → use your best judgement based on the resume content
+
 For each keyword, classify using semantic matching:
 
 | Status | Meaning |
@@ -43,7 +48,7 @@ For each keyword, classify using semantic matching:
 | COVERED | Appears in Summary or Experience bullets (high visibility) |
 | SEMANTIC | Close synonym appears but not exact term (risky with older ATS) |
 | LOW_VIS | Appears only in Skills/Certifications section |
-| MISSING | Not found anywhere in resume |
+| MISSING | Not found anywhere in resume but candidate HAS this skill — add it |
 | N/A | Candidate doesn't have this skill (do not add) |
 
 Semantic matching rules:

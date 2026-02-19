@@ -125,18 +125,28 @@ def blocks_to_text(blocks, indent=0):
 
 
 def read_database(db_id):
-    """Read all entries from a Notion database with pagination."""
+    """Read all entries from a Notion database with pagination.
+
+    notion-client v2.7.0 moved query from databases to data_sources.
+    The data_source (collection) ID is retrieved from the database object.
+    """
     print(f"Reading database {db_id}...", file=sys.stderr)
+
+    db_info = notion.databases.retrieve(database_id=db_id)
+    data_sources = db_info.get("data_sources", [])
+    if not data_sources:
+        raise RuntimeError(f"No data_sources found for database {db_id}")
+    collection_id = data_sources[0]["id"]
 
     entries = []
     cursor = None
 
     while True:
-        params = {"database_id": db_id, "page_size": 100}
+        params = {"data_source_id": collection_id, "page_size": 100}
         if cursor:
             params["start_cursor"] = cursor
 
-        response = notion.databases.query(**params)
+        response = notion.data_sources.query(**params)
         for page in response["results"]:
             entry = {"id": page["id"], "properties": {}}
             for prop_name, prop_val in page.get("properties", {}).items():

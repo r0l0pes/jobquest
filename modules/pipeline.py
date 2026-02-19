@@ -159,11 +159,89 @@ def step_write_tex(ctx: dict, llm: LLMClient, console: Console) -> dict:
     return ctx
 
 
+# ─── Notion DB helpers ───────────────────────────────────────────
+
+
+def _load_skills_inventory(console: Console) -> str:
+    """Read Skills & Keywords DB and format as a text list for prompts.
+
+    Returns empty string if DB is unavailable — steps degrade gracefully.
+    """
+    try:
+        from config import SKILLS_KEYWORDS_DB_ID
+        if not SKILLS_KEYWORDS_DB_ID:
+            return ""
+        output = _run_script("notion_reader.py", ["database", SKILLS_KEYWORDS_DB_ID])
+        entries = json.loads(output).get("entries", [])
+        lines = []
+        for e in entries:
+            props = e.get("properties", {})
+            name = props.get("Name", "")
+            if not name:
+                continue
+            cat = props.get("Category") or ""
+            prof = props.get("Proficiency") or ""
+            priority = props.get("ATS Priority") or ""
+            lines.append(f"- {name} | {cat} | {prof} | Priority: {priority}")
+        return "\n".join(lines)
+    except Exception as err:
+        console.print(f"  [dim]Skills DB unavailable ({err}) — proceeding without.[/dim]")
+        return ""
+
+
+def _load_qa_templates(console: Console) -> str:
+    """Read Q&A Templates DB and format for the Q&A generation prompt.
+
+    Returns empty string if DB is empty or unavailable.
+    """
+    try:
+        from config import QA_TEMPLATES_DB_ID
+        if not QA_TEMPLATES_DB_ID:
+            return ""
+        output = _run_script("notion_reader.py", ["database", QA_TEMPLATES_DB_ID])
+        entries = json.loads(output).get("entries", [])
+        lines = []
+        for e in entries:
+            props = e.get("properties", {})
+            question = props.get("Name", "")
+            if not question:
+                continue
+            category = props.get("Category") or ""
+            template = props.get("Template Answer") or ""
+            notes = props.get("Notes") or ""
+            block = f"**[{category}]** {question}"
+            if template:
+                block += f"\n{template}"
+            if notes:
+                block += f"\n*Notes: {notes}*"
+            lines.append(block)
+        return "\n\n".join(lines)
+    except Exception as err:
+        console.print(f"  [dim]Q&A Templates DB unavailable ({err}) — proceeding without.[/dim]")
+        return ""
+
+
 # ─── Step 5: ATS Check via LLM ───────────────────────────────────
 
 
 def step_ats_check(ctx: dict, llm: LLMClient, console: Console) -> dict:
     console.print("\n[bold]Step 5/9:[/bold] Running ATS keyword check...")
+
+    # Load skill inventory once per run (cached on ctx)
+    if "skills_inventory" not in ctx:
+        ctx["skills_inventory"] = _load_skills_inventory(console)
+
+    skills_section = ""
+    if ctx["skills_inventory"]:
+        skills_section = (
+            f"---\n\n"
+            f"## Candidate Skill Inventory\n\n"
+            f"Confirmed skills (Name | Category | Proficiency | ATS Priority). "
+            f"Use this to classify N/A vs MISSING accurately — "
+            f"only mark N/A if the skill is absent from this list:\n\n"
+            f"{ctx['skills_inventory']}\n\n"
+        )
+        console.print(f"  Skill inventory loaded ({len(ctx['skills_inventory'].splitlines())} skills)")
 
     system_prompt = _load_prompt("ats_check")
     user_prompt = (
@@ -175,6 +253,7 @@ def step_ats_check(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"## Tailored Resume (.tex)\n\n"
         f"{ctx['tailored_latex']}\n\n"
         f"---\n\n"
+        f"{skills_section}"
         f"Run the full ATS coverage and consistency check. "
         f"Output the JSON report between ```json and ``` markers, "
         f"then the Markdown report between ```markdown and ``` markers."
@@ -334,6 +413,21 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     )
     ctx["company_research"] = company_research
 
+    # Load Q&A templates (cached on ctx; graceful empty fallback)
+    if "qa_templates" not in ctx:
+        ctx["qa_templates"] = _load_qa_templates(console)
+
+    templates_section = ""
+    if ctx["qa_templates"]:
+        templates_section = (
+            f"---\n\n"
+            f"## Q&A Templates\n\n"
+            f"Common question patterns with preferred answer structures. "
+            f"Use these as style guides — do NOT copy verbatim, adapt to this specific role:\n\n"
+            f"{ctx['qa_templates']}\n\n"
+        )
+        console.print(f"  Q&A templates loaded")
+
     system_prompt = _load_prompt("qa_generator")
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)
@@ -348,6 +442,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"---\n\n"
         f"## Master Resume\n\n{ctx['master_resume'][:3000]}\n\n"
         f"---\n\n"
+        f"{templates_section}"
         f"## Questions to Answer\n\n{questions_text}\n\n"
         f"---\n\n"
         f"Generate answers for each question."

@@ -177,19 +177,31 @@ Primary Provider (user-selected)
 
 ### Web Scraping Strategy
 
+**Job posting scraping:**
 ```
 Job URL
     │
-    ├─ Known ATS? → Use API (Greenhouse, Lever, Ashby, Workable)
+    ├─ Known ATS? → Structured API (Greenhouse, Lever, Ashby, Workable, Personio, Screenloop)
     │
-    └─ Unknown? → HTML scraping
+    └─ Unknown?  → HTML scraping
                      │
-                     └─ Incomplete? → Firecrawl (if configured)
-                                          │
-                                          └─ Still incomplete? → Playwright
+                     └─ JS-heavy? → Playwright (free, headless Chromium)
+                                       │
+                                       └─ Still thin? → Firecrawl (if configured)
 ```
 
-**Why Firecrawl?** Modern job boards use heavy JavaScript, anti-bot measures, and dynamic content loading. Firecrawl handles these better than raw HTML scraping and is faster than spinning up Playwright.
+**Company research scraping** (used in step 8 for Q&A context):
+```
+Company URL provided?
+    │
+    ├─ Playwright first (free) — discovers up to 5 pages via nav links, renders JS
+    │
+    └─ Thin result? → Firecrawl (paid, only as fallback)
+                         │
+                         └─ Failed? → Plain HTML → Web search
+```
+
+Playwright is always tried first to avoid spending Firecrawl credits unnecessarily.
 
 ### Token Optimization
 
@@ -226,15 +238,18 @@ We considered several approaches to reduce Claude Code token usage:
 ## Changelog
 
 ### Feb 2026
+- Playwright-first company research (free, JS-rendering); Firecrawl now fallback only
+- Hardcoded resume taglines per variant (Growth PM / Generalist) — LLM can no longer change them
+- Notion API pinned to stable version (2022-06-28) to fix step 2 timeouts after notion-client v2.7.0
+- 24h local cache for master resume (avoids Notion on repeat runs; validates content length)
+- Generalist tagline updated to "End-to-end ownership. Outcomes delivered." (from real Berlin/Barcelona JD research)
+- Resume tailor prompt: explicit rules against shortening bullets and changing job titles
 - Browser UI with 3 parallel forms
 - Multi-provider LLM support (Gemini, Groq, SambaNova)
 - Cross-provider fallback on rate limits
 - Per-provider usage tracking
 - Added Personio, Screenloop, Greenhouse EU scrapers
 - `--company-url` flag for direct company research
-- "Never say no" rule for Q&A
-- Fixed LaTeX `\begin{document}` generation
-- Removed form filler (manual submission preferred)
 - Firecrawl integration for enhanced JS page scraping
 - Non-interactive mode for ATS review (auto-apply edits when running from UI)
 

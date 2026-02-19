@@ -9,7 +9,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import NOTION_TOKEN
 from notion_client import Client
 
-notion = Client(auth=NOTION_TOKEN)
+notion = Client(auth=NOTION_TOKEN, notion_version="2022-06-28")
+# Separate client for database queries — data_sources API requires 2025-09-03
+notion_db = Client(auth=NOTION_TOKEN)
 
 
 def fetch_blocks(block_id, depth=0, max_depth=5):
@@ -132,7 +134,7 @@ def read_database(db_id):
     """
     print(f"Reading database {db_id}...", file=sys.stderr)
 
-    db_info = notion.databases.retrieve(database_id=db_id)
+    db_info = notion_db.databases.retrieve(database_id=db_id)
     data_sources = db_info.get("data_sources", [])
     if not data_sources:
         raise RuntimeError(f"No data_sources found for database {db_id}")
@@ -146,7 +148,7 @@ def read_database(db_id):
         if cursor:
             params["start_cursor"] = cursor
 
-        response = notion.data_sources.query(**params)
+        response = notion_db.data_sources.query(**params)
         for page in response["results"]:
             entry = {"id": page["id"], "properties": {}}
             for prop_name, prop_val in page.get("properties", {}).items():

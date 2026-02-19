@@ -7,6 +7,7 @@ Steps call existing scripts via subprocess or new modules directly.
 import subprocess
 import json
 import re
+import time
 from pathlib import Path
 from datetime import date
 
@@ -24,6 +25,8 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 PROMPTS_DIR = PROJECT_ROOT / "prompts"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 VENV_PYTHON = str(PROJECT_ROOT / "venv" / "bin" / "python")
+RESUME_CACHE_FILE = PROJECT_ROOT / ".master_resume_cache.txt"
+RESUME_CACHE_TTL = 24 * 3600  # 24 hours
 
 
 def _load_prompt(name: str) -> str:
@@ -97,9 +100,28 @@ def step_read_master_resume(
 
     from config import MASTER_RESUME_ID
 
+    # Use local cache if fresh (avoids Notion API slowness on every run)
+    if RESUME_CACHE_FILE.exists():
+        age = time.time() - RESUME_CACHE_FILE.stat().st_mtime
+        if age < RESUME_CACHE_TTL:
+            output = RESUME_CACHE_FILE.read_text()
+            if len(output) < 500:
+                console.print(f"  [yellow]Cache corrupted ({len(output)} chars), re-fetching...[/yellow]")
+                RESUME_CACHE_FILE.unlink()
+            else:
+                console.print(f"  Loaded {len(output)} chars (cached {int(age / 3600)}h ago)")
+                ctx["master_resume"] = output
+                return ctx
+
     output = _run_script(
         "notion_reader.py", ["page", MASTER_RESUME_ID, "--text"]
     )
+    if len(output) < 500:
+        raise RuntimeError(
+            f"Master resume read returned suspiciously short content "
+            f"({len(output)} chars). Notion may be degraded. Raw: {output[:200]!r}"
+        )
+    RESUME_CACHE_FILE.write_text(output)
     ctx["master_resume"] = output
     console.print(f"  Loaded {len(output)} chars")
     return ctx
@@ -108,13 +130,31 @@ def step_read_master_resume(
 # ─── Step 3: Tailor Resume via LLM ───────────────────────────────
 
 
+TAGLINES = {
+    "growth_pm": "Experiments that accelerate revenue.",
+    "generalist": "End-to-end ownership. Outcomes delivered.",
+}
+
+
 def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
     console.print("\n[bold]Step 3/9:[/bold] Tailoring resume via {model}...".format(
         model=llm.model_name()
     ))
 
+    from config import ROLE_VARIANT
+    tagline = TAGLINES.get(ROLE_VARIANT, TAGLINES["growth_pm"])
+
     system_prompt = _load_prompt("resume_tailor")
     user_prompt = (
+        f"## Locked Header (copy character-for-character, do not change anything)\n\n"
+        f"\\begin{{center}}\n"
+        f"  {{\\Huge\\bfseries Rodrigo Lopes,}} {{\\small {tagline}}}\\\\[6pt]\n"
+        f"  \\href{{https://rodrigolopes.eu/?utm_source=resume&utm_medium=pdf}}{{rodrigolopes.eu}} \\textbar{{}}\n"
+        f"  \\href{{mailto:contact@rodrigolopes.eu}}{{contact@rodrigolopes.eu}} \\textbar{{}}\n"
+        f"  \\href{{https://www.linkedin.com/in/rodecalo/}}{{linkedin.com/in/rodecalo}} \\textbar{{}}\n"
+        f"  +49 0172 5626057\n"
+        f"\\end{{center}}\n\n"
+        f"---\n\n"
         f"## Job Posting\n\n"
         f"**URL:** {ctx['job']['url']}\n"
         f"**Title:** {ctx['job']['title']}\n"

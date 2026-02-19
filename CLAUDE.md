@@ -118,12 +118,25 @@ Prompt files:
 Scripts called via `subprocess.run()` return JSON on stdout. This isolates Notion calls and PDF rendering from the main pipeline. Follow this pattern for new external integrations.
 
 ### Web Scraping Hierarchy (`modules/job_scraper.py`)
+
+**Job posting scraping:**
 ```
 Known ATS platform? → Structured API (Greenhouse / Lever / Ashby / Workable / Personio / Screenloop)
 Unknown platform?   → HTML scraping
-                       → Firecrawl (if FIRECRAWL_API_KEY set)
-                         → Playwright headless browser
+                       → Playwright headless browser (if HTML is thin/JS-heavy)
+                         → Firecrawl (if FIRECRAWL_API_KEY set and Playwright insufficient)
 ```
+
+**Company research scraping** (step 8, Q&A generation):
+```
+Company URL provided? → Playwright (free, renders JS, one browser instance for up to 5 pages)
+                          → Firecrawl (if Playwright yields < 200 chars, requires API key)
+                            → Plain HTML fetch (last resort)
+No URL provided?      → Web search (Google → DuckDuckGo fallback)
+```
+
+The `_discover_important_pages()` function finds relevant pages (about, solutions, customers, blog, etc.) by crawling nav links before fetching. Playwright is always tried first to avoid spending Firecrawl credits unnecessarily.
+
 Add new ATS platforms to the structured API layer first; only fall through to HTML when necessary.
 
 ### Non-Interactive Mode

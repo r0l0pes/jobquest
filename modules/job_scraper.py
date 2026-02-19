@@ -805,6 +805,48 @@ def _discover_important_pages(base_url: str) -> list[str]:
     return pages
 
 
+def _fetch_company_pages_playwright(pages: list[str], log) -> list[str]:
+    """Fetch multiple company pages using a single Playwright browser instance.
+
+    Returns list of text strings, one per successfully fetched page.
+    """
+    from playwright.sync_api import sync_playwright
+
+    results = []
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            for url in pages[:5]:
+                try:
+                    pg = browser.new_page()
+                    pg.goto(url, wait_until="networkidle", timeout=20000)
+                    html = pg.content()
+                    pg.close()
+
+                    soup = BeautifulSoup(html, "html.parser")
+                    # Strip boilerplate
+                    for tag in soup(["script", "style", "nav", "header", "footer",
+                                     "aside", "form", "noscript"]):
+                        tag.decompose()
+
+                    text = soup.get_text(separator=" ", strip=True)
+                    # Collapse whitespace
+                    text = " ".join(text.split())
+
+                    if len(text) > 200:
+                        section = url.split("/")[-1] or "Homepage"
+                        section = section.replace("-", " ").replace("_", " ").title()
+                        results.append(f"## {section}\nSource: {url}\n\n{text[:2500]}")
+                        log(f"  [dim]✓ Playwright: {section}[/dim]")
+                except Exception:
+                    continue
+            browser.close()
+    except Exception as e:
+        log(f"  [yellow]Playwright company research failed: {e}[/yellow]")
+
+    return results
+
+
 def research_company(
     company_name: str, company_url: str | None = None, console: Console | None = None
 ) -> str:
@@ -812,54 +854,61 @@ def research_company(
 
     Fetches multiple pages: homepage, about, solutions, case studies, etc.
     Returns company information as text for LLM context.
+
+    Scraping order (cheapest first):
+      1. Playwright — free, renders JS, one browser instance for all pages
+      2. Firecrawl  — paid, better markdown; only if Playwright yields thin content
+      3. Plain HTML — last resort single-page fetch
+      4. Web search — when no company URL is provided
     """
     log = console.print if console else print
     log(f"  [dim]Researching {company_name}...[/dim]")
 
     results_text = []
 
-    # Strategy 1: Deep crawl with Firecrawl (best for cover letters)
-    if company_url and FIRECRAWL_API_KEY:
-        log(f"  [dim]Deep research via Firecrawl: {company_url}[/dim]")
-        try:
-            from firecrawl import FirecrawlApp
-            app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
+    if company_url:
+        pages_to_fetch = _discover_important_pages(company_url)
+        log(f"  [dim]Found {len(pages_to_fetch)} pages to research[/dim]")
 
-            # Discover important pages first
-            pages_to_fetch = _discover_important_pages(company_url)
-            log(f"  [dim]Found {len(pages_to_fetch)} pages to research[/dim]")
+        # Strategy 1: Playwright (free, JS-rendering)
+        results_text = _fetch_company_pages_playwright(pages_to_fetch, log)
+        if results_text:
+            total_chars = sum(len(r) for r in results_text)
+            log(f"  [green]✓ Playwright research: {len(results_text)} pages, {total_chars} chars[/green]")
 
-            for page_url in pages_to_fetch[:5]:  # Limit to 5 pages
-                try:
-                    doc = app.scrape(page_url, formats=["markdown"], wait_for=2000)
-                    markdown = doc.markdown or ""
-                    if markdown and len(markdown) > 100:
-                        # Add section header based on URL
-                        section = page_url.split("/")[-1] or "Homepage"
-                        section = section.replace("-", " ").replace("_", " ").title()
-                        results_text.append(f"## {section}\nSource: {page_url}\n\n{markdown[:2500]}")
-                        log(f"  [dim]✓ Fetched: {section}[/dim]")
-                except Exception as e:
-                    continue
+        # Strategy 2: Firecrawl if Playwright returned thin content
+        if not results_text and FIRECRAWL_API_KEY:
+            log(f"  [dim]Playwright thin — trying Firecrawl: {company_url}[/dim]")
+            try:
+                from firecrawl import FirecrawlApp
+                app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
+                for page_url in pages_to_fetch[:5]:
+                    try:
+                        doc = app.scrape(page_url, formats=["markdown"], wait_for=2000)
+                        markdown = doc.markdown or ""
+                        if markdown and len(markdown) > 100:
+                            section = page_url.split("/")[-1] or "Homepage"
+                            section = section.replace("-", " ").replace("_", " ").title()
+                            results_text.append(f"## {section}\nSource: {page_url}\n\n{markdown[:2500]}")
+                            log(f"  [dim]✓ Firecrawl: {section}[/dim]")
+                    except Exception:
+                        continue
+                if results_text:
+                    log(f"  [green]✓ Firecrawl research: {len(results_text)} pages[/green]")
+            except Exception as e:
+                log(f"  [yellow]Firecrawl failed: {e}[/yellow]")
 
-            if results_text:
-                log(f"  [green]✓ Deep research complete ({len(results_text)} pages)[/green]")
+        # Strategy 3: Plain HTML single-page fallback
+        if not results_text:
+            try:
+                direct_info = _fetch_company_page(company_url)
+                if direct_info:
+                    results_text.append(f"Source: {company_url}\n\n{direct_info}")
+                    log("  [dim]✓ Plain HTML fetch[/dim]")
+            except Exception as e:
+                log(f"  [yellow]Could not fetch company URL: {e}[/yellow]")
 
-        except Exception as e:
-            log(f"  [yellow]Firecrawl deep research failed: {e}[/yellow]")
-
-    # Strategy 2: Single page fetch (fallback)
-    if not results_text and company_url:
-        log(f"  [dim]Fetching company website: {company_url}[/dim]")
-        try:
-            direct_info = _fetch_company_page(company_url)
-            if direct_info:
-                results_text.append(f"Source: {company_url}\n\n{direct_info}")
-                log("  [dim]✓ Company website fetched[/dim]")
-        except Exception as e:
-            log(f"  [yellow]Could not fetch company URL: {e}[/yellow]")
-
-    # Strategy 2: Search (fallback)
+    # Strategy 4: Search (no URL provided, or all fetches failed)
     if not results_text:
         queries = [
             f"{company_name} recent news product launches 2025 2026",

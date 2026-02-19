@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import NOTION_TOKEN, APPLICATIONS_DB_ID
 from notion_client import Client
 
-notion = Client(auth=NOTION_TOKEN)
+notion = Client(auth=NOTION_TOKEN, notion_version="2022-06-28")
 
 # Actual schema for Applications DB (discovered via API)
 EXPECTED_PROPERTIES = {

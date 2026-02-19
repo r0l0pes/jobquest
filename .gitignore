@@ -25,6 +25,7 @@ templates/*.pdf
 
 # Runtime state
 .usage_stats.json
+.master_resume_cache.txt
 
 # Temporary analysis/debug docs
 Step-6-breaks-analysis.md
@@ -44,3 +45,5 @@ session_handoff.md
 market_research_growth_pm_de_es_2026.md
 thirty_Day_Job_Search_Roadmap.md
 PM_job_refs.md
+research/
+TODO.md

@@ -33,11 +33,13 @@ The tailored resume must:
 ## Core Constraints & Rules
 
 ### NEVER:
-- **Modify the header block** — copy it EXACTLY as-is from the master resume (name, tagline, links, phone)
+- **Modify the name, tagline, links, or phone** — the header is passed explicitly in the prompt; copy it character-for-character, do not rewrite or paraphrase any part of it
+- **Change job titles** — "Senior Product Manager" stays "Senior Product Manager". Never substitute "Founding", "Lead", or any other title, even if it matches the job posting
 - **Fabricate** roles, skills, technologies, achievements, or dates
 - **Add skills the candidate doesn't have** — if the job asks for Kubernetes and the master resume doesn't mention it, DO NOT add it
 - **Change verified metrics or achievements** — numbers are sacred
 - **Inflate scope** — "coordinated" is NOT "led"; "managed roadmap" is NOT "managed team"
+- **Shorten or condense experience bullets** — each bullet must preserve the full depth and detail of the master resume. If a bullet in the master is 3 lines long, the tailored version must also be ~3 lines. You may rephrase words or insert keywords naturally, but you may NOT remove context, drop clauses, or summarise
 - **Keyword-stuff** — unnatural repetition triggers ATS penalties
 - **Use markdown formatting** — ABSOLUTELY NO `**bold**`, `*italics*`, or `__underline__`. Use ONLY LaTeX: `\textbf{}` for bold, `\textit{}` for italics. Markdown will break PDF compilation.
 - **Use em dashes** (`---` in LaTeX, or `—` as Unicode) anywhere in the resume. Use a comma, colon, or sentence break instead.
@@ -49,13 +51,12 @@ The tailored resume must:
 - **Make keyword insertion feel natural** to a human reader
 - **Preserve all verified metrics exactly as-is**
 - **Maintain honest scope descriptions**
-- **Preserve depth and detail** — do NOT shorten or shallow the bullets; keep the original context and richness
 - **Escape all special LaTeX characters** (see rules below)
 - **Keep the section order** exactly: Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 - **Use the exact same LaTeX preamble and styling** as the master resume
 
 ### You MAY:
-- **Rephrase, reorder within sections, condense, or expand** existing content when supported by the master resume
+- **Rephrase individual words or short phrases** within bullets to incorporate keywords naturally — but the bullet must remain the same length and depth
 - **Infer implicit skills** only if clearly demonstrated by described work (e.g., "led a team" → leadership)
 - **Reorder skills within a category** to prioritize job-relevant ones first
 - **Adjust the Summary section** to emphasize job-aligned themes
@@ -86,16 +87,9 @@ Use this exact document structure (copy from master resume):
 \begin{document}
 ```
 
-**Header block — COPY EXACTLY, DO NOT MODIFY:**
-```latex
-\begin{center}
-  {\Huge\bfseries Rodrigo Lopes,} {\small Experiments that accelerate revenue.}\\[6pt]
-  \href{https://rodrigolopes.eu/?utm_source=resume&utm_medium=pdf}{rodrigolopes.eu} \textbar{}
-  \href{mailto:contact@rodrigolopes.eu}{contact@rodrigolopes.eu} \textbar{}
-  \href{https://www.linkedin.com/in/rodecalo/}{linkedin.com/in/rodecalo} \textbar{}
-  +49 0172 5626057
-\end{center}
-```
+**Header block:**
+
+The user prompt contains a `## Locked Header` section with the exact LaTeX to use. Copy it verbatim into the document. Do not rewrite, rephrase, or alter a single character.
 
 **Section order:** Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 

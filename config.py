@@ -23,3 +23,7 @@ APPLICANT_LOCATION = os.getenv("APPLICANT_LOCATION", "")
 # Resume A/B Testing
 # Options: "Tech-First" (Technical Proficiency before Experience), "Exp-First" (default)
 RESUME_VARIANT = os.getenv("RESUME_VARIANT", "Tech-First")
+
+# Role variant — set by web UI toggle, drives Q&A framing
+# Options: "growth_pm" | "generalist"
+ROLE_VARIANT = os.getenv("ROLE_VARIANT", "growth_pm")

@@ -16,6 +16,11 @@ VENV_PYTHON = str(PROJECT_ROOT / "venv" / "bin" / "python")
 OUTPUT_DIR = PROJECT_ROOT / "output"
 STATS_FILE = PROJECT_ROOT / ".usage_stats.json"
 
+RESUME_VARIANTS = {
+    "Growth PM": "2f40fd98-227b-8083-a78f-c61c38e55a12",
+    "Generalist": "30b0fd98-227b-8195-9649-fe5287cb8cb9",
+}
+
 # Store running processes for each slot
 running_processes = {1: None, 2: None, 3: None}
 process_lock = Lock()
@@ -108,7 +113,7 @@ def stop_process(slot_num):
         return "No process to stop"
 
 
-def _run_pipeline(job_url, company_url, questions, provider, slot_num):
+def _run_pipeline(job_url, company_url, questions, provider, resume_variant, slot_num):
     """Internal generator for running the pipeline."""
     global running_processes
 
@@ -130,7 +135,13 @@ def _run_pipeline(job_url, company_url, questions, provider, slot_num):
     full_env["LLM_PROVIDER"] = provider
     full_env["PYTHONUNBUFFERED"] = "1"
 
-    yield f"🚀 Starting with {provider}...\n\n"
+    # Override master resume ID and set role variant for the subprocess
+    variant_label = resume_variant or "Growth PM"
+    resume_id = RESUME_VARIANTS.get(variant_label, RESUME_VARIANTS["Growth PM"])
+    full_env["NOTION_MASTER_RESUME_ID"] = resume_id
+    full_env["ROLE_VARIANT"] = variant_label.lower().replace(" ", "_")
+
+    yield f"🚀 Starting with {provider} · {variant_label} resume...\n\n"
 
     try:
         process = subprocess.Popen(
@@ -198,14 +209,14 @@ def _run_pipeline(job_url, company_url, questions, provider, slot_num):
 
 
 # Create separate generator functions for each slot (can't use lambda with generators)
-def run_slot_1(job_url, company_url, questions, provider):
-    yield from _run_pipeline(job_url, company_url, questions, provider, 1)
+def run_slot_1(job_url, company_url, questions, provider, resume_variant):
+    yield from _run_pipeline(job_url, company_url, questions, provider, resume_variant, 1)
 
-def run_slot_2(job_url, company_url, questions, provider):
-    yield from _run_pipeline(job_url, company_url, questions, provider, 2)
+def run_slot_2(job_url, company_url, questions, provider, resume_variant):
+    yield from _run_pipeline(job_url, company_url, questions, provider, resume_variant, 2)
 
-def run_slot_3(job_url, company_url, questions, provider):
-    yield from _run_pipeline(job_url, company_url, questions, provider, 3)
+def run_slot_3(job_url, company_url, questions, provider, resume_variant):
+    yield from _run_pipeline(job_url, company_url, questions, provider, resume_variant, 3)
 
 
 def create_app_form(slot_num):
@@ -226,11 +237,17 @@ def create_app_form(slot_num):
             placeholder="Why this role?\nCover letter",
             lines=4,
         )
-        provider = gr.Radio(
-            choices=["gemini", "groq", "sambanova"],
-            value="gemini",
-            label="Provider",
-        )
+        with gr.Row():
+            resume_variant = gr.Radio(
+                choices=["Growth PM", "Generalist"],
+                value="Growth PM",
+                label="Resume",
+            )
+            provider = gr.Radio(
+                choices=["gemini", "groq", "sambanova"],
+                value="gemini",
+                label="Provider",
+            )
 
         with gr.Row():
             submit_btn = gr.Button("▶ Run", variant="primary", scale=3)
@@ -255,7 +272,7 @@ def create_app_form(slot_num):
                 show_label=False,
             )
 
-    return job_url, company_url, questions, provider, submit_btn, stop_btn, output, console
+    return job_url, company_url, questions, provider, resume_variant, submit_btn, stop_btn, output, console
 
 
 def create_ui():
@@ -274,20 +291,20 @@ def create_ui():
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### Application 1")
-                j1, c1, q1, p1, b1, s1, o1, con1 = create_app_form(1)
+                j1, c1, q1, p1, r1, b1, s1, o1, con1 = create_app_form(1)
 
             with gr.Column():
                 gr.Markdown("### Application 2")
-                j2, c2, q2, p2, b2, s2, o2, con2 = create_app_form(2)
+                j2, c2, q2, p2, r2, b2, s2, o2, con2 = create_app_form(2)
 
             with gr.Column():
                 gr.Markdown("### Application 3")
-                j3, c3, q3, p3, b3, s3, o3, con3 = create_app_form(3)
+                j3, c3, q3, p3, r3, b3, s3, o3, con3 = create_app_form(3)
 
         # Run buttons - use dedicated generator functions (not lambdas)
-        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1], outputs=[o1], concurrency_limit=None)
-        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2], outputs=[o2], concurrency_limit=None)
-        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3], outputs=[o3], concurrency_limit=None)
+        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1, r1], outputs=[o1], concurrency_limit=None)
+        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2, r2], outputs=[o2], concurrency_limit=None)
+        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3, r3], outputs=[o3], concurrency_limit=None)
 
         # Stop buttons
         s1.click(fn=lambda: stop_process(1), outputs=[con1])

@@ -428,6 +428,22 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         )
         console.print(f"  Q&A templates loaded")
 
+    from config import ROLE_VARIANT
+    role_framing = {
+        "growth_pm": (
+            "Resume variant: **Growth PM**. "
+            "Foreground growth and conversion experiences: Accenture (45% CVR, LatAm growth) "
+            "and C&A Brasil (checkout optimisation, experimentation). "
+            "WFP for AI/research depth. HELLA as secondary."
+        ),
+        "generalist": (
+            "Resume variant: **Generalist PM**. "
+            "Foreground full product lifecycle and stakeholder management: FORVIA HELLA "
+            "(B2B platform, roadmap, cross-functional delivery, €12M revenue). "
+            "Accenture and C&A as supporting evidence of execution breadth."
+        ),
+    }.get(ROLE_VARIANT, "")
+
     system_prompt = _load_prompt("qa_generator")
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)
@@ -445,6 +461,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"{templates_section}"
         f"## Questions to Answer\n\n{questions_text}\n\n"
         f"---\n\n"
+        f"{role_framing}\n\n"
         f"Generate answers for each question."
     )
 

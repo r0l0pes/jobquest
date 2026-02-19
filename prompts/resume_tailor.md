@@ -40,7 +40,8 @@ The tailored resume must:
 - **Inflate scope** — "coordinated" is NOT "led"; "managed roadmap" is NOT "managed team"
 - **Keyword-stuff** — unnatural repetition triggers ATS penalties
 - **Use markdown formatting** — ABSOLUTELY NO `**bold**`, `*italics*`, or `__underline__`. Use ONLY LaTeX: `\textbf{}` for bold, `\textit{}` for italics. Markdown will break PDF compilation.
-- **Change the document structure** — sections must remain in the same order
+- **Use em dashes** (`---` in LaTeX, or `—` as Unicode) anywhere in the resume. Use a comma, colon, or sentence break instead.
+- **Change the document structure** — sections must remain in order: Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 - **Use Jinja2 variables or placeholders** — write complete content directly
 
 ### ALWAYS:
@@ -50,7 +51,7 @@ The tailored resume must:
 - **Maintain honest scope descriptions**
 - **Preserve depth and detail** — do NOT shorten or shallow the bullets; keep the original context and richness
 - **Escape all special LaTeX characters** (see rules below)
-- **Keep the same section order** as the master resume
+- **Keep the section order** exactly: Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 - **Use the exact same LaTeX preamble and styling** as the master resume
 
 ### You MAY:
@@ -88,7 +89,7 @@ Use this exact document structure (copy from master resume):
 **Header block — COPY EXACTLY, DO NOT MODIFY:**
 ```latex
 \begin{center}
-  {\Huge\bfseries Rodrigo Lopes,} {\small Platform, E-commerce \& AI Product Manager.}\\[6pt]
+  {\Huge\bfseries Rodrigo Lopes,} {\small Experiments that accelerate revenue.}\\[6pt]
   \href{https://rodrigolopes.eu/?utm_source=resume&utm_medium=pdf}{rodrigolopes.eu} \textbar{}
   \href{mailto:contact@rodrigolopes.eu}{contact@rodrigolopes.eu} \textbar{}
   \href{https://www.linkedin.com/in/rodecalo/}{linkedin.com/in/rodecalo} \textbar{}
@@ -96,11 +97,11 @@ Use this exact document structure (copy from master resume):
 \end{center}
 ```
 
-**Section order:** Summary → Technical Proficiency → Experience → Certifications → Languages → Education
+**Section order:** Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 
-**Technical Proficiency format — MUST be bullet list, NOT paragraph:**
+**Skills \& Tools format — MUST be bullet list, NOT paragraph:**
 ```latex
-\section*{Technical Proficiency}
+\section*{Skills \& Tools}
 \begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=3pt, parsep=0pt]
 \item \textbf{Category Name:} Skill 1, Skill 2, Skill 3
 \item \textbf{Another Category:} Skill A, Skill B, Skill C
@@ -172,7 +173,7 @@ Categorize keywords:
 - Replace generic terms with job-specific terms (only when accurate)
 - Example: "managed product roadmap" → "managed product roadmap using OKRs" (if job mentions OKRs AND candidate used them)
 
-**Technical Proficiency section:**
+**Skills \& Tools section:**
 - Reorder items within each category to prioritize job-relevant skills first
 - Do NOT add new skills not present in master resume
 

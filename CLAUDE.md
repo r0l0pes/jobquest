@@ -145,6 +145,8 @@ Add new ATS platforms to the structured API layer first; only fall through to HT
 ### Parser Resilience (`modules/parsers.py`)
 Parsers strip `<think>...</think>` blocks (from DeepSeek-style reasoning models) before extracting LaTeX, JSON, or markdown from LLM responses. Any new parser functions must also handle these tokens.
 
+`fix_markdown_lists()` is applied after every LLM LaTeX response (steps 3 and 6). It converts bare `- item` lines under `\section*{}` headings into proper `\begin{itemize}...\end{itemize}` blocks. This corrects a common LLM formatting failure in Certifications, Languages, and Education sections.
+
 ---
 
 ## Key Dependencies
@@ -208,6 +210,8 @@ Refer to the `SKILL.md` in each directory before invoking or modifying a skill.
 - **Keep prompts honest.** ATS keyword insertion must be natural — never stuff.
 - **Preserve verified metrics.** Numbers and scope in the master resume must not be altered.
 - **Minimal changes.** This is a personal productivity tool. Avoid over-engineering.
+- **No em dashes anywhere** in generated output (resumes, cover letters, Q&A answers). Use commas, colons, or sentence breaks instead. This applies to prompts and any text written by Claude Code as well.
+- **Writing quality rules live in the prompts.** `prompts/resume_tailor.md` and `prompts/qa_generator.md` contain banned phrase lists, narrative connection principles, and pre-output quality checklists. Do not bypass or weaken these when modifying prompts.
 
 ---
 

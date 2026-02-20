@@ -8,6 +8,35 @@ import re
 import json
 
 
+def fix_markdown_lists(tex: str) -> str:
+    """Fix bare '- item' lines under \\section* headings into proper LaTeX itemize.
+
+    The LLM sometimes forgets to wrap Certifications / Languages / Education
+    in \\begin{itemize}...\\end{itemize} and uses markdown-style '- item' instead.
+    Those dashes render as inline text in LaTeX, causing all items to merge into
+    one paragraph. This function converts them to proper LaTeX bullet lists.
+    """
+
+    def convert_block(match):
+        pre = match.group(1)       # \\section*{...} + optional \\vspace line
+        items_raw = match.group(2)  # the "- item" lines
+        items = re.sub(r"^- ", r"\\item ", items_raw.strip(), flags=re.MULTILINE)
+        return (
+            pre + "\n"
+            r"\begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=2pt, parsep=0pt]"
+            "\n" + items + "\n"
+            r"\end{itemize}"
+        )
+
+    pattern = re.compile(
+        r"(\\section\*\{[^}]+\}(?:\s*\n\\vspace\{[^}]+\})?)"  # section + optional vspace
+        r"\s*\n"                                                  # newline
+        r"((?:^- .+$\n?)+)",                                     # one or more "- item" lines
+        re.MULTILINE,
+    )
+    return pattern.sub(convert_block, tex)
+
+
 def extract_latex(text: str) -> str | None:
     """Extract LaTeX content from LLM response.
 

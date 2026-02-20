@@ -45,6 +45,16 @@ The tailored resume must:
 - **Use em dashes** (`---` in LaTeX, or `—` as Unicode) anywhere in the resume. Use a comma, colon, or sentence break instead.
 - **Change the document structure** — sections must remain in order: Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 - **Use Jinja2 variables or placeholders** — write complete content directly
+- **Use these banned phrases** anywhere in the resume:
+  - "Proven track record" / "track record of"
+  - "passionate" / "passion for"
+  - "excited about" / "thrilled to"
+  - "leverage" (use "use" or "apply")
+  - "driven" as a personality adjective
+  - "synergy" / "synergies"
+  - "results-driven" / "data-driven" as standalone adjectives (show it, don't claim it)
+  - "I believe" / "I think" / "I feel"
+  - Any sentence starting with "As a Product Manager..."
 
 ### ALWAYS:
 - **Only add keywords for skills the candidate actually possesses** (evidence must exist in master resume)
@@ -103,13 +113,42 @@ The user prompt contains a `## Locked Header` section with the exact LaTeX to us
 ```
 ⚠️ CRITICAL: Each category MUST be a separate `\item` with `\textbf{Category:}` prefix. NEVER write this section as a paragraph.
 
+**Certifications format — MUST be bullet list, NOT paragraph with dashes:**
+```latex
+\section*{Certifications}
+\begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=2pt, parsep=0pt]
+\item 2021 – Certified Scrum Product Owner\textregistered{}, Scrum Alliance
+\item 2020 – Enterprise Design Thinking: Team Essentials for AI, IBM
+\end{itemize}
+```
+⚠️ CRITICAL: NEVER write certifications as `- 2021 – ...` bare dash lines. Always use `\begin{itemize}` with `\item`.
+
+**Languages format — MUST be bullet list, NOT paragraph:**
+```latex
+\section*{Languages}
+\begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=2pt, parsep=0pt]
+\item Portuguese (Native) \quad | \quad English (C2) \quad | \quad Spanish (C1) \quad | \quad German (B2)
+\end{itemize}
+```
+
+**Education format — MUST be bullet list, NOT paragraph:**
+```latex
+\section*{Education}
+\begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=2pt, parsep=0pt]
+\item 2017 – Bachelor's Degree, Business Administration and Management, USP – Universidade de S\~{a}o Paulo
+\end{itemize}
+```
+
 **Experience entry format:**
 ```latex
+\vspace{8pt}
 \noindent\textbf{Company}, Role Title \hfill Dates, Location
 \begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=4pt, parsep=0pt]
 \item Achievement with metric...
 \end{itemize}
 ```
+
+The `\vspace{8pt}` before each company entry is mandatory. It creates the breathing room between jobs. Never omit it.
 
 ---
 
@@ -158,28 +197,38 @@ Categorize keywords:
 ### 4. Content Refinement
 
 **Summary section:**
-- Adjust to emphasize 2-3 high-priority themes from the job
-- Add keywords only where they match actual experience
-- Keep it to 2-3 sentences maximum
+- Identify the 3 things this specific role cares most about (from the JD) and make sure all 3 appear in the summary
+- Be direct and specific. "8+ years leading B2B and B2C product work" beats "experienced product leader"
+- Name tools and models explicitly when the JD calls them out (e.g., Amplitude, PLG, B2C2B) — do not hide them in vague phrases
+- The summary should read like a person wrote it, not like a job posting paraphrased back. Cut adjectives, show substance.
+- Maximum 3 sentences. One paragraph, no sub-bullets.
 
-**Experience bullets:**
-- For each role, identify 1-2 bullets where keywords fit naturally
-- Replace generic terms with job-specific terms (only when accurate)
-- Example: "managed product roadmap" → "managed product roadmap using OKRs" (if job mentions OKRs AND candidate used them)
+**Experience bullets — beyond keyword insertion:**
+- Keyword insertion is the floor, not the ceiling. After placing keywords, ask: does this bullet make the connection between the candidate's work and this company's challenge obvious to a reader?
+- When the candidate's experience mirrors the company's specific challenge (e.g., same B2C2B motion, same activation problem, same PLG model), name that connection explicitly in the bullet. Change generic role language ("commercial teams") to the JD's own language ("Sales and Customer Success") when it is accurate.
+- One strong bullet with narrative depth beats two thin ones. If a bullet can be reframed to make the parallel to the role unmistakable, do it — without changing facts or metrics.
 
 **Skills \& Tools section:**
 - Reorder items within each category to prioritize job-relevant skills first
+- The tool or methodology explicitly named in the JD (e.g., Amplitude) must appear first or near the top of its category
 - Do NOT add new skills not present in master resume
 
 ### 5. Quality Verification
 
-Before outputting, verify:
-- Every major job requirement is addressed somewhere (when supported by master resume)
-- No fabricated skills, experiences, or metrics
-- All LaTeX special characters are properly escaped
-- Document compiles without errors
-- Formatting matches master resume exactly
-- No markdown formatting (`**bold**`) leaked into output
+Before outputting, verify content quality:
+- [ ] Summary names the 3 things this role cares most about, with no banned phrases
+- [ ] Every major JD requirement is addressed somewhere in the resume (when supported by master)
+- [ ] At least one bullet per relevant role makes the connection to the company's specific challenge explicit, not implicit
+- [ ] The JD's exact language is used in bullets where it accurately describes what the candidate did (e.g., if JD says "Sales and Customer Success" and the candidate worked with those teams, use those exact words)
+- [ ] No fabricated skills, experiences, or metrics
+- [ ] No banned phrases anywhere in the document
+- [ ] No em dashes anywhere
+
+Then verify formatting:
+- [ ] All LaTeX special characters are properly escaped
+- [ ] No markdown formatting (`**bold**`) leaked into output
+- [ ] `\vspace{8pt}` appears before every experience entry
+- [ ] Skills & Tools uses `\item \textbf{Category:}` format, never a paragraph
 
 ---
 
@@ -202,6 +251,30 @@ Before outputting, verify:
 ❌ **Bad (fabricated):** Adding "Kubernetes" or "Docker" anywhere
 
 ✅ **Good:** Do not mention these technologies at all
+
+---
+
+**JD says:** "Strong track record of collaborating with Sales and Customer Success teams"
+
+**Master resume bullet:** "Mapped workshop activation drop-off across the onboarding funnel, working with commercial teams to redesign the account setup experience..."
+
+❌ **Bad (keyword inserted mechanically):** "Mapped workshop activation drop-off across the onboarding funnel, working with commercial teams and Sales and Customer Success to redesign the account setup experience..."
+
+✅ **Good (language swapped where accurate):** "Mapped workshop activation drop-off across the onboarding funnel, working with Sales and Customer Success to redesign the account setup experience..."
+
+The swap from "commercial teams" to "Sales and Customer Success" is accurate, uses the JD's own language, and makes the connection obvious without adding a word.
+
+---
+
+**JD says:** "B2C2B and PLG models"
+
+**Master resume bullet (generic):** "Designed and ran the activation strategy for a generative AI voice agent, identifying field officers as the critical intermediary adoption driver..."
+
+❌ **Bad (keyword stuffed):** "Designed and ran the B2C2B activation strategy for a generative AI voice agent using PLG models, identifying field officers as the critical intermediary adoption driver..."
+
+✅ **Good (reframed to name the pattern):** "Designed and ran the activation strategy for a generative AI voice agent, identifying field officers as the critical intermediary between individual users and organisational adoption..."
+
+The reframe makes the B2C2B pattern unmistakable to anyone who knows what to look for, without forcing the acronym unnaturally.
 
 ---
 

@@ -233,28 +233,4 @@ We considered several approaches to reduce Claude Code token usage:
 
 **Context7** provides real-time documentation for APIs (Google Gemini, Notion, etc.) to avoid errors from outdated SDK usage.
 
----
 
-## Changelog
-
-### Feb 2026
-- Playwright-first company research (free, JS-rendering); Firecrawl now fallback only
-- Hardcoded resume taglines per variant (Growth PM / Generalist) — LLM can no longer change them
-- Notion API pinned to stable version (2022-06-28) to fix step 2 timeouts after notion-client v2.7.0
-- 24h local cache for master resume (avoids Notion on repeat runs; validates content length)
-- Generalist tagline updated to "End-to-end ownership. Outcomes delivered." (from real Berlin/Barcelona JD research)
-- Resume tailor prompt: explicit rules against shortening bullets and changing job titles
-- Browser UI with 3 parallel forms
-- Multi-provider LLM support (Gemini, Groq, SambaNova)
-- Cross-provider fallback on rate limits
-- Per-provider usage tracking
-- Added Personio, Screenloop, Greenhouse EU scrapers
-- `--company-url` flag for direct company research
-- Firecrawl integration for enhanced JS page scraping
-- Non-interactive mode for ATS review (auto-apply edits when running from UI)
-
-### Jan 2026
-- Initial pipeline implementation
-- Greenhouse, Lever, Ashby, Workable scrapers
-- Notion integration for resume + tracking
-- ATS keyword optimization

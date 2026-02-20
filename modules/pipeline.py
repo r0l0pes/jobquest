@@ -18,7 +18,7 @@ from rich.prompt import Confirm
 
 from modules.llm_client import LLMClient
 from modules.job_scraper import scrape_job_posting, research_company
-from modules.parsers import extract_latex, parse_ats_report, parse_qa_answers
+from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers
 
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
@@ -177,7 +177,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             "LLM did not return parseable LaTeX. "
             "Raw response saved to run directory for debugging."
         )
-    ctx["tailored_latex"] = latex
+    ctx["tailored_latex"] = fix_markdown_lists(latex)
     console.print(f"  Tailored LaTeX generated: {len(latex)} chars")
     return ctx
 
@@ -399,8 +399,8 @@ def step_apply_ats_edits(
     updated = extract_latex(raw)
 
     if updated:
-        ctx["tailored_latex"] = updated
-        Path(ctx["tex_path"]).write_text(updated)
+        ctx["tailored_latex"] = fix_markdown_lists(updated)
+        Path(ctx["tex_path"]).write_text(ctx["tailored_latex"])
         console.print("  [green]Edits applied. .tex updated.[/green]")
     else:
         console.print(

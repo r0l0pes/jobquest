@@ -36,9 +36,12 @@ The tailored resume must:
 - **Modify the name, tagline, links, or phone** — the header is passed explicitly in the prompt; copy it character-for-character, do not rewrite or paraphrase any part of it
 - **Change job titles** — "Senior Product Manager" stays "Senior Product Manager". Never substitute "Founding", "Lead", or any other title, even if it matches the job posting
 - **Fabricate** roles, skills, technologies, achievements, or dates
+- **Substitute one tool for another** — if the master resume says Amplitude, write Amplitude. Never replace it with Mixpanel, Heap, Pendo, Looker, or any other tool just because the job posting mentions it. Tool names are facts, not keywords to swap.
 - **Add skills the candidate doesn't have** — if the job asks for Kubernetes and the master resume doesn't mention it, DO NOT add it
 - **Change verified metrics or achievements** — numbers are sacred
 - **Inflate scope** — "coordinated" is NOT "led"; "managed roadmap" is NOT "managed team"
+- **Write "Expert in X"** for any generic skill — this reads as junior. Experience demonstrates expertise; it is never claimed directly.
+- **Rewrite the summary from scratch** — the summary is adjusted, not replaced. Keep the structure and most of the wording from the master resume. Only change emphasis or insert 1-2 specific keywords from the JD where they fit naturally. Do not invent new concepts or phrases not present in the master resume.
 - **Shorten or condense experience bullets** — each bullet must preserve the full depth and detail of the master resume. If a bullet in the master is 3 lines long, the tailored version must also be ~3 lines. You may rephrase words or insert keywords naturally, but you may NOT remove context, drop clauses, or summarise
 - **Keyword-stuff** — unnatural repetition triggers ATS penalties
 - **Use markdown formatting** — ABSOLUTELY NO `**bold**`, `*italics*`, or `__underline__`. Use ONLY LaTeX: `\textbf{}` for bold, `\textit{}` for italics. Markdown will break PDF compilation.
@@ -55,6 +58,13 @@ The tailored resume must:
   - "results-driven" / "data-driven" as standalone adjectives (show it, don't claim it)
   - "I believe" / "I think" / "I feel"
   - Any sentence starting with "As a Product Manager..."
+  - "scalable outcomes" — meaningless
+  - "high-impact" as an adjective — meaningless without a number
+  - "focusing on X and Y" — weak, vague construction
+  - "translates X into scalable Y" — word salad
+  - "service delivery" — corporate jargon that adds no meaning
+  - "cross-functional leadership" as a standalone claim — show it through the work
+  - "Expert in [generic skill]" — never claim expertise directly; demonstrate it
 
 ### ALWAYS:
 - **Only add keywords for skills the candidate actually possesses** (evidence must exist in master resume)

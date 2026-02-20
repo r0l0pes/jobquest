@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.prompt import Confirm
 
-from modules.llm_client import LLMClient
+from modules.llm_client import LLMClient, create_writing_client
 from modules.job_scraper import scrape_job_posting, research_company
 from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers
 
@@ -32,6 +32,26 @@ RESUME_CACHE_TTL = 24 * 3600  # 24 hours
 def _load_prompt(name: str) -> str:
     """Load a prompt template from prompts/ directory."""
     return (PROMPTS_DIR / f"{name}.md").read_text()
+
+
+# Module-level writing client cache (created on first use, reused across steps)
+_writing_client_cache: LLMClient | None = None
+
+
+def _get_writing_client() -> LLMClient:
+    """Return the cached writing LLM client, creating it on first call."""
+    global _writing_client_cache
+    if _writing_client_cache is None:
+        _writing_client_cache = create_writing_client()
+    return _writing_client_cache
+
+
+def _load_voice_prefix() -> str:
+    """Load rodrigo-voice.md as a system prompt prefix for writing steps."""
+    voice_path = PROMPTS_DIR / "rodrigo-voice.md"
+    if voice_path.exists():
+        return voice_path.read_text() + "\n\n---\n\n"
+    return ""
 
 
 def _run_script(script_name: str, args: list[str]) -> str:
@@ -137,14 +157,17 @@ TAGLINES = {
 
 
 def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
+    writing_llm = _get_writing_client()
     console.print("\n[bold]Step 3/9:[/bold] Tailoring resume via {model}...".format(
-        model=llm.model_name()
+        model=writing_llm.model_name()
     ))
 
     from config import ROLE_VARIANT
     tagline = TAGLINES.get(ROLE_VARIANT, TAGLINES["growth_pm"])
 
-    system_prompt = _load_prompt("resume_tailor")
+    system_prompt = _load_voice_prefix() + _load_prompt("resume_tailor")
+    # Static/semi-static content first (cached by DeepSeek prefix cache),
+    # dynamic content last (changes per application, always after the cached prefix).
     user_prompt = (
         f"## Locked Header (copy character-for-character, do not change anything)\n\n"
         f"\\begin{{center}}\n"
@@ -155,20 +178,20 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"  +49 0172 5626057\n"
         f"\\end{{center}}\n\n"
         f"---\n\n"
+        f"## Master Resume\n\n"
+        f"{ctx['master_resume']}\n\n"
+        f"---\n\n"
         f"## Job Posting\n\n"
         f"**URL:** {ctx['job']['url']}\n"
         f"**Title:** {ctx['job']['title']}\n"
         f"**Company:** {ctx['job']['company']}\n\n"
         f"{ctx['job']['description']}\n\n"
         f"---\n\n"
-        f"## Master Resume\n\n"
-        f"{ctx['master_resume']}\n\n"
-        f"---\n\n"
         f"Generate the complete tailored LaTeX resume. "
         f"Output ONLY the LaTeX content between ```latex and ``` markers."
     )
 
-    raw = llm.generate(system_prompt, user_prompt, temperature=0.3)
+    raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.3)
     ctx["tailor_raw"] = raw
 
     latex = extract_latex(raw)
@@ -384,6 +407,7 @@ def step_apply_ats_edits(
         return ctx
 
     # Apply edits via LLM (safer than regex on LaTeX)
+    writing_llm = _get_writing_client()
     system_prompt = (
         "You are a LaTeX editor. Apply the following edits to the resume. "
         "Output ONLY the complete modified LaTeX between ```latex and ``` markers. "
@@ -395,7 +419,7 @@ def step_apply_ats_edits(
         f"Apply these edits and return the complete modified LaTeX."
     )
 
-    raw = llm.generate(system_prompt, user_prompt, temperature=0.1)
+    raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.1)
     updated = extract_latex(raw)
 
     if updated:
@@ -484,11 +508,18 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         ),
     }.get(ROLE_VARIANT, "")
 
-    system_prompt = _load_prompt("qa_generator")
+    writing_llm = _get_writing_client()
+    system_prompt = _load_voice_prefix() + _load_prompt("qa_generator")
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)
     )
+    # Static/semi-static content first (cached by DeepSeek prefix cache),
+    # dynamic content last (changes per application, always after the cached prefix).
     user_prompt = (
+        f"## Master Resume\n\n{ctx['master_resume'][:3000]}\n\n"
+        f"---\n\n"
+        f"{templates_section}"
+        f"---\n\n"
         f"## Job Posting\n\n"
         f"**Title:** {ctx['job']['title']}\n"
         f"**Company:** {ctx['job']['company']}\n\n"
@@ -496,16 +527,13 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"---\n\n"
         f"## Company Research\n\n{company_research[:2000]}\n\n"
         f"---\n\n"
-        f"## Master Resume\n\n{ctx['master_resume'][:3000]}\n\n"
-        f"---\n\n"
-        f"{templates_section}"
         f"## Questions to Answer\n\n{questions_text}\n\n"
         f"---\n\n"
         f"{role_framing}\n\n"
         f"Generate answers for each question."
     )
 
-    raw = llm.generate(system_prompt, user_prompt, temperature=0.5)
+    raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.5)
     ctx["qa_raw"] = raw
 
     qa_pairs = parse_qa_answers(raw)

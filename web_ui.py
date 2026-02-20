@@ -67,7 +67,7 @@ def get_stats_display():
         "sambanova": {"calls": 500, "label": "SambaNova"},
     }
 
-    lines = []
+    ats_parts = []
     for provider, info in limits.items():
         p_stats = stats["providers"].get(provider, {"calls": 0, "apps": 0})
         calls = p_stats.get("calls", 0)
@@ -75,9 +75,9 @@ def get_stats_display():
         pct = (calls / info["calls"]) * 100
 
         status = "🟢" if pct < 80 else "🟡" if pct < 100 else "🔴"
-        lines.append(f"{status} **{info['label']}**: {calls}/{info['calls']} ({apps} apps)")
+        ats_parts.append(f"{status} {info['label']}: {calls}/{info['calls']} ({apps} apps)")
 
-    return " | ".join(lines)
+    return "**ATS step (5):** " + " | ".join(ats_parts) + " — **Writing steps (3,6,8):** DeepSeek → OpenRouter → Haiku"
 
 
 def get_recent_outputs():
@@ -246,7 +246,7 @@ def create_app_form(slot_num):
             provider = gr.Radio(
                 choices=["gemini", "groq", "sambanova"],
                 value="gemini",
-                label="Provider",
+                label="ATS Provider (step 5)",
             )
 
         with gr.Row():
@@ -311,9 +311,13 @@ def create_ui():
         s2.click(fn=lambda: stop_process(2), outputs=[con2])
         s3.click(fn=lambda: stop_process(3), outputs=[con3])
 
+        def _refresh():
+            return get_stats_display(), get_recent_outputs()
+
         refresh_btn.click(
-            fn=lambda: (get_stats_display(), get_recent_outputs()),
+            fn=_refresh,
             outputs=[stats_display, recent_display],
+            concurrency_limit=None,
         )
 
     return app

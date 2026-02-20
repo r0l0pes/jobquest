@@ -12,7 +12,8 @@ Or: `python web_ui.py`
 
 The browser UI provides:
 - 3 parallel application forms (run multiple jobs simultaneously)
-- Provider selection (Gemini, Groq, SambaNova)
+- ATS provider selection for step 5 (Gemini, Groq, SambaNova — free tiers)
+- Writing steps (3, 6, 8) always use the quality-first provider chain (DeepSeek → OpenRouter → Haiku)
 - Per-provider usage tracking
 - Real-time pipeline output
 
@@ -35,17 +36,25 @@ Job URL
      Output: PDF + Q&A ready to copy/paste
 ```
 
-## Multi-Provider LLM Support
+## LLM Architecture
 
-Cross-provider fallback: if one provider hits rate limits, automatically tries the next.
+Two separate provider tiers — one for quality, one for speed.
+
+**Writing steps (resume tailor, ATS edits, Q&A):** Paid quality-first chain with automatic fallback.
+
+| Provider | Model | Cost/app | Get Key |
+|----------|-------|----------|---------|
+| DeepSeek V3.2 | deepseek-chat | ~$0.008 | [platform.deepseek.com](https://platform.deepseek.com) |
+| OpenRouter | Qwen3.5-397B | ~$0.014 | [openrouter.ai](https://openrouter.ai) |
+| Anthropic | Haiku 4.5 | ~$0.06 | [console.anthropic.com](https://console.anthropic.com) |
+
+**ATS check step (step 5):** Free-tier providers with automatic fallback.
 
 | Provider | Daily Limit | Get Key |
 |----------|-------------|---------|
-| Gemini | ~100 req | [aistudio.google.com](https://aistudio.google.com/apikey) |
+| Gemini 3.1 Pro | ~250 req | [aistudio.google.com](https://aistudio.google.com/apikey) |
 | Groq | 1,000 req | [console.groq.com](https://console.groq.com) |
 | SambaNova | ~500 req | [cloud.sambanova.ai](https://cloud.sambanova.ai) |
-
-**Combined capacity**: ~1,600 requests/day (~400 applications)
 
 ## CLI Usage
 
@@ -74,9 +83,13 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # Configure .env (see .env.example)
-GEMINI_API_KEY=...
-GROQ_API_KEY=...        # optional, enables fallback
-SAMBANOVA_API_KEY=...   # optional, enables fallback
+WRITING_PROVIDER=deepseek
+DEEPSEEK_API_KEY=...    # primary writing provider
+GEMINI_API_KEY=...      # ATS check step (free)
+GROQ_API_KEY=...        # optional ATS fallback
+SAMBANOVA_API_KEY=...   # optional ATS fallback
+OPENROUTER_API_KEY=...  # optional writing fallback
+ANTHROPIC_API_KEY=...   # optional writing last resort
 FIRECRAWL_API_KEY=...   # optional, better JS page scraping
 NOTION_TOKEN=...
 # ... (see .env.example for full list)
@@ -122,6 +135,7 @@ JobQuest/
 │   └── pipeline.py        # 9 pipeline steps
 │
 ├── prompts/
+│   ├── rodrigo-voice.md   # Shared voice/tone/banned phrases (injected into writing steps)
 │   ├── resume_tailor.md   # Resume tailoring prompt
 │   ├── ats_check.md       # ATS analysis prompt
 │   └── qa_generator.md    # Q&A generation prompt
@@ -160,20 +174,28 @@ JobQuest/
 
 ### LLM Fallback Strategy
 
+**Writing steps (3, 6, 8) — quality-first:**
 ```
-Primary Provider (user-selected)
+DeepSeek V3.2 (primary, ~$0.008/app with prefix caching)
     │
-    ├─ Rate limit? → Try next model within provider
-    │                  (Gemini: 3-flash → 2.5-flash → 2.5-flash-lite → 3-pro → 2.5-pro)
-    │
-    └─ All models exhausted? → Try next provider
-                                  (Gemini → Groq → SambaNova)
+    └─ Rate limit? → OpenRouter / Qwen3.5-397B (~$0.014/app)
+                         │
+                         └─ Rate limit? → Anthropic / Haiku 4.5 (~$0.06/app)
+                                              │
+                                              └─ Rate limit? → Gemini → Groq → SambaNova
 ```
 
-**Why this design:**
-- Free tiers have per-model limits (Gemini: 20 req/day per model, 5 models = 100 total)
-- Different providers have different rate limit windows
-- Automatic fallback means no manual intervention during batch runs
+**ATS check (step 5) — free-tier:**
+```
+User-selected provider (Gemini / Groq / SambaNova)
+    │
+    ├─ Rate limit? → Try next model within provider
+    │                  (Gemini: 3.1-pro → 3-flash → 2.5-pro → 2.5-flash → 2.5-flash-lite)
+    │
+    └─ All models exhausted? → Try next provider (Gemini → Groq → SambaNova)
+```
+
+**Prompt caching:** DeepSeek V3.2 has automatic prefix caching. User prompt is ordered static-first (master resume, templates) then dynamic (job posting, questions), so the master resume is cached after the first application of the day.
 
 ### Web Scraping Strategy
 
@@ -213,7 +235,8 @@ We considered several approaches to reduce Claude Code token usage:
 4. **Context7 MCP** (configured): Provides up-to-date documentation to avoid outdated API calls
 
 **Pipeline vs Claude Code split:**
-- Repetitive tasks (resume tailoring, ATS checks) → Gemini/Groq (free)
+- Writing steps (resume tailoring, ATS edits, Q&A) → DeepSeek V3.2 (~$0.008/app)
+- ATS keyword check → Gemini/Groq/SambaNova (free)
 - System development → Claude Code (when modifying the codebase)
 
 ### MCP Integration

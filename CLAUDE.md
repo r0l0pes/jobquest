@@ -10,7 +10,7 @@ JobQuest is an automated job application pipeline. Given a job posting URL, it p
 apply.py / web_ui.py           ← Entry points (CLI and Gradio browser UI)
     ├── config.py                   ← Centralised env/config loader
     └── modules/pipeline.py         ← 9-step pipeline orchestrator
-            ├── modules/llm_client.py    ← Multi-provider LLM (Gemini/Groq/SambaNova)
+            ├── modules/llm_client.py    ← Multi-provider LLM (two-tier: writing + ATS)
             ├── modules/job_scraper.py   ← ATS APIs + HTML + Firecrawl + Playwright
             ├── modules/parsers.py       ← Output parsing utilities
             ├── scripts/notion_reader.py ← Read master resume from Notion
@@ -60,8 +60,10 @@ python batch_job_search.py companies.md
 Copy `.env.example` to `.env` and fill in values. Required fields:
 
 ```env
-LLM_PROVIDER=gemini                    # gemini | groq | sambanova
+LLM_PROVIDER=gemini                    # gemini | groq | sambanova (ATS check step 5 only)
+WRITING_PROVIDER=deepseek              # deepseek | openrouter | anthropic | gemini | groq | sambanova
 GEMINI_API_KEY=...
+DEEPSEEK_API_KEY=...                   # primary writing provider (~$0.008/app with caching)
 NOTION_TOKEN=...
 NOTION_APPLICATIONS_DB_ID=...
 NOTION_MASTER_RESUME_ID=...
@@ -78,6 +80,8 @@ Optional (enable fallback/enhanced scraping):
 ```env
 GROQ_API_KEY=...
 SAMBANOVA_API_KEY=...
+OPENROUTER_API_KEY=...                 # writing fallback (Qwen3.5-397B, ~$0.014/app)
+ANTHROPIC_API_KEY=...                  # writing last resort (Haiku 4.5, ~$0.06/app)
 FIRECRAWL_API_KEY=...
 RESUME_VARIANT=Tech-First              # Tech-First | Exp-First
 ```
@@ -103,16 +107,24 @@ Each step receives and returns an enriched `ctx` dict:
 ## Key Architectural Patterns
 
 ### LLM Provider Abstraction (`modules/llm_client.py`)
-Abstract base class `LLMClient` with concrete `GeminiClient`, `GroqClient`, `SambaNovaClient`, and a `FallbackClient` that wraps them. When a provider is rate-limited, `FallbackClient` tries the next model within the provider, then the next provider (Gemini → Groq → SambaNova). Never bypass this abstraction when adding LLM calls.
+
+Two separate client tiers — never mix them:
+
+**ATS check (step 5):** `LLM_PROVIDER` env var selects the provider. `FallbackClient` wraps `GeminiClient`, `GroqClient`, `SambaNovaClient`. On rate-limit, tries next model within provider, then next provider (Gemini 3.1 Pro → Groq → SambaNova).
+
+**Writing steps (3, 6, 8):** `create_writing_client()` reads `WRITING_PROVIDER` env var (default: `deepseek`). Returns a `_WritingFallbackClient` that tries providers in order: DeepSeek V3.2 → OpenRouter/Qwen3.5-397B → Anthropic/Haiku 4.5 → Gemini → Groq → SambaNova.
+
+Concrete clients: `GeminiClient`, `GroqClient`, `SambaNovaClient`, `DeepSeekClient`, `OpenRouterClient`, `AnthropicClient`. Never bypass this abstraction when adding LLM calls.
 
 ### Prompts as Files (`prompts/`)
 All LLM prompts live in `prompts/*.md` and are loaded at runtime with `_load_prompt()`. Do not inline prompt text in Python files. This keeps prompts easy to iterate on and reduces Claude Code token usage when sharing code context.
 
 Prompt files:
 - `jobquest_system_prompt.md` — Master system prompt used across the pipeline
-- `resume_tailor.md` — Resume tailoring instructions
+- `rodrigo-voice.md` — Voice, tone, banned phrases, and writing quality rules. Injected as system prompt prefix for steps 3 and 8. Single source of truth for all writing style rules.
+- `resume_tailor.md` — Resume tailoring instructions (task-specific only; voice rules are in rodrigo-voice.md)
 - `ats_check.md` — ATS keyword analysis instructions
-- `qa_generator.md` — Q&A and cover letter generation instructions
+- `qa_generator.md` — Q&A and cover letter generation instructions (task-specific only; voice rules are in rodrigo-voice.md)
 
 ### Subprocess Isolation (`scripts/`)
 Scripts called via `subprocess.run()` return JSON on stdout. This isolates Notion calls and PDF rendering from the main pipeline. Follow this pattern for new external integrations.
@@ -211,7 +223,7 @@ Refer to the `SKILL.md` in each directory before invoking or modifying a skill.
 - **Preserve verified metrics.** Numbers and scope in the master resume must not be altered.
 - **Minimal changes.** This is a personal productivity tool. Avoid over-engineering.
 - **No em dashes anywhere** in generated output (resumes, cover letters, Q&A answers). Use commas, colons, or sentence breaks instead. This applies to prompts and any text written by Claude Code as well.
-- **Writing quality rules live in the prompts.** `prompts/resume_tailor.md` and `prompts/qa_generator.md` contain banned phrase lists, narrative connection principles, and pre-output quality checklists. Do not bypass or weaken these when modifying prompts.
+- **Writing quality rules live in `prompts/rodrigo-voice.md`.** This is the single source of truth for banned phrases, LLM tells, voice tone, and writing quality tests. `resume_tailor.md` and `qa_generator.md` contain only task-specific instructions. Do not add writing style rules to the task prompts — put them in rodrigo-voice.md.
 
 ---
 

@@ -49,23 +49,7 @@ The tailored resume must:
 - **Use em dashes** (`---` in LaTeX, or `—` as Unicode) anywhere in the resume. Use a comma, colon, or sentence break instead.
 - **Change the document structure** — sections must remain in order: Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 - **Use Jinja2 variables or placeholders** — write complete content directly
-- **Use these banned phrases** anywhere in the resume:
-  - "Proven track record" / "track record of"
-  - "passionate" / "passion for"
-  - "excited about" / "thrilled to"
-  - "leverage" (use "use" or "apply")
-  - "driven" as a personality adjective
-  - "synergy" / "synergies"
-  - "results-driven" / "data-driven" as standalone adjectives (show it, don't claim it)
-  - "I believe" / "I think" / "I feel"
-  - Any sentence starting with "As a Product Manager..."
-  - "scalable outcomes" — meaningless
-  - "high-impact" as an adjective — meaningless without a number
-  - "focusing on X and Y" — weak, vague construction
-  - "translates X into scalable Y" — word salad
-  - "service delivery" — corporate jargon that adds no meaning
-  - "cross-functional leadership" as a standalone claim — show it through the work
-  - "Expert in [generic skill]" — never claim expertise directly; demonstrate it
+- **Use banned phrases** — see rodrigo-voice.md
 
 ### ALWAYS:
 - **Only add keywords for skills the candidate actually possesses** (evidence must exist in master resume)
@@ -219,11 +203,7 @@ Categorize keywords:
 - When the candidate's experience mirrors the company's specific challenge (e.g., same B2C2B motion, same activation problem, same PLG model), name that connection explicitly in the bullet. Change generic role language ("commercial teams") to the JD's own language ("Sales and Customer Success") when it is accurate.
 - One strong bullet with narrative depth beats two thin ones. If a bullet can be reframed to make the parallel to the role unmistakable, do it — without changing facts or metrics.
 
-**Writing quality — apply to every sentence before outputting:**
-- **So What test:** for every sentence, ask "why should the reader care?" If there is no clear answer, cut it or rewrite it so the answer is obvious.
-- **Prove It test:** every claim needs evidence. "Improved adoption" means nothing. "Increased self-service adoption by 40%" means something. If a claim has no proof, either add the number or remove the claim.
-- **Earn your place:** every word must justify being there. Cut adverbs, filler adjectives, and any phrase that restates what the previous sentence already said.
-- These are adapted from the copy-editing skill (copy-editing Seven Sweeps, passes 3–5).
+**Writing quality:** Apply So What, Prove It, and Earn Your Place tests (see rodrigo-voice.md).
 
 **Skills \& Tools section:**
 - Reorder items within each category to prioritize job-relevant skills first

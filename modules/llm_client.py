@@ -21,6 +21,8 @@ DEFAULT_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
 # Available Gemini models (as of Feb 2026)
 # Each model has separate quota on free tier (20 requests/day, 5/minute)
 GEMINI_MODELS = {
+    # Gemini 3.1 (Feb 2026 upgrade)
+    "gemini-3-1-pro": "models/gemini-3-1-pro-preview",      # Upgraded reasoning, Feb 2026
     # Gemini 3 (latest)
     "gemini-3-flash": "models/gemini-3-flash-preview",      # Fast, latest
     "gemini-3-pro": "models/gemini-3-pro-preview",          # High quality, latest
@@ -33,6 +35,7 @@ GEMINI_MODELS = {
 # Fallback order when hitting rate limits (each has separate quota)
 # Quality-first: start with the most capable, fall back to faster/lighter models
 MODEL_FALLBACK_ORDER = [
+    "models/gemini-3-1-pro-preview",  # 0. Best quality (Feb 2026 upgrade)
     "models/gemini-3-pro-preview",    # 1. Best quality
     "models/gemini-3-flash-preview",  # 2. Fast, still latest gen
     "models/gemini-2.5-pro",          # 3. Stable high quality
@@ -315,6 +318,245 @@ class SambaNovaClient(LLMClient):
         return f"sambanova/{self._model_id}"
 
 
+class DeepSeekClient(LLMClient):
+    """DeepSeek API client — api.deepseek.com (OpenAI-compatible).
+
+    Model deepseek-chat = DeepSeek V3.2 (current stable).
+    DeepSeek V4 will be accessible via this same endpoint when released.
+    Supports prompt caching: repeated system prompts cost $0.028/1M (vs $0.28/1M cold).
+    """
+
+    DEFAULT_MODEL = "deepseek-chat"
+
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        self._api_key = api_key or os.getenv("DEEPSEEK_API_KEY", "")
+        if not self._api_key:
+            raise ValueError(
+                "DEEPSEEK_API_KEY not set. Add it to your .env file.\n"
+                "Get a key at https://platform.deepseek.com/api_keys"
+            )
+        self._model_id = model or self.DEFAULT_MODEL
+
+    def generate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.3,
+    ) -> str:
+        import httpx
+
+        timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = httpx.post(
+                    "https://api.deepseek.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self._api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self._model_id,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": 8192,
+                    },
+                    timeout=timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            except httpx.TimeoutException as e:
+                print(f"  Timeout (DeepSeek, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"DeepSeek request timed out after {MAX_RETRIES} attempts")
+            except httpx.RequestError as e:
+                print(f"  Network error (DeepSeek, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"DeepSeek network error: {e}")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429 and attempt < MAX_RETRIES - 1:
+                    delay = RETRY_BASE_DELAY * (2 ** attempt)
+                    print(f"  Rate limit (DeepSeek). Waiting {delay}s...", flush=True)
+                    time.sleep(delay)
+                else:
+                    raise
+            except (KeyError, IndexError) as e:
+                raise RuntimeError(f"DeepSeek returned unexpected response format: {e}")
+
+    def model_name(self) -> str:
+        return f"deepseek/{self._model_id}"
+
+
+class OpenRouterClient(LLMClient):
+    """OpenRouter API client — openrouter.ai.
+
+    Default model: Qwen3.5-397B-A17B ($0.15/$1.00 per 1M tokens, IFEval 92.6%).
+    """
+
+    DEFAULT_MODEL = "qwen/qwen3.5-397b-a17b"
+
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        self._api_key = api_key or os.getenv("OPENROUTER_API_KEY", "")
+        if not self._api_key:
+            raise ValueError(
+                "OPENROUTER_API_KEY not set. Add it to your .env file.\n"
+                "Get a key at https://openrouter.ai/keys"
+            )
+        self._model_id = model or self.DEFAULT_MODEL
+
+    def generate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.3,
+    ) -> str:
+        import httpx
+
+        timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = httpx.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self._api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self._model_id,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": 8192,
+                    },
+                    timeout=timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            except httpx.TimeoutException as e:
+                print(f"  Timeout (OpenRouter, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"OpenRouter request timed out after {MAX_RETRIES} attempts")
+            except httpx.RequestError as e:
+                print(f"  Network error (OpenRouter, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"OpenRouter network error: {e}")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429 and attempt < MAX_RETRIES - 1:
+                    delay = RETRY_BASE_DELAY * (2 ** attempt)
+                    print(f"  Rate limit (OpenRouter). Waiting {delay}s...", flush=True)
+                    time.sleep(delay)
+                else:
+                    raise
+            except (KeyError, IndexError) as e:
+                raise RuntimeError(f"OpenRouter returned unexpected response format: {e}")
+
+    def model_name(self) -> str:
+        return f"openrouter/{self._model_id}"
+
+
+class AnthropicClient(LLMClient):
+    """Anthropic API client — Claude Haiku for quality-critical writing.
+
+    Default model: claude-haiku-4-5-20251001 ($0.80/$4.00 per 1M tokens).
+    Reliable instruction following for complex multi-rule prompts.
+    """
+
+    DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        self._api_key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+        if not self._api_key:
+            raise ValueError(
+                "ANTHROPIC_API_KEY not set. Add it to your .env file.\n"
+                "Get a key at https://console.anthropic.com"
+            )
+        self._model_id = model or self.DEFAULT_MODEL
+
+    def generate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.3,
+    ) -> str:
+        import httpx
+
+        timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = httpx.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": self._api_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self._model_id,
+                        # Pass system as a content block so we can mark it for
+                        # prompt caching. Cache hit cost = 0.10x base input price.
+                        # Min cacheable: 4096 tokens (Haiku 4.5). Our system prompts
+                        # (rodrigo-voice + task prompt) are ~4.5–5.5K tokens.
+                        "system": [
+                            {
+                                "type": "text",
+                                "text": system_prompt,
+                                "cache_control": {"type": "ephemeral"},
+                            }
+                        ],
+                        "messages": [
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": 8192,
+                    },
+                    timeout=timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data["content"][0]["text"]
+            except httpx.TimeoutException as e:
+                print(f"  Timeout (Anthropic, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"Anthropic request timed out after {MAX_RETRIES} attempts")
+            except httpx.RequestError as e:
+                print(f"  Network error (Anthropic, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"Anthropic network error: {e}")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429 and attempt < MAX_RETRIES - 1:
+                    delay = RETRY_BASE_DELAY * (2 ** attempt)
+                    print(f"  Rate limit (Anthropic). Waiting {delay}s...", flush=True)
+                    time.sleep(delay)
+                else:
+                    raise
+            except (KeyError, IndexError) as e:
+                raise RuntimeError(f"Anthropic returned unexpected response format: {e}")
+
+    def model_name(self) -> str:
+        return f"anthropic/{self._model_id}"
+
+
 # Provider fallback order (tries each in sequence if previous exhausted)
 PROVIDER_FALLBACK_ORDER = ["gemini", "groq", "sambanova"]
 
@@ -411,6 +653,9 @@ def _create_single_client(provider: str, model: str | None = None) -> LLMClient:
         "gemini": GeminiClient,
         "groq": GroqClient,
         "sambanova": SambaNovaClient,
+        "deepseek": DeepSeekClient,
+        "openrouter": OpenRouterClient,
+        "anthropic": AnthropicClient,
     }
     if provider not in providers:
         available = ", ".join(providers.keys())
@@ -443,3 +688,82 @@ def create_client(
         return FallbackClient(primary_provider=provider)
     else:
         return _create_single_client(provider, model)
+
+
+# Writing provider fallback: paid quality-first, Gemini/Groq/SambaNova as last resorts
+WRITING_PROVIDER_FALLBACK_ORDER = [
+    "deepseek",    # ~$0.005/app with caching — DeepSeek V3.2 (V4 same endpoint)
+    "openrouter",  # ~$0.014/app — Qwen3.5-397B-A17B, IFEval 92.6%
+    "anthropic",   # ~$0.060/app — Claude Haiku, best instruction following
+    "gemini",      # free tier fallback
+    "groq",
+    "sambanova",
+]
+
+
+class _WritingFallbackClient(LLMClient):
+    """Internal: tries a pre-built list of clients in order on rate-limit errors."""
+
+    def __init__(self, clients: list[LLMClient]):
+        self._clients = clients
+
+    def generate(
+        self, system_prompt: str, user_prompt: str, temperature: float = 0.3
+    ) -> str:
+        last_error = None
+        for client in self._clients:
+            try:
+                return client.generate(system_prompt, user_prompt, temperature)
+            except Exception as e:
+                error_str = str(e).lower()
+                is_exhausted = any(x in error_str for x in [
+                    "429", "rate", "quota", "exhausted", "limit",
+                    "too many requests", "resource_exhausted",
+                ])
+                if is_exhausted:
+                    print(f"  ⚠️  {client.model_name()} exhausted, trying next writing provider...", flush=True)
+                    last_error = e
+                    continue
+                raise
+        raise RuntimeError(
+            f"All writing providers exhausted. Last error: {last_error}"
+        )
+
+    def model_name(self) -> str:
+        return f"writing/{self._clients[0].model_name()}"
+
+
+def create_writing_client() -> LLMClient:
+    """Create a writing-optimised LLM client for quality-critical pipeline steps.
+
+    Fallback chain: DeepSeek V3.2 → OpenRouter/Qwen3.5 → Claude Haiku → Gemini.
+    Configure primary provider via WRITING_PROVIDER env var (default: deepseek).
+
+    Note: DeepSeek V4 will be available via the same deepseek endpoint when released.
+    """
+    primary = os.getenv("WRITING_PROVIDER", "deepseek")
+    order = [primary] + [p for p in WRITING_PROVIDER_FALLBACK_ORDER if p != primary]
+
+    available: list[LLMClient] = []
+    for provider in order:
+        try:
+            available.append(_create_single_client(provider))
+        except ValueError:
+            pass  # API key not set, skip this provider
+
+    if not available:
+        raise ValueError(
+            "No writing LLM providers configured. Add at least one key to .env:\n"
+            "  DEEPSEEK_API_KEY   https://platform.deepseek.com/api_keys\n"
+            "  OPENROUTER_API_KEY https://openrouter.ai/keys\n"
+            "  ANTHROPIC_API_KEY  https://console.anthropic.com\n"
+            "  GEMINI_API_KEY     https://aistudio.google.com/apikey"
+        )
+
+    print(
+        f"  Writing LLM: {available[0].model_name()} "
+        f"(+{len(available) - 1} fallback(s))",
+        flush=True,
+    )
+
+    return available[0] if len(available) == 1 else _WritingFallbackClient(available)

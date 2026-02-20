@@ -246,6 +246,12 @@ contact@rodrigolopes.eu | +49 0172 5626057
 - Close with their problem, not your enthusiasm
 - No em dashes anywhere in the letter
 
+**Writing quality — apply to every sentence:**
+- **So What test:** for every sentence ask "why should the reader care?" If no clear answer, cut it or rewrite it until the answer is obvious.
+- **Earn your place:** every sentence must move the reader toward wanting to speak with Rodrigo. Ruthlessly cut anything that does not do that job — transitions, restatements, filler enthusiasm.
+- **Peer tone, not applicant tone:** write like a smart colleague who noticed something relevant and is sharing it. Not like someone asking for a favour.
+- Structural framework (adapted from cold-email best practices): Observation → Problem → Proof → Ask. The opening is an observation about their business. The body is the problem you have solved that matches theirs, with proof. The close is the ask — framed as working on their challenge together, not as requesting an interview.
+
 **Example Opening (Good):**
 "Most B2B products get adopted because a procurement manager approved the budget. TryHackMe gets adopted because practitioners recommended it to each other before their employer had heard of it. Converting that kind of individual trust into organizational commitment is a specific product challenge, and it is where I have spent most of my career."
 

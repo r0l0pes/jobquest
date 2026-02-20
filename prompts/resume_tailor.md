@@ -208,6 +208,12 @@ Categorize keywords:
 - When the candidate's experience mirrors the company's specific challenge (e.g., same B2C2B motion, same activation problem, same PLG model), name that connection explicitly in the bullet. Change generic role language ("commercial teams") to the JD's own language ("Sales and Customer Success") when it is accurate.
 - One strong bullet with narrative depth beats two thin ones. If a bullet can be reframed to make the parallel to the role unmistakable, do it — without changing facts or metrics.
 
+**Writing quality — apply to every sentence before outputting:**
+- **So What test:** for every sentence, ask "why should the reader care?" If there is no clear answer, cut it or rewrite it so the answer is obvious.
+- **Prove It test:** every claim needs evidence. "Improved adoption" means nothing. "Increased self-service adoption by 40%" means something. If a claim has no proof, either add the number or remove the claim.
+- **Earn your place:** every word must justify being there. Cut adverbs, filler adjectives, and any phrase that restates what the previous sentence already said.
+- These are adapted from the copy-editing skill (copy-editing Seven Sweeps, passes 3–5).
+
 **Skills \& Tools section:**
 - Reorder items within each category to prioritize job-relevant skills first
 - The tool or methodology explicitly named in the JD (e.g., Amplitude) must appear first or near the top of its category

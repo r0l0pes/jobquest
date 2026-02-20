@@ -31,15 +31,16 @@ GEMINI_MODELS = {
 }
 
 # Fallback order when hitting rate limits (each has separate quota)
+# Quality-first: start with the most capable, fall back to faster/lighter models
 MODEL_FALLBACK_ORDER = [
-    "models/gemini-3-flash-preview",
-    "models/gemini-2.5-flash",
-    "models/gemini-2.5-flash-lite",
-    "models/gemini-3-pro-preview",
-    "models/gemini-2.5-pro",
+    "models/gemini-3-pro-preview",    # 1. Best quality
+    "models/gemini-3-flash-preview",  # 2. Fast, still latest gen
+    "models/gemini-2.5-pro",          # 3. Stable high quality
+    "models/gemini-2.5-flash",        # 4. Stable fast
+    "models/gemini-2.5-flash-lite",   # 5. Last resort
 ]
 
-DEFAULT_MODEL = "gemini-3-flash"
+DEFAULT_MODEL = "gemini-3-pro"
 
 
 class LLMClient(ABC):

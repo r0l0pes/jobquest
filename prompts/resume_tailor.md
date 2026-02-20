@@ -45,6 +45,7 @@ The tailored resume must:
 - **Shorten or condense experience bullets** — each bullet must preserve the full depth and detail of the master resume. If a bullet in the master is 3 lines long, the tailored version must also be ~3 lines. You may rephrase words or insert keywords naturally, but you may NOT remove context, drop clauses, or summarise
 - **Keyword-stuff** — unnatural repetition triggers ATS penalties
 - **Use markdown formatting** — ABSOLUTELY NO `**bold**`, `*italics*`, or `__underline__`. Use ONLY LaTeX: `\textbf{}` for bold, `\textit{}` for italics. Markdown will break PDF compilation.
+- **Bold tool names or methodologies inline in bullets** — never write `\textbf{Jira}`, `\textbf{Amplitude}`, `\textbf{PRD writing}`, `\textbf{Jobs-to-be-Done}` or any tool/framework mid-sentence. Tool names are plain text inside bullets. Bold is only used in section headers and the Skills category labels (`\textbf{Analytics:}`).
 - **Use em dashes** (`---` in LaTeX, or `—` as Unicode) anywhere in the resume. Use a comma, colon, or sentence break instead.
 - **Change the document structure** — sections must remain in order: Summary → Experience → Skills \& Tools → Certifications → Languages → Education
 - **Use Jinja2 variables or placeholders** — write complete content directly

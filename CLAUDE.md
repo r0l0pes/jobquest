@@ -112,7 +112,7 @@ Two separate client tiers — never mix them:
 
 **ATS check (step 5):** `LLM_PROVIDER` env var selects the provider. `FallbackClient` wraps `GeminiClient`, `GroqClient`, `SambaNovaClient`. On rate-limit, tries next model within provider, then next provider (Gemini 3.1 Pro → Groq → SambaNova).
 
-**Writing steps (3, 6, 8):** `create_writing_client()` reads `WRITING_PROVIDER` env var (default: `deepseek`). Returns a `_WritingFallbackClient` that tries providers in order: DeepSeek V3.2 → OpenRouter/Qwen3.5-397B → Anthropic/Haiku 4.5 → Gemini → Groq → SambaNova.
+**Writing steps (3, 6, 8):** `create_writing_client()` reads `WRITING_PROVIDER` env var (default: `deepseek`). Returns a `_WritingFallbackClient` that tries providers in order: DeepSeek V3.2 → OpenRouter/Qwen3.5-397B → Anthropic/Haiku 4.5 → Gemini → Groq → SambaNova. The fallback triggers on ANY error from the current provider (not just rate limits), so a bad API key or 400 error will still fall through gracefully.
 
 Concrete clients: `GeminiClient`, `GroqClient`, `SambaNovaClient`, `DeepSeekClient`, `OpenRouterClient`, `AnthropicClient`. Never bypass this abstraction when adding LLM calls.
 
@@ -141,13 +141,14 @@ Unknown platform?   → HTML scraping
 
 **Company research scraping** (step 8, Q&A generation):
 ```
-Company URL provided? → Playwright (free, renders JS, one browser instance for up to 5 pages)
-                          → Firecrawl (if Playwright yields < 200 chars, requires API key)
-                            → Plain HTML fetch (last resort)
+Company URL provided? → Playwright (free, JS-rendering, one browser instance for up to 5 pages)
+                          → crawl4ai (free, if Playwright returns all "Homepage" — SPA trap)
+                            → Firecrawl (paid, if both above fail, requires API key)
+                              → Plain HTML fetch (last resort)
 No URL provided?      → Web search (Google → DuckDuckGo fallback)
 ```
 
-The `_discover_important_pages()` function finds relevant pages (about, solutions, customers, blog, etc.) by crawling nav links before fetching. Playwright is always tried first to avoid spending Firecrawl credits unnecessarily.
+The `_discover_important_pages()` function finds relevant pages (about, solutions, customers, blog, etc.) by crawling nav links before fetching. Playwright is always tried first; crawl4ai catches JS-heavy SPAs (React/Next.js) where Playwright returns the same homepage shell for every route. Firecrawl is last to avoid spending paid credits.
 
 Add new ATS platforms to the structured API layer first; only fall through to HTML when necessary.
 
@@ -171,7 +172,8 @@ Managed via `requirements.txt`:
 - `rich` — Terminal formatting
 - `python-dotenv` — Environment variable management
 - `gradio` — Web UI framework (installed separately)
-- `firecrawl-py` — Enhanced web scraping (optional)
+- `crawl4ai` — SPA-aware scraping fallback (free, no API key)
+- `firecrawl-py` — Enhanced web scraping (optional, paid)
 
 ---
 

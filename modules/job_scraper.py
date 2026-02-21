@@ -196,14 +196,11 @@ def _scrape_ashby(company: str, slug: str | None) -> dict:
                 job = j
                 break
 
-    if not job and all_jobs:
-        # If no slug match, fall back to HTML scraping
+    if not job:
+        # No match (slug mismatch or empty board) — fall back to HTML scraping
         return _scrape_generic(
             f"https://jobs.ashbyhq.com/{company}/{slug or ''}"
         )
-
-    if not job:
-        return _empty_result(f"https://jobs.ashbyhq.com/{company}/{slug or ''}")
 
     description = BeautifulSoup(
         job.get("descriptionHtml", ""), "html.parser"
@@ -805,6 +802,37 @@ def _discover_important_pages(base_url: str) -> list[str]:
     return pages
 
 
+def _fetch_company_pages_crawl4ai(pages: list[str], log) -> list[str]:
+    """Fetch pages using crawl4ai — handles JS-heavy SPAs better than plain Playwright.
+
+    Falls back to per-page async crawl. Free, no API key required.
+    """
+    import asyncio
+
+    async def _crawl(urls):
+        from crawl4ai import AsyncWebCrawler
+        results = []
+        async with AsyncWebCrawler(headless=True) as crawler:
+            for url in urls:
+                try:
+                    result = await crawler.arun(url=url)
+                    text = result.markdown or result.cleaned_html or ""
+                    if len(text) > 200:
+                        section = url.rstrip("/").split("/")[-1] or "Homepage"
+                        section = section.replace("-", " ").replace("_", " ").title()
+                        results.append(f"## {section}\nSource: {url}\n\n{text[:2500]}")
+                        log(f"  [dim]✓ crawl4ai: {section}[/dim]")
+                except Exception:
+                    continue
+        return results
+
+    try:
+        return asyncio.run(_crawl(pages[:5]))
+    except Exception as e:
+        log(f"  [yellow]crawl4ai failed: {e}[/yellow]")
+        return []
+
+
 def _fetch_company_pages_playwright(pages: list[str], log) -> list[str]:
     """Fetch multiple company pages using a single Playwright browser instance.
 
@@ -819,7 +847,9 @@ def _fetch_company_pages_playwright(pages: list[str], log) -> list[str]:
             for url in pages[:5]:
                 try:
                     pg = browser.new_page()
-                    pg.goto(url, wait_until="networkidle", timeout=20000)
+                    pg.goto(url, wait_until="domcontentloaded", timeout=20000)
+                    # Extra wait for JS-heavy SPAs to render page-specific content
+                    pg.wait_for_timeout(2500)
                     html = pg.content()
                     pg.close()
 
@@ -834,7 +864,7 @@ def _fetch_company_pages_playwright(pages: list[str], log) -> list[str]:
                     text = " ".join(text.split())
 
                     if len(text) > 200:
-                        section = url.split("/")[-1] or "Homepage"
+                        section = url.rstrip("/").split("/")[-1] or "Homepage"
                         section = section.replace("-", " ").replace("_", " ").title()
                         results.append(f"## {section}\nSource: {url}\n\n{text[:2500]}")
                         log(f"  [dim]✓ Playwright: {section}[/dim]")
@@ -876,7 +906,20 @@ def research_company(
             total_chars = sum(len(r) for r in results_text)
             log(f"  [green]✓ Playwright research: {len(results_text)} pages, {total_chars} chars[/green]")
 
-        # Strategy 2: Firecrawl if Playwright returned thin content
+        # Detect SPA trap: all pages labelled "Homepage" means Playwright got the same
+        # shell page for every URL (React/Next.js SPA that requires JS routing).
+        all_homepage = results_text and all("## Homepage" in r for r in results_text)
+        playwright_thin = not results_text or all_homepage
+
+        # Strategy 1b: crawl4ai if Playwright was thin (SPA or no content)
+        if playwright_thin:
+            log(f"  [dim]Playwright thin/SPA — trying crawl4ai[/dim]")
+            results_text = _fetch_company_pages_crawl4ai(pages_to_fetch, log)
+            if results_text:
+                total_chars = sum(len(r) for r in results_text)
+                log(f"  [green]✓ crawl4ai research: {len(results_text)} pages, {total_chars} chars[/green]")
+
+        # Strategy 2: Firecrawl if still thin
         if not results_text and FIRECRAWL_API_KEY:
             log(f"  [dim]Playwright thin — trying Firecrawl: {company_url}[/dim]")
             try:
@@ -887,7 +930,7 @@ def research_company(
                         doc = app.scrape(page_url, formats=["markdown"], wait_for=2000)
                         markdown = doc.markdown or ""
                         if markdown and len(markdown) > 100:
-                            section = page_url.split("/")[-1] or "Homepage"
+                            section = page_url.rstrip("/").split("/")[-1] or "Homepage"
                             section = section.replace("-", " ").replace("_", " ").title()
                             results_text.append(f"## {section}\nSource: {page_url}\n\n{markdown[:2500]}")
                             log(f"  [dim]✓ Firecrawl: {section}[/dim]")

@@ -516,7 +516,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     # Static/semi-static content first (cached by DeepSeek prefix cache),
     # dynamic content last (changes per application, always after the cached prefix).
     user_prompt = (
-        f"## Master Resume\n\n{ctx['master_resume'][:3000]}\n\n"
+        f"## Master Resume\n\n{ctx['master_resume']}\n\n"
         f"---\n\n"
         f"{templates_section}"
         f"---\n\n"
@@ -597,8 +597,8 @@ def step_create_notion_entry(
 
     from config import RESUME_VARIANT
 
-    job_title = ctx["job"].get("title", "Unknown")
-    company = ctx["job"].get("company", "Unknown")
+    job_title = ctx["job"].get("title") or "Unknown"
+    company = ctx["job"].get("company") or "Unknown"
     job_url = ctx["job_url"]
 
     console.print(f"  Job: {job_title} at {company}")

@@ -1,5 +1,6 @@
 notion-client
 playwright
+crawl4ai
 beautifulsoup4
 python-dotenv
 duckduckgo-search

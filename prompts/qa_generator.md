@@ -51,6 +51,16 @@ If a **Q&A Templates** section appears in the user message, use those entries as
 | **Accenture** | E-commerce, growth PM, international experience, conversion optimization |
 | **C&A Brasil** | Experimentation rigor, mobile optimization, execution speed |
 
+### 2b. Vary Examples Across Questions
+
+**NEVER use the same role as the primary example for two consecutive answers.**
+
+Before writing each answer, note which role you used in the previous answer. If you used FORVIA HELLA for Q1, lead Q2 with WFP, Accenture, or C&A Brasil. Rotate deliberately.
+
+Each question must surface a DIFFERENT story. If two questions could both be answered with the HELLA platform, use HELLA for one and find a different angle (WFP stakeholder complexity, Accenture experimentation, C&A Brazil speed) for the other.
+
+The "Used:" line at the end of each answer is your tracking tool. If the same role appears in consecutive "Used:" lines, rewrite the second answer.
+
 ### 3. Use Company Research
 
 The company research section below contains recent news and product information. Use SPECIFIC, CONCRETE details from it — not generic mission statements.

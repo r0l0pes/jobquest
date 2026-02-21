@@ -147,6 +147,26 @@ These tests are adapted from the copy-editing skill (Seven Sweeps framework, pas
 
 ---
 
+## More AI Tells — Also Banned
+
+**Copula avoidance:** LLMs avoid "is" and "has" by substituting decorative verbs.
+- "serves as a catalyst" → "is a catalyst" or cut the metaphor entirely
+- "acts as a bridge" → "connects"
+- "functions as a hub" → "is the hub"
+- "stands as a testament" → delete the sentence, it says nothing
+Never use "serves as", "acts as", "functions as", "stands as" in any output.
+
+**Participial moralizing tails:** Bullets that end with a dangling "-ing" clause explaining what the metric means.
+- "...increasing conversion by 28%, demonstrating the value of experimentation." → stop at "28%"
+- "...reducing cost by 60%, showcasing the team's efficiency." → stop at "60%"
+The metric speaks. Do not narrate its significance. Cut every "...demonstrating", "...reflecting", "...showcasing", "...highlighting", "...underscoring", "...illustrating" clause at the end of a bullet.
+
+**Synonym cycling:** Picking a different word each time to avoid repetition.
+- "platform... product... tool... solution... system" all referring to the same thing
+Pick one word for a concept and repeat it. Repetition is clearer than variety.
+
+---
+
 ## Em Dash Rule
 
 Never use em dashes (-- or —) anywhere. In any output: resumes, cover letters, Q&A answers, summaries, everything. Use commas, periods, colons, or restructure the sentence instead.

@@ -475,6 +475,7 @@ class AnthropicClient(LLMClient):
 
     Default model: claude-haiku-4-5-20251001 ($0.80/$4.00 per 1M tokens).
     Reliable instruction following for complex multi-rule prompts.
+    Note: prompt caching disabled (plain string system prompt) for stability.
     """
 
     DEFAULT_MODEL = "claude-haiku-4-5-20251001"
@@ -509,17 +510,7 @@ class AnthropicClient(LLMClient):
                     },
                     json={
                         "model": self._model_id,
-                        # Pass system as a content block so we can mark it for
-                        # prompt caching. Cache hit cost = 0.10x base input price.
-                        # Min cacheable: 4096 tokens (Haiku 4.5). Our system prompts
-                        # (rodrigo-voice + task prompt) are ~4.5–5.5K tokens.
-                        "system": [
-                            {
-                                "type": "text",
-                                "text": system_prompt,
-                                "cache_control": {"type": "ephemeral"},
-                            }
-                        ],
+                        "system": system_prompt,
                         "messages": [
                             {"role": "user", "content": user_prompt},
                         ],
@@ -715,16 +706,9 @@ class _WritingFallbackClient(LLMClient):
             try:
                 return client.generate(system_prompt, user_prompt, temperature)
             except Exception as e:
-                error_str = str(e).lower()
-                is_exhausted = any(x in error_str for x in [
-                    "429", "rate", "quota", "exhausted", "limit",
-                    "too many requests", "resource_exhausted",
-                ])
-                if is_exhausted:
-                    print(f"  ⚠️  {client.model_name()} exhausted, trying next writing provider...", flush=True)
-                    last_error = e
-                    continue
-                raise
+                print(f"  ⚠️  {client.model_name()} failed ({e.__class__.__name__}), trying next writing provider...", flush=True)
+                last_error = e
+                continue
         raise RuntimeError(
             f"All writing providers exhausted. Last error: {last_error}"
         )

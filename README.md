@@ -44,9 +44,9 @@ Two separate provider tiers — one for quality, one for speed.
 
 | Provider | Model | Cost/app | Get Key |
 |----------|-------|----------|---------|
-| DeepSeek V3.2 | deepseek-chat | ~$0.008 | [platform.deepseek.com](https://platform.deepseek.com) |
-| OpenRouter | Qwen3.5-397B | ~$0.014 | [openrouter.ai](https://openrouter.ai) |
-| Anthropic | Haiku 4.5 | ~$0.06 | [console.anthropic.com](https://console.anthropic.com) |
+| DeepSeek V3.2 | deepseek-chat | [platform.deepseek.com](https://platform.deepseek.com) |
+| OpenRouter | Qwen3.5-397B | [openrouter.ai](https://openrouter.ai) |
+| Anthropic | Haiku 4.5 | [console.anthropic.com](https://console.anthropic.com) |
 
 **ATS check step (step 5):** Free-tier providers with automatic fallback.
 
@@ -216,16 +216,15 @@ Job URL
 ```
 Company URL provided?
     │
-    ├─ Playwright first (free) — discovers up to 5 pages via nav links
+    ├─ Playwright first — discovers up to 5 pages via nav links
     │
-    ├─ Thin result/SPA trap? → crawl4ai (free, handles JS routing)
+    ├─ Thin result/SPA trap? → crawl4ai (handles JS routing)
     │
-    └─ Still thin? → Firecrawl (paid, only as fallback)
+    └─ Still thin? → Firecrawl (only as fallback)
                          │
                          └─ Failed? → Plain HTML → Web search
 ```
 
-Playwright is always tried first to avoid spending Firecrawl credits unnecessarily.
 
 ### Token Optimization
 
@@ -237,7 +236,7 @@ We considered several approaches to reduce Claude Code token usage:
 4. **Context7 MCP** (configured): Provides up-to-date documentation to avoid outdated API calls
 
 **Pipeline vs Claude Code split:**
-- Writing steps (resume tailoring, ATS edits, Q&A) → DeepSeek V3.2 (~$0.008/app)
+- Writing steps (resume tailoring, ATS edits, Q&A) → DeepSeek V3.2
 - ATS keyword check → Gemini/Groq/SambaNova (free)
 - System development → Claude Code (when modifying the codebase)
 

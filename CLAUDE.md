@@ -136,7 +136,8 @@ Scripts called via `subprocess.run()` return JSON on stdout. This isolates Notio
 Known ATS platform? → Structured API (Greenhouse / Lever / Ashby / Workable / Personio / Screenloop)
 Unknown platform?   → HTML scraping
                        → Playwright headless browser (if HTML is thin/JS-heavy)
-                         → Firecrawl (if FIRECRAWL_API_KEY set and Playwright insufficient)
+                         → crawl4ai (if Playwright thin/SPA)
+                           → Firecrawl (if FIRECRAWL_API_KEY set and still thin)
 ```
 
 **Company research scraping** (step 8, Q&A generation):

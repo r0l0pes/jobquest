@@ -207,18 +207,22 @@ Job URL
     │
     └─ Unknown?  → HTML scraping
                      │
-                     └─ JS-heavy? → Playwright (free, headless Chromium)
-                                       │
-                                       └─ Still thin? → Firecrawl (if configured)
+                     ├─ JS-heavy? → Playwright (free, headless Chromium)
+                     │
+                     ├─ Still thin? → crawl4ai (free, better for SPAs)
+                     │
+                     └─ Still thin? → Firecrawl (if configured, best anti-bot)
 ```
 
 **Company research scraping** (used in step 8 for Q&A context):
 ```
 Company URL provided?
     │
-    ├─ Playwright first (free) — discovers up to 5 pages via nav links, renders JS
+    ├─ Playwright first (free) — discovers up to 5 pages via nav links
     │
-    └─ Thin result? → Firecrawl (paid, only as fallback)
+    ├─ Thin result/SPA trap? → crawl4ai (free, handles JS routing)
+    │
+    └─ Still thin? → Firecrawl (paid, best markdown extraction)
                          │
                          └─ Failed? → Plain HTML → Web search
 ```

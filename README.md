@@ -42,8 +42,8 @@ Two separate provider tiers — one for quality, one for speed.
 
 **Writing steps (resume tailor, ATS edits, Q&A):** Paid quality-first chain with automatic fallback.
 
-| Provider | Model | Cost/app | Get Key |
-|----------|-------|----------|---------|
+| Provider | Model | Get Key |
+|----------|-------|---------|
 | DeepSeek V3.2 | deepseek-chat | [platform.deepseek.com](https://platform.deepseek.com) |
 | OpenRouter | Qwen3.5-397B | [openrouter.ai](https://openrouter.ai) |
 | Anthropic | Haiku 4.5 | [console.anthropic.com](https://console.anthropic.com) |
@@ -176,11 +176,11 @@ JobQuest/
 
 **Writing steps (3, 6, 8) — quality-first:**
 ```
-DeepSeek V3.2 (primary, ~$0.008/app with prefix caching)
+DeepSeek V3.2 
     │
-    └─ Rate limit? → OpenRouter / Qwen3.5-397B (~$0.014/app)
+    └─ Rate limit? → OpenRouter / Qwen3.5-397B 
                          │
-                         └─ Rate limit? → Anthropic / Haiku 4.5 (~$0.06/app)
+                         └─ Rate limit? → Anthropic / Haiku 4.5 
                                               │
                                               └─ Rate limit? → Gemini → Groq → SambaNova
 ```
@@ -209,7 +209,7 @@ Job URL
                      │
                      └─ JS-heavy? → Playwright (free, headless Chromium)
                                        │
-                                       └─ Still thin? → Firecrawl (if configured)
+                                       └─ Still thin? → Firecrawl 
 ```
 
 **Company research scraping** (used in step 8 for Q&A context):
@@ -220,7 +220,7 @@ Company URL provided?
     │
     ├─ Thin result/SPA trap? → crawl4ai (handles JS routing)
     │
-    └─ Still thin? → Firecrawl (only as fallback)
+    └─ Still thin? → Firecrawl 
                          │
                          └─ Failed? → Plain HTML → Web search
 ```

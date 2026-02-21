@@ -466,37 +466,6 @@ def _scrape_with_playwright(url: str) -> dict:
         return _extract_from_html(html, url)
 
 
-def _scrape_with_crawl4ai(url: str) -> dict:
-    """Scrape using crawl4ai — better for SPAs than plain Playwright."""
-    import asyncio
-    from crawl4ai import AsyncWebCrawler
-
-    async def _crawl():
-        async with AsyncWebCrawler(headless=True) as crawler:
-            result = await crawler.arun(url=url)
-            return result.markdown, result.metadata or {}
-
-    try:
-        markdown, metadata = asyncio.run(_crawl())
-        if not markdown or len(markdown) < 200:
-            return {}
-
-        # Extract title and company from metadata if possible
-        title = metadata.get("title", "")
-        company = metadata.get("ogSiteName", "")
-
-        return {
-            "title": title,
-            "company": company,
-            "description": markdown,
-            "url": url,
-            "source": "crawl4ai",
-            "questions": [],
-        }
-    except Exception:
-        return {}
-
-
 def _extract_from_html(html: str, url: str) -> dict:
     """Parse HTML and extract job posting data using multiple strategies."""
     soup = BeautifulSoup(html, "html.parser")
@@ -726,40 +695,38 @@ def scrape_job_posting(
         result = _scrape_with_playwright(url)
 
     # If content is too short or missing title/company, JS probably didn't render
-    # or it's a JS-heavy SPA that plain Playwright (sync) sometimes misses
     needs_enhanced = (
-        len(result.get("description", "")) < 500
+        len(result.get("description", "")) < 200
         or not result.get("title")
         or not result.get("company")
     )
 
     if needs_enhanced:
-        # 1. Try Playwright first (already might have been tried, but retry with better wait if needed)
-        # Actually, let's go straight to crawl4ai which handles SPAs better
-        log("  [yellow]Incomplete data — trying crawl4ai...[/yellow]")
-        c4_result = _scrape_with_crawl4ai(url)
-        if c4_result and len(c4_result.get("description", "")) > len(result.get("description", "")):
-            # Merge results
-            if c4_result.get("title"): result["title"] = c4_result["title"]
-            if c4_result.get("company"): result["company"] = c4_result["company"]
-            result["description"] = c4_result["description"]
-            result["source"] = "crawl4ai"
-            needs_enhanced = len(result["description"]) < 500
-
-        # 2. Try Firecrawl if still thin (better anti-bot)
-        if needs_enhanced and FIRECRAWL_API_KEY:
-            log("  [yellow]Still thin — trying Firecrawl...[/yellow]")
+        # Try Firecrawl first (better anti-bot, JS handling)
+        if FIRECRAWL_API_KEY:
+            log("  [yellow]Incomplete data — trying Firecrawl...[/yellow]")
             try:
                 fc_result = _scrape_with_firecrawl(url)
                 if fc_result.get("description") and len(fc_result.get("description", "")) > len(result.get("description", "")):
-                    if fc_result.get("title"): result["title"] = fc_result["title"]
-                    if fc_result.get("company"): result["company"] = fc_result["company"]
-                    result["description"] = fc_result["description"]
-                    result["source"] = "firecrawl"
+                    result = fc_result
+                    return result
             except Exception as e:
                 log(f"  [dim]Firecrawl failed: {e}[/dim]")
 
-    return result
+        # Fall back to Playwright
+        log("  [yellow]Retrying with Playwright...[/yellow]")
+        try:
+            pw_result = _scrape_with_playwright(url)
+            # Merge: prefer Playwright results but keep any good data from HTML
+            if pw_result.get("title") or not result.get("title"):
+                result["title"] = pw_result.get("title") or result.get("title", "")
+            if pw_result.get("company") or not result.get("company"):
+                result["company"] = pw_result.get("company") or result.get("company", "")
+            if len(pw_result.get("description", "")) > len(result.get("description", "")):
+                result["description"] = pw_result["description"]
+            result["source"] = "playwright"
+        except Exception as e:
+            log(f"  [yellow]Playwright failed: {e}. Using partial data.[/yellow]")
 
     return result
 

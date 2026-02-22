@@ -63,6 +63,33 @@ def parse_args(argv: list[str] | None = None):
 
 
 
+def build_steps():
+    """Build the pipeline steps list with lazy imports."""
+    from modules.pipeline import (
+        step_scrape_job,
+        step_read_master_resume,
+        step_tailor_resume,
+        step_write_tex,
+        step_ats_check,
+        step_apply_ats_edits,
+        step_compile_pdf,
+        step_generate_qa,
+        step_create_notion_entry,
+    )
+    
+    return [
+        ("scrape", "Scrape job posting", step_scrape_job),
+        ("resume", "Read master resume from Notion", step_read_master_resume),
+        ("tailor", "Tailor resume via LLM", step_tailor_resume),
+        ("write_tex", "Write .tex file", step_write_tex),
+        ("ats_check", "Run ATS keyword check", step_ats_check),
+        ("ats_apply", "Review & apply ATS edits", step_apply_ats_edits),
+        ("compile", "Compile PDF", step_compile_pdf),
+        ("qa", "Generate Q&A answers", step_generate_qa),
+        ("notion", "Create Notion entry", step_create_notion_entry),
+    ]
+
+
 def show_dry_run(ctx: dict, console: Console, steps):
     """Print planned steps without executing."""
     table = Table(title="Pipeline Steps (dry run)")
@@ -127,31 +154,10 @@ def show_summary(ctx: dict, console: Console):
 def run_pipeline_from_cli(args) -> int:
     """Execute pipeline from CLI arguments."""
     from modules.llm_client import create_client
-    from modules.pipeline import (
-        step_scrape_job,
-        step_read_master_resume,
-        step_tailor_resume,
-        step_write_tex,
-        step_ats_check,
-        step_apply_ats_edits,
-        step_compile_pdf,
-        step_generate_qa,
-        step_create_notion_entry,
-    )
     
     console = Console()
     
-    STEPS = [
-        ("scrape", "Scrape job posting", step_scrape_job),
-        ("resume", "Read master resume from Notion", step_read_master_resume),
-        ("tailor", "Tailor resume via LLM", step_tailor_resume),
-        ("write_tex", "Write .tex file", step_write_tex),
-        ("ats_check", "Run ATS keyword check", step_ats_check),
-        ("ats_apply", "Review & apply ATS edits", step_apply_ats_edits),
-        ("compile", "Compile PDF", step_compile_pdf),
-        ("qa", "Generate Q&A answers", step_generate_qa),
-        ("notion", "Create Notion entry", step_create_notion_entry),
-    ]
+    STEPS = build_steps()
     
     # Resolve provider: CLI arg > env var > default
     provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")

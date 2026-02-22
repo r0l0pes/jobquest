@@ -90,6 +90,10 @@ def build_steps():
     ]
 
 
+def execute_step(step_id, desc, step_fn, ctx, llm, console):
+    return step_fn(ctx=ctx, llm=llm, console=console)
+
+
 def show_dry_run(ctx: dict, console: Console, steps):
     """Print planned steps without executing."""
     table = Table(title="Pipeline Steps (dry run)")
@@ -202,7 +206,7 @@ def run_pipeline_from_cli(args) -> int:
     # Run pipeline
     for i, (step_id, desc, step_fn) in enumerate(STEPS, 1):
         try:
-            ctx = step_fn(ctx, llm=llm, console=console)
+            ctx = execute_step(step_id, desc, step_fn, ctx, llm, console)
         except KeyboardInterrupt:
             console.print("\n[yellow]Pipeline interrupted by user.[/yellow]")
             # Save what we have

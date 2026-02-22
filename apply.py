@@ -151,9 +151,8 @@ def show_summary(ctx: dict):
     console.print(table)
 
 
-def main():
-    args = parse_args()
-
+def run_pipeline_from_cli(args) -> int:
+    """Execute pipeline from CLI arguments."""
     # Resolve provider: CLI arg > env var > default
     provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")
 
@@ -175,7 +174,7 @@ def main():
             )
         )
         show_dry_run(ctx)
-        return
+        return 0
 
     # Banner
     console.print(
@@ -192,7 +191,7 @@ def main():
         llm = create_client(provider=provider, fallback=True)
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
-        sys.exit(1)
+        return 1
 
     # Run pipeline
     for i, (step_id, desc, step_fn) in enumerate(STEPS, 1):
@@ -202,11 +201,11 @@ def main():
             console.print("\n[yellow]Pipeline interrupted by user.[/yellow]")
             # Save what we have
             _save_context(ctx)
-            sys.exit(0)
+            return 0
         except Exception as e:
             console.print(f"\n[red]Step {i} ({desc}) failed: {e}[/red]")
             _save_context(ctx)
-            sys.exit(1)
+            return 1
 
     # Done - save context and show summary
     _save_context(ctx)
@@ -214,6 +213,13 @@ def main():
         Panel("[bold green]Pipeline complete.[/bold green]", style="green")
     )
     show_summary(ctx)
+    return 0
+
+
+def main():
+    args = parse_args()
+    return_code = run_pipeline_from_cli(args)
+    sys.exit(return_code)
 
 
 def _save_context(ctx: dict):

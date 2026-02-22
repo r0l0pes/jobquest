@@ -4,7 +4,6 @@
 Usage:
     python apply.py <job_url>
     python apply.py <job_url> --questions "Why this role?;Tell us about yourself"
-    python apply.py <job_url> --skip-form --skip-notion
     python apply.py <job_url> --dry-run
 """
 
@@ -42,7 +41,7 @@ def parse_args():
             "Examples:\n"
             "  python apply.py https://boards.greenhouse.io/company/jobs/123\n"
             '  python apply.py https://jobs.lever.co/company/abc --questions "Why us?"\n'
-            "  python apply.py https://example.com/jobs/pm --skip-form --skip-notion\n"
+            "  python apply.py https://example.com/jobs/pm --skip-notion\n"
         ),
     )
     parser.add_argument("job_url", help="URL of the job posting")

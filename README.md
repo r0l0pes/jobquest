@@ -73,6 +73,7 @@ python apply.py "JOB_URL" --provider groq
 
 # Preview
 python apply.py "JOB_URL" --dry-run
+--dry-run prints the planned pipeline steps and does not execute the pipeline (no prompts, no file writes, no API calls).
 ```
 
 ## Setup
@@ -93,6 +94,9 @@ ANTHROPIC_API_KEY=...   # optional writing last resort
 FIRECRAWL_API_KEY=...   # optional, better JS page scraping
 NOTION_TOKEN=...
 # ... (see .env.example for full list)
+
+JobQuest loads environment variables from a local .env file at CLI startup.
+At least one API key must be set in .env: GEMINI_API_KEY or GROQ_API_KEY or SAMBANOVA_API_KEY.
 
 # Ensure pdflatex
 brew install --cask mactex  # macOS

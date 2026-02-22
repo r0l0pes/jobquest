@@ -160,6 +160,11 @@ Parsers strip `<think>...</think>` blocks (from DeepSeek-style reasoning models)
 
 `fix_markdown_lists()` is applied after every LLM LaTeX response (steps 3 and 6). It converts bare `- item` lines under `\section*{}` headings into proper `\begin{itemize}...\end{itemize}` blocks. This corrects a common LLM formatting failure in Certifications, Languages, and Education sections.
 
+### apply.py Implementation
+- `apply.py` calls `load_dotenv()` inside `run_pipeline_from_cli()`.
+- The pipeline step list is built by `build_steps()`.
+- Each step is executed via `execute_step()` and returns an updated `ctx`.
+
 ---
 
 ## Key Dependencies

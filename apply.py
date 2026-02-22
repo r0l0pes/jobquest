@@ -20,7 +20,7 @@ from rich.table import Table
 
 
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description="JobQuest — Automated job application pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -34,8 +34,6 @@ def parse_args():
     parser.add_argument("job_url", help="URL of the job posting")
     parser.add_argument(
         "--company-url",
-        type=str,
-        default=None,
         help="Company website URL for research (e.g., https://company.com)",
     )
     parser.add_argument(
@@ -51,8 +49,6 @@ def parse_args():
     )
     parser.add_argument(
         "--provider",
-        type=str,
-        default=None,  # Will use LLM_PROVIDER env var or "gemini"
         choices=["gemini", "groq", "sambanova"],
         help="LLM provider (default: from LLM_PROVIDER env or gemini)",
     )
@@ -61,7 +57,7 @@ def parse_args():
         action="store_true",
         help="Show pipeline plan without executing",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 

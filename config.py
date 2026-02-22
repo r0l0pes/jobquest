@@ -29,26 +29,26 @@ def get_env(name: str, default: str = "", required: bool = False) -> str:
     return value
 
 # Notion Configuration
-NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
-MASTER_RESUME_ID = os.getenv("NOTION_MASTER_RESUME_ID", "")
-APPLICATIONS_DB_ID = os.getenv("NOTION_APPLICATIONS_DB_ID", "")
-QA_TEMPLATES_DB_ID = os.getenv("NOTION_QA_TEMPLATES_DB_ID", "")
-SKILLS_KEYWORDS_DB_ID = os.getenv("NOTION_SKILLS_KEYWORDS_DB_ID", "")
+NOTION_TOKEN = get_env("NOTION_TOKEN", "")
+MASTER_RESUME_ID = get_env("NOTION_MASTER_RESUME_ID", "")
+APPLICATIONS_DB_ID = get_env("NOTION_APPLICATIONS_DB_ID", "")
+QA_TEMPLATES_DB_ID = get_env("NOTION_QA_TEMPLATES_DB_ID", "")
+SKILLS_KEYWORDS_DB_ID = get_env("NOTION_SKILLS_KEYWORDS_DB_ID", "")
 
 # LLM Configuration
 GEMINI_API_KEY = get_env("GEMINI_API_KEY", "")
 
 # Applicant Info
-APPLICANT_NAME = os.getenv("APPLICANT_NAME", "")
-APPLICANT_EMAIL = os.getenv("APPLICANT_EMAIL", "")
-APPLICANT_PHONE = os.getenv("APPLICANT_PHONE", "")
-APPLICANT_LINKEDIN = os.getenv("APPLICANT_LINKEDIN", "")
-APPLICANT_LOCATION = os.getenv("APPLICANT_LOCATION", "")
+APPLICANT_NAME = get_env("APPLICANT_NAME", "")
+APPLICANT_EMAIL = get_env("APPLICANT_EMAIL", "")
+APPLICANT_PHONE = get_env("APPLICANT_PHONE", "")
+APPLICANT_LINKEDIN = get_env("APPLICANT_LINKEDIN", "")
+APPLICANT_LOCATION = get_env("APPLICANT_LOCATION", "")
 
 # Resume A/B Testing
 # Options: "Tech-First" (Technical Proficiency before Experience), "Exp-First" (default)
-RESUME_VARIANT = os.getenv("RESUME_VARIANT", "Tech-First")
+RESUME_VARIANT = get_env("RESUME_VARIANT", "Tech-First")
 
 # Role variant — set by web UI toggle, drives Q&A framing
 # Options: "growth_pm" | "generalist"
-ROLE_VARIANT = os.getenv("ROLE_VARIANT", "growth_pm")
+ROLE_VARIANT = get_env("ROLE_VARIANT", "growth_pm")

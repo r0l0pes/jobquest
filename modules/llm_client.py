@@ -8,10 +8,6 @@ import os
 import time
 from abc import ABC, abstractmethod
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 MAX_RETRIES = 5
 RETRY_BASE_DELAY = 10  # seconds (longer for rate limits)
 

@@ -20,7 +20,7 @@ from rich.table import Table
 
 
 
-def parse_args(argv=None):
+def parse_args(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description="JobQuest — Automated job application pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,

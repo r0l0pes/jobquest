@@ -157,7 +157,10 @@ def show_summary(ctx: dict, console: Console):
 
 def run_pipeline_from_cli(args) -> int:
     """Execute pipeline from CLI arguments."""
+    from dotenv import load_dotenv
     from modules.llm_client import create_client
+    
+    load_dotenv()
     
     console = Console()
     

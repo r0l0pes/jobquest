@@ -30,8 +30,6 @@ from modules.pipeline import (
     step_create_notion_entry,
 )
 
-console = Console()
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -90,7 +88,7 @@ STEPS = [
 ]
 
 
-def show_dry_run(ctx: dict):
+def show_dry_run(ctx: dict, console: Console):
     """Print planned steps without executing."""
     table = Table(title="Pipeline Steps (dry run)")
     table.add_column("Step", style="bold")
@@ -114,7 +112,7 @@ def show_dry_run(ctx: dict):
         console.print(f"Questions: {len(ctx['questions'])}")
 
 
-def show_summary(ctx: dict):
+def show_summary(ctx: dict, console: Console):
     """Print final summary after pipeline completes."""
     table = Table(title="Application Summary")
     table.add_column("Item", style="bold")
@@ -153,6 +151,8 @@ def show_summary(ctx: dict):
 
 def run_pipeline_from_cli(args) -> int:
     """Execute pipeline from CLI arguments."""
+    console = Console()
+    
     # Resolve provider: CLI arg > env var > default
     provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")
 
@@ -173,7 +173,7 @@ def run_pipeline_from_cli(args) -> int:
                 style="yellow",
             )
         )
-        show_dry_run(ctx)
+        show_dry_run(ctx, console)
         return 0
 
     # Banner
@@ -200,19 +200,19 @@ def run_pipeline_from_cli(args) -> int:
         except KeyboardInterrupt:
             console.print("\n[yellow]Pipeline interrupted by user.[/yellow]")
             # Save what we have
-            _save_context(ctx)
+            _save_context(ctx, console)
             return 0
         except Exception as e:
             console.print(f"\n[red]Step {i} ({desc}) failed: {e}[/red]")
-            _save_context(ctx)
+            _save_context(ctx, console)
             return 1
 
     # Done - save context and show summary
-    _save_context(ctx)
+    _save_context(ctx, console)
     console.print(
         Panel("[bold green]Pipeline complete.[/bold green]", style="green")
     )
-    show_summary(ctx)
+    show_summary(ctx, console)
     return 0
 
 
@@ -222,7 +222,7 @@ def main():
     sys.exit(return_code)
 
 
-def _save_context(ctx: dict):
+def _save_context(ctx: dict, console: Console):
     """Save pipeline context for debugging."""
     run_dir = ctx.get("run_dir")
     if not run_dir:

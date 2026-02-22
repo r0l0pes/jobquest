@@ -90,7 +90,7 @@ def build_steps():
     ]
 
 
-def execute_step(step_id, desc, step_fn, ctx, llm, console):
+def execute_step(step_fn, ctx, llm, console):
     return step_fn(ctx=ctx, llm=llm, console=console)
 
 
@@ -206,7 +206,7 @@ def run_pipeline_from_cli(args) -> int:
     # Run pipeline
     for i, (step_id, desc, step_fn) in enumerate(STEPS, 1):
         try:
-            ctx = execute_step(step_id, desc, step_fn, ctx, llm, console)
+            ctx = execute_step(step_fn, ctx, llm, console)
         except KeyboardInterrupt:
             console.print("\n[yellow]Pipeline interrupted by user.[/yellow]")
             # Save what we have

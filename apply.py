@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from modules.llm_client import create_client
+
 
 
 def parse_args():
@@ -130,6 +130,7 @@ def show_summary(ctx: dict, console: Console):
 
 def run_pipeline_from_cli(args) -> int:
     """Execute pipeline from CLI arguments."""
+    from modules.llm_client import create_client
     from modules.pipeline import (
         step_scrape_job,
         step_read_master_resume,

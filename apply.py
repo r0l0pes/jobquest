@@ -206,7 +206,8 @@ def run_pipeline_from_cli(args) -> int:
     # Run pipeline
     for i, (step_id, desc, step_fn) in enumerate(STEPS, 1):
         try:
-            ctx = execute_step(step_fn, ctx, llm, console)
+            new_ctx = execute_step(step_fn, ctx, llm, console)
+            ctx = new_ctx
         except KeyboardInterrupt:
             console.print("\n[yellow]Pipeline interrupted by user.[/yellow]")
             # Save what we have

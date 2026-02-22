@@ -3,6 +3,31 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def get_env(name: str, default: str = "", required: bool = False) -> str:
+    """Read an environment variable with validation.
+    
+    Args:
+        name: Environment variable name
+        default: Default value if not set
+        required: If True, raise ValueError when value is empty/missing
+        
+    Returns:
+        The environment variable value or default
+        
+    Raises:
+        ValueError: If required=True and value is empty/missing
+    """
+    value = os.getenv(name, default)
+    
+    if required and not value:
+        raise ValueError(
+            f"Environment variable '{name}' is required but not set. "
+            f"Add it to your .env file or set it in your environment."
+        )
+    
+    return value
+
 # Notion Configuration
 NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
 MASTER_RESUME_ID = os.getenv("NOTION_MASTER_RESUME_ID", "")

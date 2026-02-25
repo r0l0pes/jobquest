@@ -16,7 +16,7 @@ apply.py / web_ui.py           ← Entry points (CLI and Gradio browser UI)
             ├── scripts/notion_reader.py ← Read master resume from Notion
             ├── scripts/notion_tracker.py← Create Notion application entry
             ├── scripts/render_pdf.py    ← LaTeX → PDF via pdflatex
-            ├── scripts/form_filler.py   ← Automated form filling
+            ├── scripts/form_filler.py   ← Automated form filling (not wired into CLI pipeline — step defined in pipeline.py but not registered in build_steps)
             └── scripts/notion_db_setup.py ← Notion database initialisation
 ```
 
@@ -97,6 +97,7 @@ Each step receives and returns an enriched `ctx` dict:
 3. Tailor resume via LLM — two stages:
    - **3a (free-tier LLM):** Analyse JD + master resume, produce a structured tailoring brief (`tailoring_brief_<Company>.md`) with role priorities, bullet insertion targets, and summary strategy
    - **3b (writing LLM):** Generate LaTeX using the brief as explicit context, executing a plan rather than deriving one mid-generation
+   - **3c (free-tier LLM):** Compliance check — compare brief against generated LaTeX, log misses to `tailor_review_<Company>.md`. Never blocks the pipeline.
 4. Write `.tex` file
 5. Run ATS keyword coverage check (target: 60–80%)
 6. Review & apply ATS edits (interactive in CLI, auto-apply in UI mode)
@@ -122,10 +123,11 @@ Concrete clients: `GeminiClient`, `GroqClient`, `SambaNovaClient`, `DeepSeekClie
 All LLM prompts live in `prompts/*.md` and are loaded at runtime with `_load_prompt()`. Do not inline prompt text in Python files. This keeps prompts easy to iterate on and reduces Claude Code token usage when sharing code context.
 
 Prompt files:
-- `jobquest_system_prompt.md` — Master system prompt used across the pipeline
+- `jobquest_system_prompt.md` — Standalone prompt for manual LLM use (not loaded by the pipeline). Copy-paste into any LLM chat to use it as a job application assistant.
 - `rodrigo-voice.md` — Voice, tone, banned phrases, and writing quality rules. Injected as system prompt prefix for steps 3 and 8. Single source of truth for all writing style rules.
 - `jd_analysis.md` — Step 3a analysis prompt. Produces a structured tailoring brief (role priorities, bullet targets, summary strategy, do-not-change list) using the free-tier LLM before the writing model runs.
 - `resume_tailor.md` — Resume tailoring instructions for step 3b (task-specific only; voice rules are in rodrigo-voice.md)
+- `tailor_review.md` — Step 3c compliance check prompt. Free-tier LLM compares the tailoring brief against the generated LaTeX and logs any misses to `tailor_review_<Company>.md`. Never blocks the pipeline.
 - `ats_check.md` — ATS keyword analysis instructions
 - `qa_generator.md` — Q&A and cover letter generation instructions (task-specific only; voice rules are in rodrigo-voice.md)
 
@@ -199,6 +201,7 @@ Each run writes to `output/CompanyName_YYYY-MM-DD/`:
 
 ```
 tailoring_brief_*.md        ← JD analysis from step 3a (inspect first if quality is off)
+tailor_review_*.md          ← Step 3c compliance check (HIGH issues = writing model missed the plan)
 resume_tailored_*.tex       ← LaTeX source
 resume_tailored_*.pdf       ← Ready to upload
 ats_report_*.json           ← Structured keyword analysis
@@ -218,7 +221,13 @@ Four skills are defined for use within Claude Code sessions. Invoke with `/skill
 - `/ats-fixer` — Review ATS report and apply keyword edits to the `.tex` file
 - `/qa-generator` — Review or regenerate Q&A answers against voice rules
 
-The old `.agent/skills/` directory is superseded by `.claude/skills/` and can be removed. See `BACKLOG.md` for deferred improvements.
+The old `.agent/skills/` directory is superseded by `.claude/skills/` and can be removed.
+
+## Claude Code Agents (`.claude/agents/`)
+
+One subagent is defined. Claude can automatically delegate to it when the description matches:
+
+- `resume-reviewer` — Reads the most recent tailoring brief and LaTeX, flags where the writing model didn't follow the plan. Automatically used when asked to review or check output quality after tailoring. Runs in isolated context (haiku, read-only tools).
 
 ---
 

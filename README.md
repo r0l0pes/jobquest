@@ -24,9 +24,10 @@ Job URL
   │
   ├─ 1. Scrape job posting (Greenhouse/Lever/Ashby/Workable/Personio/Screenloop)
   ├─ 2. Read master resume from Notion
-  ├─ 3. Tailor resume via LLM — two stages:
+  ├─ 3. Tailor resume via LLM — three stages:
   │       3a. Analyse JD → structured tailoring brief (free-tier LLM)
   │       3b. Generate LaTeX from the brief (writing LLM)
+  │       3c. Compliance check: brief vs LaTeX, log misses (free-tier LLM)
   ├─ 4. Write .tex file
   ├─ 5. Run ATS keyword coverage check (60-80% target)
   ├─ 6. Review & apply ATS edits
@@ -109,9 +110,11 @@ brew install --cask mactex  # macOS
 ```
 output/CompanyName_YYYY-MM-DD/
   ├── tailoring_brief_*.md     # JD analysis used to drive step 3 (inspect if quality is off)
+  ├── tailor_review_*.md       # Step 3c compliance check (HIGH = writing model missed the plan)
+  ├── resume_tailored_*.tex    # LaTeX source
   ├── resume_tailored_*.pdf    # Ready to upload
-  ├── qa_*.md                  # Answers to copy/paste
   ├── ats_report_*.md          # Keyword coverage
+  ├── qa_*.md                  # Answers to copy/paste
   └── pipeline_context.json    # Debug info
 ```
 
@@ -145,6 +148,7 @@ JobQuest/
 │   ├── rodrigo-voice.md   # Shared voice/tone/banned phrases (injected into writing steps)
 │   ├── jd_analysis.md     # Step 3a: JD analysis → tailoring brief (free-tier LLM)
 │   ├── resume_tailor.md   # Step 3b: LaTeX generation from brief (writing LLM)
+│   ├── tailor_review.md   # Step 3c: compliance check, brief vs LaTeX (free-tier LLM)
 │   ├── ats_check.md       # ATS analysis prompt
 │   └── qa_generator.md    # Q&A generation prompt
 │
@@ -184,13 +188,13 @@ JobQuest/
 
 **Writing steps (3, 6, 8) — quality-first:**
 ```
-DeepSeek V3.2 
+DeepSeek V3.2
     │
-    └─ Rate limit? → OpenRouter / Qwen3.5-397B 
+    └─ Any error? → OpenRouter / Qwen3.5-397B
                          │
-                         └─ Rate limit? → Anthropic / Haiku 4.5 
+                         └─ Any error? → Anthropic / Haiku 4.5
                                               │
-                                              └─ Rate limit? → Gemini → Groq → SambaNova
+                                              └─ Any error? → Gemini → Groq → SambaNova
 ```
 
 **ATS check (step 5) — free-tier:**
@@ -201,6 +205,8 @@ User-selected provider (Gemini / Groq / SambaNova)
     │                  (Gemini: 3.1-pro → 3-flash → 2.5-pro → 2.5-flash → 2.5-flash-lite)
     │
     └─ All models exhausted? → Try next provider (Gemini → Groq → SambaNova)
+
+    Gemini model order: 3.1-pro → 3-pro → 3-flash → 2.5-pro → 2.5-flash → 2.5-flash-lite
 ```
 
 **Prompt caching:** DeepSeek V3.2 has automatic prefix caching. User prompt is ordered static-first (master resume, templates) then dynamic (job posting, questions), so the master resume is cached after the first application of the day.

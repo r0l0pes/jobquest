@@ -234,6 +234,38 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         )
     ctx["tailored_latex"] = fix_markdown_lists(latex)
     console.print(f"  Tailored LaTeX generated: {len(latex)} chars")
+
+    # --- Stage 3c: Brief compliance review (free-tier LLM) ---
+    # Checks whether the writing model followed the plan. Runs automatically
+    # on every tailor, logs issues to the run dir, never blocks the pipeline.
+    console.print("  3c: Checking brief compliance...")
+    review_system = _load_prompt("tailor_review")
+    review_user = (
+        f"## Tailoring Brief\n\n{tailoring_brief}\n\n"
+        f"---\n\n"
+        f"## Generated LaTeX\n\n{ctx['tailored_latex']}\n\n"
+        f"---\n\n"
+        f"Review for compliance with the brief."
+    )
+    try:
+        review_raw = llm.generate(review_system, review_user, temperature=0.1)
+        ctx["tailor_review"] = review_raw
+        (run_dir / f"tailor_review_{ctx['company_safe']}.md").write_text(review_raw)
+
+        if review_raw.strip().upper().startswith("PASS"):
+            console.print("  [green]Brief compliance: PASS[/green]")
+        else:
+            high_count = review_raw.upper().count("SEVERITY: HIGH")
+            if high_count > 0:
+                console.print(
+                    f"  [yellow]Brief compliance: {high_count} HIGH issue(s) "
+                    f"— see tailor_review_{ctx['company_safe']}.md[/yellow]"
+                )
+            else:
+                console.print("  [dim]Brief compliance: minor divergences logged.[/dim]")
+    except Exception as err:
+        console.print(f"  [dim]Brief compliance check skipped: {err}[/dim]")
+
     return ctx
 
 

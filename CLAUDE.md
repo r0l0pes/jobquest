@@ -26,7 +26,7 @@ apply.py / web_ui.py           ← Entry points (CLI and Gradio browser UI)
 - `prompts/` — LLM prompt templates as `.md` files, loaded at runtime
 - `templates/` — `resume.tex` master LaTeX template
 - `output/` — Generated artefacts per run (`CompanyName_YYYY-MM-DD/`)
-- `.agent/skills/` — Claude Code agent skill definitions
+- `.claude/skills/` — Claude Code skill definitions (invokable via `/skill-name`)
 
 ---
 
@@ -94,7 +94,9 @@ Each step receives and returns an enriched `ctx` dict:
 
 1. Scrape job posting (structured API or HTML fallback)
 2. Read master resume from Notion
-3. Tailor resume via LLM (keyword extraction + natural insertion)
+3. Tailor resume via LLM — two stages:
+   - **3a (free-tier LLM):** Analyse JD + master resume, produce a structured tailoring brief (`tailoring_brief_<Company>.md`) with role priorities, bullet insertion targets, and summary strategy
+   - **3b (writing LLM):** Generate LaTeX using the brief as explicit context, executing a plan rather than deriving one mid-generation
 4. Write `.tex` file
 5. Run ATS keyword coverage check (target: 60–80%)
 6. Review & apply ATS edits (interactive in CLI, auto-apply in UI mode)
@@ -122,7 +124,8 @@ All LLM prompts live in `prompts/*.md` and are loaded at runtime with `_load_pro
 Prompt files:
 - `jobquest_system_prompt.md` — Master system prompt used across the pipeline
 - `rodrigo-voice.md` — Voice, tone, banned phrases, and writing quality rules. Injected as system prompt prefix for steps 3 and 8. Single source of truth for all writing style rules.
-- `resume_tailor.md` — Resume tailoring instructions (task-specific only; voice rules are in rodrigo-voice.md)
+- `jd_analysis.md` — Step 3a analysis prompt. Produces a structured tailoring brief (role priorities, bullet targets, summary strategy, do-not-change list) using the free-tier LLM before the writing model runs.
+- `resume_tailor.md` — Resume tailoring instructions for step 3b (task-specific only; voice rules are in rodrigo-voice.md)
 - `ats_check.md` — ATS keyword analysis instructions
 - `qa_generator.md` — Q&A and cover letter generation instructions (task-specific only; voice rules are in rodrigo-voice.md)
 
@@ -195,6 +198,7 @@ If adding tests, use **pytest**. If adding a linter, use **ruff**.
 Each run writes to `output/CompanyName_YYYY-MM-DD/`:
 
 ```
+tailoring_brief_*.md        ← JD analysis from step 3a (inspect first if quality is off)
 resume_tailored_*.tex       ← LaTeX source
 resume_tailored_*.pdf       ← Ready to upload
 ats_report_*.json           ← Structured keyword analysis
@@ -205,14 +209,16 @@ pipeline_context.json       ← Full ctx dict for debugging
 
 ---
 
-## Agent Skills (`.agent/skills/`)
+## Claude Code Skills (`.claude/skills/`)
 
-Three skills are defined for use within Claude Code sessions:
-- `resume-tailor/` — Tailor a resume for a specific job posting
-- `ats-fixer/` — Fix ATS keyword coverage gaps
-- `qa-generator/` — Generate application answers
+Four skills are defined for use within Claude Code sessions. Invoke with `/skill-name`:
 
-Refer to the `SKILL.md` in each directory before invoking or modifying a skill.
+- `/resume-tailor` — Run the full pipeline for a job URL (`apply.py`)
+- `/review-resume` — Compare the tailoring brief against the generated LaTeX; flags where the writing model didn't follow the plan
+- `/ats-fixer` — Review ATS report and apply keyword edits to the `.tex` file
+- `/qa-generator` — Review or regenerate Q&A answers against voice rules
+
+The old `.agent/skills/` directory is superseded by `.claude/skills/` and can be removed. See `BACKLOG.md` for deferred improvements.
 
 ---
 

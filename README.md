@@ -24,7 +24,9 @@ Job URL
   │
   ├─ 1. Scrape job posting (Greenhouse/Lever/Ashby/Workable/Personio/Screenloop)
   ├─ 2. Read master resume from Notion
-  ├─ 3. Tailor resume via LLM (keyword extraction + natural insertion)
+  ├─ 3. Tailor resume via LLM — two stages:
+  │       3a. Analyse JD → structured tailoring brief (free-tier LLM)
+  │       3b. Generate LaTeX from the brief (writing LLM)
   ├─ 4. Write .tex file
   ├─ 5. Run ATS keyword coverage check (60-80% target)
   ├─ 6. Review & apply ATS edits
@@ -106,6 +108,7 @@ brew install --cask mactex  # macOS
 
 ```
 output/CompanyName_YYYY-MM-DD/
+  ├── tailoring_brief_*.md     # JD analysis used to drive step 3 (inspect if quality is off)
   ├── resume_tailored_*.pdf    # Ready to upload
   ├── qa_*.md                  # Answers to copy/paste
   ├── ats_report_*.md          # Keyword coverage
@@ -140,7 +143,8 @@ JobQuest/
 │
 ├── prompts/
 │   ├── rodrigo-voice.md   # Shared voice/tone/banned phrases (injected into writing steps)
-│   ├── resume_tailor.md   # Resume tailoring prompt
+│   ├── jd_analysis.md     # Step 3a: JD analysis → tailoring brief (free-tier LLM)
+│   ├── resume_tailor.md   # Step 3b: LaTeX generation from brief (writing LLM)
 │   ├── ats_check.md       # ATS analysis prompt
 │   └── qa_generator.md    # Q&A generation prompt
 │

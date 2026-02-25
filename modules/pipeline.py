@@ -158,17 +158,49 @@ TAGLINES = {
 
 def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
     writing_llm = _get_writing_client()
-    console.print("\n[bold]Step 3/9:[/bold] Tailoring resume via {model}...".format(
-        model=writing_llm.model_name()
-    ))
+    console.print("\n[bold]Step 3/9:[/bold] Tailoring resume...")
 
     from config import ROLE_VARIANT
     tagline = TAGLINES.get(ROLE_VARIANT, TAGLINES["growth_pm"])
 
+    # --- Stage 3a: JD analysis (free-tier LLM) ---
+    # Produces a structured tailoring brief before the writing model touches anything.
+    # This separates "figuring out what to do" from "doing it", which produces
+    # more deliberate keyword placement and a better-reasoned summary strategy.
+    console.print(f"  3a: Analyzing job requirements...")
+    analysis_system = _load_prompt("jd_analysis")
+    analysis_user = (
+        f"## Job Posting\n\n"
+        f"**Title:** {ctx['job']['title']}\n"
+        f"**Company:** {ctx['job']['company']}\n\n"
+        f"{ctx['job']['description']}\n\n"
+        f"---\n\n"
+        f"## Candidate Resume\n\n"
+        f"{ctx['master_resume']}\n\n"
+        f"---\n\n"
+        f"Produce the tailoring brief."
+    )
+    tailoring_brief = llm.generate(analysis_system, analysis_user, temperature=0.2)
+    ctx["tailoring_brief"] = tailoring_brief
+
+    # Save brief to run dir for debugging
+    run_dir = Path(ctx["run_dir"])
+    (run_dir / f"tailoring_brief_{ctx['company_safe']}.md").write_text(tailoring_brief)
+    console.print(f"  Tailoring brief: {len(tailoring_brief)} chars")
+
+    # --- Stage 3b: LaTeX generation (writing LLM) ---
+    # The writing model receives the pre-built brief as explicit context, so it
+    # executes a plan rather than deriving one mid-generation.
+    console.print(f"  3b: Generating LaTeX ({writing_llm.model_name()})...")
     system_prompt = _load_voice_prefix() + _load_prompt("resume_tailor")
     # Static/semi-static content first (cached by DeepSeek prefix cache),
     # dynamic content last (changes per application, always after the cached prefix).
     user_prompt = (
+        f"## Tailoring Brief\n\n"
+        f"This analysis was produced for you in advance. Follow it — it tells you "
+        f"which bullets to touch, what the summary strategy is, and what to leave alone.\n\n"
+        f"{tailoring_brief}\n\n"
+        f"---\n\n"
         f"## Locked Header (copy character-for-character, do not change anything)\n\n"
         f"\\begin{{center}}\n"
         f"  {{\\Huge\\bfseries Rodrigo Lopes,}} {{\\small {tagline}}}\\\\[6pt]\n"
@@ -187,7 +219,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"**Company:** {ctx['job']['company']}\n\n"
         f"{ctx['job']['description']}\n\n"
         f"---\n\n"
-        f"Generate the complete tailored LaTeX resume. "
+        f"Generate the complete tailored LaTeX resume following the tailoring brief above. "
         f"Output ONLY the LaTeX content between ```latex and ``` markers."
     )
 

@@ -1,191 +1,82 @@
 ---
 name: resume-tailor
-description: Generate tailored resume by reading job posting, extracting ATS keywords from Master Resume in Notion, and creating a complete LaTeX file compiled to PDF. Use when user pastes job posting and wants customized resume for application.
+description: Tailor Rodrigo's resume for a specific job posting. Use when given a job URL and asked to generate a customised resume. Runs the full 9-step JobQuest pipeline.
 ---
 
 # Resume Tailor Skill
 
-## Purpose
-Generate ATS-optimized, tailored resume versions by intelligently inserting job-specific keywords into your master resume while maintaining professional formatting and honest representation. Outputs a compiled PDF via LaTeX.
-
 ## When to Use
-Activate this skill when:
-- User pastes a job posting URL or full job description
-- User says "tailor my resume for this job"
-- User says "customize resume for [company]"
-- User requests ATS keyword optimization
 
-## Prerequisites
-- `scripts/notion_reader.py` must be functional
-- `scripts/render_pdf.py` must be functional
-- `templates/resume.tex` exists as structural reference
-- pdflatex installed on system
+- User provides a job URL and asks to tailor the resume
+- User says "run the pipeline for [URL]"
+- User says "apply to [company]"
 
-## Process
+## How to Run
 
-### Step 1: Read Job Posting
-1. If user provided URL, use WebFetch to get the page content
-2. If user pasted text, use that directly
-3. Extract key information:
-   - Job title
-   - Company name
-   - Required skills (technical + soft skills)
-   - Required experience level
-   - Industry-specific terminology
-   - Tools/technologies mentioned
-   - Methodologies mentioned (Agile, OKRs, etc.)
+The pipeline handles everything. Do not try to do the tailoring manually.
 
-### Step 2: Read Master Resume from Notion
-Run via Bash:
 ```bash
-venv/bin/python scripts/notion_reader.py page 2f40fd98-227b-8083-a78f-c61c38e55a12 --text
+source venv/bin/activate
+python apply.py "JOB_URL"
+
+# With optional args:
+python apply.py "JOB_URL" --company-url "https://company.com"
+python apply.py "JOB_URL" --questions "Why this role?"
+python apply.py "JOB_URL" --dry-run   # preview, no execution
 ```
-Parse the returned text to extract:
-- Summary section
-- Experience section (all roles: WFP, FORVIA HELLA, Accenture, C&A Brasil)
-- Skills section
-- Education section
 
-### Step 3: Extract ATS Keywords
-Identify keywords that:
-- Appear 2+ times in job posting (high importance)
-- Match your actual experience (only truthful additions)
-- Are missing from current resume OR could be emphasized more
+## What the Pipeline Does
 
-**Categorize keywords:**
-- **High Priority:** Required skills you have but aren't emphasized
-- **Medium Priority:** Nice-to-have skills you possess
-- **Skip:** Skills you don't actually have (NEVER add fake skills)
+**Step 3 uses a two-stage approach:**
 
-### Step 4: Strategic Keyword Placement
-Insert keywords naturally in these locations:
+- **3a (analysis):** Free-tier LLM reads the JD + master resume, produces a structured tailoring brief. This identifies role priorities, which bullets to touch, what the summary strategy is, and what to leave alone.
+- **3b (writing):** Writing LLM generates LaTeX using the brief as explicit context — it executes a plan rather than figuring one out mid-generation.
 
-**Summary Section:**
-- Add 2-3 high-priority keywords that match your actual experience
-- Example: If job mentions "cross-functional leadership" and you coordinated teams, add this phrase
+The brief is saved to `output/<Company>_<date>/tailoring_brief_<Company>.md` for inspection.
 
-**Experience Bullets:**
-- For each role, identify 1-2 bullets where keywords fit naturally
-- Replace generic terms with job-specific terms:
-  - Generic: "managed product roadmap"
-  - Tailored: "managed product roadmap using OKRs" (if job mentions OKRs)
+## Output
 
-**Skills Section:**
-- Reorder to prioritize job-relevant skills
-- Add specific tools mentioned in posting (only if you've used them)
+Each run writes to `output/<Company>_YYYY-MM-DD/`:
+- `resume_tailored_<Company>.tex` — LaTeX source
+- `resume_tailored_<Company>.pdf` — Ready to upload
+- `tailoring_brief_<Company>.md` — JD analysis used for tailoring
+- `ats_report_<Company>.json` / `.md` — ATS keyword coverage
+- `qa_<Company>.md` — Application answers
 
-### Step 5: Generate Complete LaTeX File
-Write a complete `.tex` file to `output/resume_tailored_<CompanyName>.tex`.
+## When Pipeline Output Looks Wrong
 
-Use `templates/resume.tex` as structural reference but generate the FULL content inline (no Jinja2 variables).
+If the tailored resume has quality issues, check the tailoring brief first:
+```bash
+cat output/<Company>_<date>/tailoring_brief_<Company>.md
+```
 
-#### LaTeX Escaping Rules
-The following characters MUST be escaped in all text content:
-- `%` → `\%`
-- `&` → `\&`
-- `$` → `\$`
-- `#` → `\#`
-- `_` → `\_`
-- `{` and `}` → `\{` and `\}` (only when literal, not LaTeX commands)
-- `~` → `\textasciitilde{}`
-- `^` → `\textasciicircum{}`
+If the brief is wrong (misidentified priorities, wrong bullet targets), the problem is in `prompts/jd_analysis.md`. Fix the prompt and re-run.
 
-#### Experience Entry Format
-Each experience entry should follow this structure:
+If the brief is correct but the LaTeX is wrong, the problem is in `prompts/resume_tailor.md` or the specific model output. Check `tailor_raw` in `pipeline_context.json`.
+
+## LaTeX Format Reference
+
+Experience entry format (what the pipeline actually outputs):
 ```latex
-\textbf{Job Title} \hfill Location \\
-\textit{Company Name} \hfill Dates \\
-\begin{itemize}[nosep, leftmargin=*]
-  \item Achievement or responsibility with metric
-  \item Another achievement with keyword naturally inserted
+\vspace{8pt}
+\noindent\textbf{Company}, Role Title \hfill Dates, Location
+\begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=4pt, parsep=0pt]
+\item Achievement with metric...
 \end{itemize}
 ```
 
-#### Contact Line
+Skills section (must be itemize, never paragraph):
 ```latex
-\centerline{Berlin, Germany | \href{mailto:contact@rodrigolopes.eu}{contact@rodrigolopes.eu} | \href{https://www.linkedin.com/in/rodecalo}{LinkedIn}}
-```
-
-### Step 6: Compile to PDF
-Run via Bash:
-```bash
-venv/bin/python scripts/render_pdf.py output/resume_tailored_<CompanyName>.tex
-```
-This runs pdflatex twice and returns the PDF path.
-
-### Step 7: Run ATS Fixer
-After generating the tailored .tex file, run the `ats-fixer` skill to verify keyword coverage and consistency before compiling the final PDF. See `.agent/skills/ats-fixer/SKILL.md` for the full process.
-
-The ATS Fixer checks:
-- Missing must-have keywords
-- Low-visibility keyword placement
-- Title, seniority, and location consistency
-- Proposes minimal edits for user approval
-
-Only compile the final PDF (Step 8) after ATS Fixer edits are reviewed.
-
-### Step 8: Show Changes Summary
-After generating the PDF, provide:
-```
-## Keywords Added:
-- [Keyword 1]: Added to Summary + [Role] experience
-- [Keyword 2]: Added to [Role] experience
-- [Keyword 3]: Moved to top of Skills section
-
-## Sections Modified:
-- Summary: [brief change description]
-- [Role at Company]: [which bullets changed]
-- Skills: [reordering details]
-
-## Output:
-- LaTeX: output/resume_tailored_<CompanyName>.tex
-- PDF: output/resume_tailored_<CompanyName>.pdf
-
-## Review Checklist:
-- [ ] All additions are truthful (no fake skills)
-- [ ] Keywords fit naturally (not keyword-stuffed)
-- [ ] Original voice/tone maintained
-- [ ] PDF renders correctly
+\section*{Skills \& Tools}
+\begin{itemize}[leftmargin=*, label=$\bullet$, itemsep=3pt, parsep=0pt]
+\item \textbf{Category Name:} Skill 1, Skill 2, Skill 3
+\end{itemize}
 ```
 
 ## Critical Rules
 
-### NEVER DO THIS:
-- Add skills you don't have
-- Fabricate experience or metrics
-- Keyword-stuff (unnatural repetition)
-- Change metrics or achievements
-- Inflate scope (e.g., "led" when you "coordinated")
-- Use Jinja2 variables — write complete LaTeX content directly
-
-### ALWAYS DO THIS:
-- Only add keywords for skills you actually possess
-- Maintain honest scope (coordinated != led, managed roadmap != managed team)
-- Keep original tone and voice
-- Preserve all verified metrics exactly as-is
-- Make keyword insertion feel natural
-- Escape special LaTeX characters in all text content
-- Use `templates/resume.tex` as structural reference only
-
-## Example: Good vs Bad Keyword Insertion
-
-**Job posting mentions:** "Experience with A/B testing and experimentation frameworks"
-
-**Master resume bullet:**
-"Increased conversion rate by 28% through iterative optimization"
-
-**Bad (keyword-stuffed):**
-"Increased conversion rate by 28% through A/B testing and experimentation frameworks using iterative optimization"
-
-**Good (natural):**
-"Increased conversion rate by 28\% through A/B testing and iterative experimentation"
-
-## Output Location
-- LaTeX file: `output/resume_tailored_<CompanyName>.tex`
-- PDF file: `output/resume_tailored_<CompanyName>.pdf`
-
-## Script Reference
-| Script | Purpose | Example |
-|--------|---------|---------|
-| `scripts/notion_reader.py` | Read master resume | `venv/bin/python scripts/notion_reader.py page <id> --text` |
-| `scripts/render_pdf.py` | Compile LaTeX to PDF | `venv/bin/python scripts/render_pdf.py output/file.tex` |
+- Never fabricate experience, metrics, or skills
+- Never change job titles ("Senior Product Manager" stays as-is)
+- Never swap tool names (Amplitude stays Amplitude)
+- Never use em dashes anywhere in output
+- Verified metrics are sacred — never alter them

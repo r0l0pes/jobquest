@@ -38,9 +38,9 @@ def create_entry(title, company, url, status="Applied", qa=None, variant=None):
         },
     }
 
-    # Date property - try common name variations
+    # Date property
     date_value = {"date": {"start": date.today().isoformat()}}
-    date_prop_names = ["Date Applied", "Date applied", "Applied Date", "Date", "Application Date"]
+    date_prop_names = ["Date"]
 
     # Optional properties (may not exist in all DB schemas)
     optional_props = {}
@@ -82,7 +82,16 @@ def create_entry(title, company, url, status="Applied", qa=None, variant=None):
             # Handle other optional prop errors (like Resume Variant)
             if "Resume Variant" in error_msg:
                 optional_props.pop("Resume Variant", None)
-                continue
+                # Retry immediately with date but without Resume Variant
+                response = _create_page({**properties, date_name: date_value})
+                print(f"Created: {response['id']}", file=sys.stderr)
+                return {
+                    "success": True,
+                    "page_id": response["id"],
+                    "url": response.get("url", ""),
+                    "title": title,
+                    "company": company,
+                }
             raise
 
     # Final attempt without any date property

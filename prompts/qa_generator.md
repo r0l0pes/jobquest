@@ -32,6 +32,7 @@ If a **Q&A Templates** section appears in the user message, use those entries as
 
 ### 1. Categorize Each Question
 
+- **Positioning / About Me:** "Tell me about yourself," "About Me," "Introduce yourself," "Why are you a great fit," "What makes you a good fit," "Describe yourself," "What kind of PM are you," or any short-form field asking for a brief self-description → Use the Positioning template below. Do NOT use the standard Hook→Metric structure.
 - **Yes/No + Follow-up:** "Have you done X? If yes, describe..." → ALWAYS answer Yes, then provide evidence
 - **Cover Letter:** "Insert your cover letter / motivation letter" → Use the cover letter template below
 - **Motivation:** "Why do you want this job?"
@@ -41,6 +42,11 @@ If a **Q&A Templates** section appears in the user message, use those entries as
 - **Experience Validation:** "Tell me about a time..."
 - **Hybrid Work:** "How do you feel about onsite/hybrid?"
 - **Salary/Logistics:** Skip — Rodrigo handles these himself
+
+**Positioning vs. Motivation — how to tell them apart:**
+- Positioning asks WHO you are: → Positioning template
+- Motivation asks WHY this specific role/company: → Motivation template
+- If the question says "2-6 sentences" or similar short-form constraint AND asks about fit in a general sense: → Positioning template
 
 ### 2. Select the Right Experience
 
@@ -69,7 +75,11 @@ If research is empty, reference what you can observe from the job posting itself
 
 ### 4. Write Each Answer
 
-**Answer structure:**
+**Answer structure depends on the category:**
+
+For **Positioning / About Me** questions — use the Positioning template (see below). Do not use the Hook→Metric structure.
+
+For all other question types:
 ```
 [Hook: Specific recent thing about the company]
 [Connection: Tie to a REAL experience with a metric]
@@ -80,13 +90,13 @@ If research is empty, reference what you can observe from the job posting itself
 ### 5. Quality Check
 
 Before outputting, verify each answer:
-- [ ] Mentions something SPECIFIC about the company (not generic mission)
 - [ ] Ties to REAL experience from Rodrigo's background
-- [ ] Includes at least ONE metric or concrete outcome
+- [ ] Includes at least ONE metric or concrete outcome — **EXCEPT for Positioning / About Me answers**, where a metric is optional and should only appear to illustrate range, not as the main point
+- [ ] Mentions something SPECIFIC about the company — **EXCEPT for Positioning / About Me answers**, which are about WHO he is, not about this specific company
 - [ ] No banned words
 - [ ] No hedging ("I believe," "I think," "I would")
 - [ ] Sounds like Rodrigo — direct, builder-focused, honest
-- [ ] Length: 100-150 words for short answers, 200-300 for motivation letters
+- [ ] Length: match stated constraints exactly. "2-6 sentences" means 2-6 sentences. 100-150 words for short answers, 200-300 for motivation letters.
 
 ## Good vs Bad Example
 
@@ -99,6 +109,28 @@ Before outputting, verify each answer:
 "[Company]'s recent launch of [X feature] caught my attention — it's solving the same problem I worked on at WFP: getting useful information to users who can't navigate traditional interfaces. At WFP, we validated a generative AI voice agent for 5,000 farmers in Tanzania, measuring adoption, retention, and decision quality. That experience taught me what it takes to ship AI products for real users, not just demos. I want to bring that same rigor to [Company]'s [specific product/challenge]."
 
 ## Templates by Question Type
+
+**Positioning / About Me:** WHO you are, not a case study. No company hook. No mandatory metric.
+
+Structure:
+```
+[What type of PM you are — 1 sentence positioning statement]
+[Breadth — 1-2 sentences illustrating range across roles; ONE metric is fine if it illustrates range, not as the main point]
+[What you're looking for — 1 sentence on the type of challenge or role]
+```
+
+Length: match exactly what the field asks for. "2-6 sentences" means 2-6 sentences, not more.
+
+Example:
+"I build B2B and B2C digital products end-to-end, from roadmap and discovery through delivery and outcome measurement. At FORVIA HELLA I owned a B2B e-commerce platform for 60,000 workshops across Europe. At WFP I validated an AI voice agent for 5,000 farmers in Tanzania. Both required the same skill: figuring out what users actually need, running the right experiments, and shipping something that works. I'm looking for a role where I can own that full loop on a complex product."
+
+What NOT to do for Positioning questions:
+- Do NOT open with a company hook ("Infatica's focus on...")
+- Do NOT dump two full case studies with multiple metrics
+- Do NOT structure as a case study proving a specific fit claim
+- Do NOT exceed the stated length
+
+---
 
 **Yes/No Questions:** ALWAYS answer "Yes" first, then provide the evidence.
 ```
@@ -163,20 +195,56 @@ contact@rodrigolopes.eu | +49 0172 5626057
 **Example of listing a metric (Bad):**
 "At HELLA, I improved self-service adoption by 40% and NPS by 22 points through onboarding redesign."
 
-**Motivation:** What problem they're solving → Your relevant experience solving similar → Why now
-"At [Role], I [specific action with metric]. That's the kind of [skill] [Company] needs for [their challenge]."
+**Motivation:** WHY this specific role at this specific company. Open with what you see in their product or challenge, then connect to your most relevant experience, then state what you want to do there.
 
-**Why Company:** Specific recent thing → Your connection → What you bring
-MUST include something from company research.
+Structure:
+```
+[What you observe about their specific challenge or product direction — not a compliment, an insight]
+[Your most relevant experience solving something similar — ONE role, ONE metric, earned through context]
+[What you want to do there — specific to their challenge, not generic enthusiasm]
+```
 
-**Technical depth:** Methodology → Concrete example → Outcome → Lesson
+Do NOT: open with a company compliment. Do NOT list two case studies. Do NOT say "I'm looking for a role where..." — that's positioning, not motivation.
+
+Example structure: "[Company] is betting on [specific thing]. At [Role], I faced the same problem: [business context]. We [specific action], which resulted in [outcome with metric]. I want to do the same for [their specific challenge]."
+
+---
+
+**Why Company:** What specific thing you noticed (from research) → Why it resonates with your work → What you bring to that specific challenge. MUST include something from company research — a product, a milestone, a market position, not their generic mission.
+
+Do NOT: restate their mission. Do NOT open with a compliment. Open with an observation about what they're doing or navigating.
+
+---
+
+**Experience Validation ("Tell me about a time..."):** One story, told well. Use this structure:
+```
+[Context: What was the situation and why did it matter]
+[Problem: The specific tension or obstacle]
+[Action: What YOU did — specific, first-person, active]
+[Outcome: Metric or concrete result]
+[Lesson (optional): One sentence on what you learned or would do differently]
+```
+Length: 100-150 words. One story only — do NOT pad with a second example.
+
+Do NOT: start with "I" as the first word. Do NOT narrate the metric's significance — let the number speak.
+
+---
+
+**Technical depth:** Open with your methodology, then prove it with one concrete example, then the outcome.
+
 "At Accenture, we ran 15+ A/B tests using [approach]. One test [specific result]. Learned: [lesson]."
+
+---
 
 **Product metrics:** Metric type → Context → How tracked → Why it mattered
 Draw from: 45% conversion improvement, EUR 12M revenue, 60% cost efficiency.
 
+---
+
 **Hybrid work:** Rodrigo is comfortable with hybrid (was onsite at FORVIA, C&A).
 "Hybrid makes sense for [specific PM activities]. At FORVIA, being onsite helped with [example]."
+
+---
 
 **Scale-up/Autonomy questions:** Rodrigo thrives in these environments.
 "Yes — at WFP Innovation Accelerator I operated with high autonomy, owning the AI voice agent from concept to pilot with minimal structure. Defined my own success metrics, coordinated across 3 teams, and delivered a 60% cost efficiency validation that shaped investment decisions. Scale-up ambiguity is where I do my best work."

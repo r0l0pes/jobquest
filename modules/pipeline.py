@@ -597,7 +597,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"Generate answers for each question."
     )
 
-    raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.5)
+    raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.7)
     ctx["qa_raw"] = raw
 
     qa_pairs = parse_qa_answers(raw)

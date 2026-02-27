@@ -26,6 +26,7 @@ apply.py / web_ui.py           ← Entry points (CLI and Gradio browser UI)
 - `prompts/` — LLM prompt templates as `.md` files, loaded at runtime
 - `templates/` — `resume.tex` master LaTeX template
 - `output/` — Generated artefacts per run (`CompanyName_YYYY-MM-DD/`)
+- `research/` — Reference docs for the pipeline (market research, AI PM context, etc.)
 - `.claude/skills/` — Claude Code skill definitions (invokable via `/skill-name`)
 
 ---
@@ -165,6 +166,18 @@ Parsers strip `<think>...</think>` blocks (from DeepSeek-style reasoning models)
 
 `fix_markdown_lists()` is applied after every LLM LaTeX response (steps 3 and 6). It converts bare `- item` lines under `\section*{}` headings into proper `\begin{itemize}...\end{itemize}` blocks. This corrects a common LLM formatting failure in Certifications, Languages, and Education sections.
 
+### AI PM Context Injection (`research/ai_pm_context.md`)
+
+When a JD has AI tool/workflow requirements (AI PM, LLM, Claude, Cursor, MCP, vibe coding, etc.), the pipeline injects `research/ai_pm_context.md` as additional context into steps 3a and 8.
+
+`_is_ai_heavy_jd(jd_text)` detects this via keyword matching (threshold: 2+ signals). `_load_ai_pm_context()` loads the file.
+
+**Step 3a injection:** Appends the context with an explicit instruction to add a fourth WFP bullet surfacing AI-augmented workflow experience. The three existing WFP bullets must stay intact. No AI workflow bullets added to other roles.
+
+**Step 8 injection:** Provides the same context for Q&A answers about AI tool usage or AI-augmented PM workflows.
+
+The context doc (`research/ai_pm_context.md`) covers: tools timeline (Cursor from Mar 2024, MCP from Nov 2024, Claude Code from May 2025), specific workflows (PRD drafting, LLM evaluation, data analysis, feedback synthesis, automated reporting, engineering coordination), and talking points grounded in the WFP tenure. Edit that file to update the substance — do not inline content in pipeline.py.
+
 ### apply.py Implementation
 - `apply.py` calls `load_dotenv()` inside `run_pipeline_from_cli()`.
 - The pipeline step list is built by `build_steps()`.
@@ -246,6 +259,32 @@ One subagent is defined. Claude can automatically delegate to it when the descri
 - **Minimal changes.** This is a personal productivity tool. Avoid over-engineering.
 - **No em dashes anywhere** in generated output (resumes, cover letters, Q&A answers). Use commas, colons, or sentence breaks instead. This applies to prompts and any text written by Claude Code as well.
 - **Writing quality rules live in `prompts/rodrigo-voice.md`.** This is the single source of truth for banned phrases, LLM tells, voice tone, and writing quality tests. `resume_tailor.md` and `qa_generator.md` contain only task-specific instructions. Do not add writing style rules to the task prompts — put them in rodrigo-voice.md.
+
+---
+
+## Claude Code Workflow
+
+### Plan before building
+Enter plan mode for any non-trivial change (3+ steps, touches `pipeline.py` or `llm_client.py`, or involves architectural decisions). If something goes sideways mid-implementation, stop and re-plan — don't keep pushing. Write the approach out before touching code.
+
+### Verify before marking done
+After any pipeline change, run a quick import check at minimum:
+```bash
+source venv/bin/activate && python3 -c "from modules.pipeline import _is_ai_heavy_jd; print('ok')"
+```
+For larger changes, run `python apply.py "URL" --dry-run`. Never mark a task complete without proving it works.
+
+### Subagents for research, not for code
+Use subagents (Explore, general-purpose) to keep the main context clean. Research tasks (market analysis, JD exploration, tool timelines, library docs) go to subagents. Code changes happen in the main context where the full pipeline state is visible.
+
+### Bug reports: just fix them
+When given a bug or error: diagnose from logs and code, fix it, verify. Don't ask for hand-holding or confirm each step. Zero context-switching required from the user.
+
+### Elegance check for non-trivial changes
+Before presenting a solution to a complex problem, ask: is there a more elegant way? If a fix feels like a workaround, it probably is. Skip this for simple, obvious changes — don't over-engineer.
+
+### Self-correction
+After any correction from the user, update the memory files (`memory/MEMORY.md` or a topic file) with the pattern so the same mistake doesn't repeat. This is the equivalent of `tasks/lessons.md` — our memory system serves that role.
 
 ---
 

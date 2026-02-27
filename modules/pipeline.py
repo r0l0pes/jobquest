@@ -54,6 +54,29 @@ def _load_voice_prefix() -> str:
     return ""
 
 
+_AI_JD_KEYWORDS = [
+    "ai pm", "ai product manager", "ai-native", "ai-first", "ai tools",
+    "llm", "large language model", "claude", "cursor", "copilot", "co-pilot",
+    "mcp", "model context protocol", "vibe cod", "agentic", "ai agent",
+    "ai workflow", "use ai", "using ai", "leverage ai", "prompt engineer",
+    "generative ai", "gen ai", "genai", "ai-powered workflow",
+]
+
+
+def _is_ai_heavy_jd(jd_text: str) -> bool:
+    """Return True if the job description has significant AI tool/workflow requirements."""
+    text = jd_text.lower()
+    return sum(1 for kw in _AI_JD_KEYWORDS if kw in text) >= 2
+
+
+def _load_ai_pm_context() -> str:
+    """Load the AI PM context doc for injection into AI-heavy JDs."""
+    path = PROJECT_ROOT / "research" / "ai_pm_context.md"
+    if path.exists():
+        return path.read_text()
+    return ""
+
+
 def _run_script(script_name: str, args: list[str]) -> str:
     """Run a script from scripts/ and capture stdout."""
     cmd = [VENV_PYTHON, str(SCRIPTS_DIR / script_name)] + args
@@ -169,6 +192,23 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
     # more deliberate keyword placement and a better-reasoned summary strategy.
     console.print(f"  3a: Analyzing job requirements...")
     analysis_system = _load_prompt("jd_analysis")
+
+    ai_context_section = ""
+    if _is_ai_heavy_jd(ctx['job']['description']):
+        ai_ctx = _load_ai_pm_context()
+        if ai_ctx:
+            console.print("  [dim]AI-heavy JD detected: injecting AI PM context[/dim]")
+            ai_context_section = (
+                f"## Candidate AI PM Context\n\n"
+                f"The JD has AI tool/workflow requirements. The candidate has relevant "
+                f"experience documented below. If the role asks for AI tool usage, "
+                f"instruct the writing model to add a fourth bullet to the WFP section "
+                f"surfacing this experience. Keep the three existing WFP bullets intact. "
+                f"Do not add AI workflow bullets to other roles.\n\n"
+                f"{ai_ctx}\n\n"
+                f"---\n\n"
+            )
+
     analysis_user = (
         f"## Job Posting\n\n"
         f"**Title:** {ctx['job']['title']}\n"
@@ -178,6 +218,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"## Candidate Resume\n\n"
         f"{ctx['master_resume']}\n\n"
         f"---\n\n"
+        f"{ai_context_section}"
         f"Produce the tailoring brief."
     )
     tailoring_brief = llm.generate(analysis_system, analysis_user, temperature=0.2)
@@ -577,6 +618,21 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)
     )
+
+    qa_ai_context_section = ""
+    if _is_ai_heavy_jd(ctx['job']['description']):
+        ai_ctx = _load_ai_pm_context()
+        if ai_ctx:
+            qa_ai_context_section = (
+                f"## Candidate AI PM Context\n\n"
+                f"The role has AI tool/workflow requirements. Draw from the context below "
+                f"when answering questions about AI tool usage, AI-augmented workflows, "
+                f"or how the candidate works with AI. Use specific examples grounded in "
+                f"the WFP period and the JobQuest pipeline where relevant.\n\n"
+                f"{ai_ctx}\n\n"
+                f"---\n\n"
+            )
+
     # Static/semi-static content first (cached by DeepSeek prefix cache),
     # dynamic content last (changes per application, always after the cached prefix).
     user_prompt = (
@@ -584,6 +640,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"---\n\n"
         f"{templates_section}"
         f"---\n\n"
+        f"{qa_ai_context_section}"
         f"## Job Posting\n\n"
         f"**Title:** {ctx['job']['title']}\n"
         f"**Company:** {ctx['job']['company']}\n\n"

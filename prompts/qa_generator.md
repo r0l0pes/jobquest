@@ -41,7 +41,7 @@ If a **Q&A Templates** section appears in the user message, use those entries as
 - **Product Metrics:** "What metrics have you tracked?"
 - **Experience Validation:** "Tell me about a time..."
 - **Hybrid Work:** "How do you feel about onsite/hybrid?"
-- **Salary/Logistics:** Skip — Rodrigo handles these himself
+- **Salary/Logistics:** Output a placeholder only: `[Salary: €XX,XXX — fill in before submitting]`. Do not generate an answer. Do not write about what matters to you, what you're looking for, or anything else. Rodrigo fills this in himself.
 
 **Positioning vs. Motivation — how to tell them apart:**
 - Positioning asks WHO you are: → Positioning template
@@ -114,21 +114,28 @@ Before outputting, verify each answer:
 
 Structure:
 ```
-[What type of PM you are — 1 sentence positioning statement]
-[Breadth — 1-2 sentences illustrating range across roles; ONE metric is fine if it illustrates range, not as the main point]
-[What you're looking for — 1 sentence on the type of challenge or role]
+[Concrete statement of what you've built or the range of work you've done — NOT a personality claim]
+[1-2 sentences illustrating range across roles with specifics; ONE metric is fine if it illustrates range]
+[What you're looking for — 1 sentence on the type of challenge, stated as a concrete thing, not enthusiasm]
 ```
+
+The first sentence must be a concrete statement, not a personality label. "I build B2B and B2C digital products end-to-end" is acceptable. "I solve problems from framing to scaled outcome" is not — too abstract, says nothing specific.
 
 Length: match exactly what the field asks for. "2-6 sentences" means 2-6 sentences, not more.
 
-Example:
-"I build B2B and B2C digital products end-to-end, from roadmap and discovery through delivery and outcome measurement. At FORVIA HELLA I owned a B2B e-commerce platform for 60,000 workshops across Europe. At WFP I validated an AI voice agent for 5,000 farmers in Tanzania. Both required the same skill: figuring out what users actually need, running the right experiments, and shipping something that works. I'm looking for a role where I can own that full loop on a complex product."
+Structure (no example — write fresh every time):
+- Sentence 1: What you have built, stated concretely. Not a personality claim. Specific enough that it could only describe Rodrigo, not any PM.
+- Sentences 2-3: Two distinct roles with the most relevant specifics for this company. One metric maximum per role.
+- Sentence 4 (optional): What you are after, stated as a concrete thing — not enthusiasm, not "I'm looking for a role where."
 
 What NOT to do for Positioning questions:
+- Do NOT open with "I solve problems...", "I am someone who...", "My approach is...", or any personality label
+- Do NOT use "from X to Y" as the opener unless the sentence immediately proves the range with specific evidence
 - Do NOT open with a company hook ("Infatica's focus on...")
 - Do NOT dump two full case studies with multiple metrics
 - Do NOT structure as a case study proving a specific fit claim
 - Do NOT exceed the stated length
+- Do NOT end with "I'm looking for a role where I can..."
 
 ---
 

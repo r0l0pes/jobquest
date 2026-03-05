@@ -24,6 +24,24 @@ This is not just "used AI tools at work." The WFP role was AI product management
 
 ---
 
+## AI PM resume case studies (bullet drafts for AI-PM variant)
+
+These are pre-drafted bullet templates for the AI-PM resume variant. Use them as inputs when reframing WFP bullets through the AI PM lens. Each maps to one of the three WFP projects plus the fourth AI tooling bullet.
+
+**Bullet 1 — AI voice agent (emphasis: AI PM ownership, LLM safety, outcomes):**
+Led end-to-end product lifecycle for WFP's AI voice agent serving smallholder farmers: owned activation strategy, defined adoption funnel and LLM output quality criteria, and ran hallucination-rate reviews and governance with engineers. Validated 60% cost efficiency vs. human-led outreach, informing expansion investment decision.
+
+**Bullet 2 — AI validation platform (emphasis: LLM evaluation infrastructure, scale):**
+Product-managed WFP's internal platform enabling non-technical humanitarian staff to run ML and GenAI experiments without centralised engineering support. Defined experiment templates, evaluation rubrics, and governance guardrails — the same LLM evaluation discipline used by ML research teams. Scaled to 20+ country programs.
+
+**Bullet 3 — Analytics and measurement (emphasis: data to strategy pipeline):**
+Built the measurement framework for AI interface usability and pilot performance across WFP's AI portfolio. Synthesised quantitative adoption metrics and qualitative field feedback into expansion priorities for Innovation Accelerator leadership, translating pilot data into scaling decisions.
+
+**Bullet 4 — AI-augmented PM workflow (emphasis: Cursor, Claude Code, MCP, agentic execution):**
+Built an end-to-end agentic PM workflow: structured product context as markdown files, connected external sources via MCP, and ran analysis-to-spec cycles in one Claude Code session — from data or feedback input through synthesis, PRD draft, and ticket creation. Used Cursor from Mar 2024, Claude Sonnet via API for reasoning tasks, MCP from Nov 2024, and Claude Code from May 2025. At WFP: applied to activation strategy documentation, analytics framework specs, and governance documentation for the AI validation platform.
+
+---
+
 ## How I use AI tools to do PM work
 
 ### Timeline of tools (WFP period)

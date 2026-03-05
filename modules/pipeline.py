@@ -176,6 +176,7 @@ def step_read_master_resume(
 TAGLINES = {
     "growth_pm": "Experiments that accelerate revenue.",
     "generalist": "End-to-end ownership. Outcomes delivered.",
+    "ai_pm": "GenAI product delivery. End-to-end, governance included.",
 }
 
 
@@ -194,20 +195,41 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
     analysis_system = _load_prompt("jd_analysis")
 
     ai_context_section = ""
-    if _is_ai_heavy_jd(ctx['job']['description']):
+    ai_pm_variant = (ROLE_VARIANT == "ai_pm")
+    if ai_pm_variant or _is_ai_heavy_jd(ctx['job']['description']):
         ai_ctx = _load_ai_pm_context()
         if ai_ctx:
-            console.print("  [dim]AI-heavy JD detected: injecting AI PM context[/dim]")
-            ai_context_section = (
-                f"## Candidate AI PM Context\n\n"
-                f"The JD has AI tool/workflow requirements. The candidate has relevant "
-                f"experience documented below. If the role asks for AI tool usage, "
-                f"instruct the writing model to add a fourth bullet to the WFP section "
-                f"surfacing this experience. Keep the three existing WFP bullets intact. "
-                f"Do not add AI workflow bullets to other roles.\n\n"
-                f"{ai_ctx}\n\n"
-                f"---\n\n"
-            )
+            if ai_pm_variant:
+                console.print("  [dim]AI-PM variant: injecting AI PM context[/dim]")
+                ai_context_section = (
+                    f"## Candidate AI PM Context\n\n"
+                    f"This is an AI-PM resume variant. The candidate's AI product management "
+                    f"experience is a primary selling point. Apply the following instructions:\n\n"
+                    f"1. Reframe ALL WFP bullets through the AI PM lens: lead with the AI product "
+                    f"work (voice agent, validation platform, analytics) and ground each bullet in "
+                    f"measurable outcomes.\n"
+                    f"2. Add a fourth WFP bullet surfacing the candidate's AI-augmented PM workflow "
+                    f"(Cursor, Claude Code, MCP, LLM evaluation — see context below for specifics). "
+                    f"Keep the three existing WFP bullets intact.\n"
+                    f"3. In the Skills section, move AI-related skills to the top row and include: "
+                    f"Cursor, Claude Code, MCP (Model Context Protocol), LLM evaluation, Claude Sonnet, "
+                    f"Gemini, Notion AI.\n"
+                    f"4. Do not add AI workflow bullets to HELLA, Accenture, or C&A roles.\n\n"
+                    f"{ai_ctx}\n\n"
+                    f"---\n\n"
+                )
+            else:
+                console.print("  [dim]AI-heavy JD detected: injecting AI PM context[/dim]")
+                ai_context_section = (
+                    f"## Candidate AI PM Context\n\n"
+                    f"The JD has AI tool/workflow requirements. The candidate has relevant "
+                    f"experience documented below. If the role asks for AI tool usage, "
+                    f"instruct the writing model to add a fourth bullet to the WFP section "
+                    f"surfacing this experience. Keep the three existing WFP bullets intact. "
+                    f"Do not add AI workflow bullets to other roles.\n\n"
+                    f"{ai_ctx}\n\n"
+                    f"---\n\n"
+                )
 
     analysis_user = (
         f"## Job Posting\n\n"
@@ -611,6 +633,14 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
             "(B2B platform, roadmap, cross-functional delivery, €12M revenue). "
             "Accenture and C&A as supporting evidence of execution breadth."
         ),
+        "ai_pm": (
+            "Resume variant: **AI PM**. "
+            "WFP is the primary story: AI voice agent (60% cost efficiency, activation strategy, "
+            "LLM evaluation and governance), AI validation platform (non-technical ML experiments "
+            "at scale, use case prioritisation), and analytics for 20+ country programs. "
+            "Foreground the agentic PM workflow (Cursor, Claude Code, MCP) as a differentiator. "
+            "HELLA for platform and B2B depth. Accenture and C&A as execution breadth."
+        ),
     }.get(ROLE_VARIANT, "")
 
     writing_llm = _get_writing_client()
@@ -620,7 +650,8 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     )
 
     qa_ai_context_section = ""
-    if _is_ai_heavy_jd(ctx['job']['description']):
+    qa_ai_pm_variant = (ROLE_VARIANT == "ai_pm")
+    if qa_ai_pm_variant or _is_ai_heavy_jd(ctx['job']['description']):
         ai_ctx = _load_ai_pm_context()
         if ai_ctx:
             qa_ai_context_section = (

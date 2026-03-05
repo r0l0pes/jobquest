@@ -49,6 +49,6 @@ APPLICANT_LOCATION = get_env("APPLICANT_LOCATION", "")
 # Options: "Tech-First" (Technical Proficiency before Experience), "Exp-First" (default)
 RESUME_VARIANT = get_env("RESUME_VARIANT", "Tech-First")
 
-# Role variant — set by web UI toggle, drives Q&A framing
-# Options: "growth_pm" | "generalist"
+# Role variant — set by web UI toggle, drives tagline, Q&A framing, and AI context injection
+# Options: "growth_pm" | "generalist" | "ai_pm"
 ROLE_VARIANT = get_env("ROLE_VARIANT", "growth_pm")

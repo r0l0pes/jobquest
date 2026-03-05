@@ -677,12 +677,11 @@ def create_client(
         return _create_single_client(provider, model)
 
 
-# Writing provider fallback: paid quality-first, Gemini/Groq/SambaNova as last resorts
+# Writing provider fallback order
 WRITING_PROVIDER_FALLBACK_ORDER = [
-    "deepseek",    # ~$0.005/app with caching — DeepSeek V3.2 (V4 same endpoint)
-    "openrouter",  # ~$0.014/app — Qwen3.5-397B-A17B, IFEval 92.6%
-    "anthropic",   # ~$0.060/app — Claude Haiku, best instruction following
-    "gemini",      # free tier fallback
+    "gemini",      # free 1500 RPD — strong instruction following
+    "deepseek",    # ~$0.005/app with caching — DeepSeek V3.2
+    "openrouter",  # ~$0.014/app — Qwen3.5-397B-A17B
     "groq",
     "sambanova",
 ]
@@ -716,12 +715,11 @@ class _WritingFallbackClient(LLMClient):
 def create_writing_client() -> LLMClient:
     """Create a writing-optimised LLM client for quality-critical pipeline steps.
 
-    Fallback chain: DeepSeek V3.2 → OpenRouter/Qwen3.5 → Claude Haiku → Gemini.
-    Configure primary provider via WRITING_PROVIDER env var (default: deepseek).
+    Fallback chain: Gemini → DeepSeek V3.2 → OpenRouter/Qwen3.5 → Claude Haiku.
+    Configure primary provider via WRITING_PROVIDER env var (default: gemini).
 
-    Note: DeepSeek V4 will be available via the same deepseek endpoint when released.
     """
-    primary = os.getenv("WRITING_PROVIDER", "deepseek")
+    primary = os.getenv("WRITING_PROVIDER", "gemini")
     order = [primary] + [p for p in WRITING_PROVIDER_FALLBACK_ORDER if p != primary]
 
     available: list[LLMClient] = []

@@ -19,6 +19,8 @@ STATS_FILE = PROJECT_ROOT / ".usage_stats.json"
 RESUME_VARIANTS = {
     "Growth PM": "2f40fd98-227b-8083-a78f-c61c38e55a12",
     "Generalist": "30b0fd98-227b-8195-9649-fe5287cb8cb9",
+    # AI-PM: uses Growth PM Notion page as base; swap ID once dedicated page is created in Notion
+    "AI-PM": "2f40fd98-227b-8083-a78f-c61c38e55a12",
 }
 
 # Store running processes for each slot
@@ -139,7 +141,8 @@ def _run_pipeline(job_url, company_url, questions, provider, resume_variant, slo
     variant_label = resume_variant or "Growth PM"
     resume_id = RESUME_VARIANTS.get(variant_label, RESUME_VARIANTS["Growth PM"])
     full_env["NOTION_MASTER_RESUME_ID"] = resume_id
-    full_env["ROLE_VARIANT"] = variant_label.lower().replace(" ", "_")
+    role_variant_map = {"Growth PM": "growth_pm", "Generalist": "generalist", "AI-PM": "ai_pm"}
+    full_env["ROLE_VARIANT"] = role_variant_map.get(variant_label, variant_label.lower().replace(" ", "_"))
 
     yield f"🚀 Starting with {provider} · {variant_label} resume...\n\n"
 

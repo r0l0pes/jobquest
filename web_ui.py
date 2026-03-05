@@ -115,7 +115,7 @@ def stop_process(slot_num):
         return "No process to stop"
 
 
-def _run_pipeline(job_url, company_url, questions, provider, resume_variant, slot_num):
+def _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, slot_num):
     """Internal generator for running the pipeline."""
     global running_processes
 
@@ -137,6 +137,23 @@ def _run_pipeline(job_url, company_url, questions, provider, resume_variant, slo
     full_env["LLM_PROVIDER"] = provider
     full_env["PYTHONUNBUFFERED"] = "1"
 
+    # Writing model selector
+    writing_provider_map = {
+        "Gemini Flash": "gemini",
+        "Gemini Pro": "gemini",
+        "DeepSeek V3": "deepseek",
+        "OpenRouter": "openrouter",
+    }
+    writing_model_map = {
+        "Gemini Flash": "gemini-3-flash",
+        "Gemini Pro": "gemini-3-pro",
+        "DeepSeek V3": "deepseek-chat",
+        "OpenRouter": "openrouter",
+    }
+    wm = writing_model or "Gemini Flash"
+    full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "gemini")
+    full_env["GEMINI_WRITING_MODEL"] = writing_model_map.get(wm, "gemini-3-flash")
+
     # Override master resume ID and set role variant for the subprocess
     variant_label = resume_variant or "Growth PM"
     resume_id = RESUME_VARIANTS.get(variant_label, RESUME_VARIANTS["Growth PM"])
@@ -144,7 +161,8 @@ def _run_pipeline(job_url, company_url, questions, provider, resume_variant, slo
     role_variant_map = {"Growth PM": "growth_pm", "Generalist": "generalist", "AI-PM": "ai_pm"}
     full_env["ROLE_VARIANT"] = role_variant_map.get(variant_label, variant_label.lower().replace(" ", "_"))
 
-    yield f"🚀 Starting with {provider} · {variant_label} resume...\n\n"
+    wm_label = writing_model or "Gemini Flash"
+    yield f"🚀 Starting with {provider} (ATS) · {wm_label} (writing) · {variant_label} resume...\n\n"
 
     try:
         process = subprocess.Popen(
@@ -212,14 +230,14 @@ def _run_pipeline(job_url, company_url, questions, provider, resume_variant, slo
 
 
 # Create separate generator functions for each slot (can't use lambda with generators)
-def run_slot_1(job_url, company_url, questions, provider, resume_variant):
-    yield from _run_pipeline(job_url, company_url, questions, provider, resume_variant, 1)
+def run_slot_1(job_url, company_url, questions, provider, writing_model, resume_variant):
+    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, 1)
 
-def run_slot_2(job_url, company_url, questions, provider, resume_variant):
-    yield from _run_pipeline(job_url, company_url, questions, provider, resume_variant, 2)
+def run_slot_2(job_url, company_url, questions, provider, writing_model, resume_variant):
+    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, 2)
 
-def run_slot_3(job_url, company_url, questions, provider, resume_variant):
-    yield from _run_pipeline(job_url, company_url, questions, provider, resume_variant, 3)
+def run_slot_3(job_url, company_url, questions, provider, writing_model, resume_variant):
+    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, 3)
 
 
 def create_app_form(slot_num):
@@ -242,14 +260,21 @@ def create_app_form(slot_num):
         )
         with gr.Row():
             resume_variant = gr.Radio(
-                choices=["Growth PM", "Generalist"],
+                choices=["Growth PM", "Generalist", "AI-PM"],
                 value="Growth PM",
-                label="Resume",
+                label="Resume variant",
             )
+        with gr.Row():
+            writing_model = gr.Radio(
+                choices=["Gemini Flash", "Gemini Pro", "DeepSeek V3", "OpenRouter"],
+                value="Gemini Flash",
+                label="Writing model (steps 3, 6, 8)",
+            )
+        with gr.Row():
             provider = gr.Radio(
                 choices=["gemini", "groq", "sambanova"],
                 value="gemini",
-                label="ATS Provider (step 5)",
+                label="ATS provider (step 5)",
             )
 
         with gr.Row():
@@ -275,7 +300,7 @@ def create_app_form(slot_num):
                 show_label=False,
             )
 
-    return job_url, company_url, questions, provider, resume_variant, submit_btn, stop_btn, output, console
+    return job_url, company_url, questions, provider, writing_model, resume_variant, submit_btn, stop_btn, output, console
 
 
 def create_ui():
@@ -294,20 +319,20 @@ def create_ui():
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### Application 1")
-                j1, c1, q1, p1, r1, b1, s1, o1, con1 = create_app_form(1)
+                j1, c1, q1, p1, wm1, r1, b1, s1, o1, con1 = create_app_form(1)
 
             with gr.Column():
                 gr.Markdown("### Application 2")
-                j2, c2, q2, p2, r2, b2, s2, o2, con2 = create_app_form(2)
+                j2, c2, q2, p2, wm2, r2, b2, s2, o2, con2 = create_app_form(2)
 
             with gr.Column():
                 gr.Markdown("### Application 3")
-                j3, c3, q3, p3, r3, b3, s3, o3, con3 = create_app_form(3)
+                j3, c3, q3, p3, wm3, r3, b3, s3, o3, con3 = create_app_form(3)
 
         # Run buttons - use dedicated generator functions (not lambdas)
-        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1, r1], outputs=[o1], concurrency_limit=None)
-        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2, r2], outputs=[o2], concurrency_limit=None)
-        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3, r3], outputs=[o3], concurrency_limit=None)
+        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1, wm1, r1], outputs=[o1], concurrency_limit=None)
+        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2, wm2, r2], outputs=[o2], concurrency_limit=None)
+        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3, wm3, r3], outputs=[o3], concurrency_limit=None)
 
         # Stop buttons
         s1.click(fn=lambda: stop_process(1), outputs=[con1])

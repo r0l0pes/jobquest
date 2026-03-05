@@ -722,10 +722,16 @@ def create_writing_client() -> LLMClient:
     primary = os.getenv("WRITING_PROVIDER", "gemini")
     order = [primary] + [p for p in WRITING_PROVIDER_FALLBACK_ORDER if p != primary]
 
+    # Optional: UI can pin a specific Gemini model via GEMINI_WRITING_MODEL env var
+    gemini_writing_model = os.getenv("GEMINI_WRITING_MODEL")
+
     available: list[LLMClient] = []
     for provider in order:
         try:
-            available.append(_create_single_client(provider))
+            if provider == "gemini" and gemini_writing_model:
+                available.append(_create_single_client(provider, model=gemini_writing_model))
+            else:
+                available.append(_create_single_client(provider))
         except ValueError:
             pass  # API key not set, skip this provider
 

@@ -74,6 +74,27 @@ def extract_latex(text: str) -> str | None:
     if start != -1 and end != -1:
         return text[start : end + len("\\end{document}")].strip()
 
+    # Strategy 5: truncated response — model was cut off mid-generation.
+    # If we find an opening ```latex or \documentclass but no closing marker,
+    # return what we have. pdflatex will catch structural errors; this avoids
+    # a silent failure that discards a mostly-complete resume.
+    for lang in ["latex", "tex"]:
+        match = re.search(rf"```{lang}\s*(.*)", text, re.DOTALL)
+        if match:
+            fragment = match.group(1).strip()
+            if "\\documentclass" in fragment:
+                # Append \end{document} if missing so pdflatex can attempt compilation
+                if "\\end{document}" not in fragment:
+                    fragment += "\n\\end{document}"
+                return fragment
+
+    if "\\documentclass" in text:
+        start = text.find("\\documentclass")
+        fragment = text[start:].strip()
+        if "\\end{document}" not in fragment:
+            fragment += "\n\\end{document}"
+        return fragment
+
     return None
 
 

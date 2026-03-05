@@ -363,7 +363,12 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"**Company:** {ctx['job']['company']}\n\n"
         f"{ctx['job']['description']}\n\n"
         f"---\n\n"
-        f"Generate the complete tailored LaTeX resume following the tailoring brief above. "
+        f"Generate the complete tailored LaTeX resume following the tailoring brief above.\n\n"
+        f"CRITICAL: The output MUST include every single section of the master resume — "
+        f"all experience roles, Skills & Tools, Certifications, Languages, and Education. "
+        f"Sections marked 'do not change' or 'leave as-is' in the brief must be copied "
+        f"VERBATIM from the master resume. 'Leave as-is' means reproduce it exactly, NOT omit it. "
+        f"A resume missing any section is broken and unusable.\n\n"
         f"Output ONLY the LaTeX content between ```latex and ``` markers."
     )
 

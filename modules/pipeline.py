@@ -170,6 +170,44 @@ def step_read_master_resume(
     return ctx
 
 
+
+def _slim_resume_for_analysis(master_resume: str) -> str:
+    """Return a condensed version of the master resume for step 3a (analysis only).
+
+    The tailoring brief only needs to know which roles exist and what bullets
+    are available to target. Sending the full resume here wastes ~3,000 tokens
+    per application. This function keeps role headers and first line of each
+    bullet, stripping verbose detail.
+
+    Step 3b still receives the full master resume for accurate LaTeX generation.
+    """
+    lines = master_resume.split("\n")
+    slim = []
+    bullet_count = 0
+    for line in lines:
+        stripped = line.strip()
+        # Always keep headers, role titles, date lines, section markers
+        if not stripped:
+            slim.append("")
+            bullet_count = 0
+            continue
+        if stripped.startswith(("#", "##", "**", "---", "=")) or "|" in stripped:
+            slim.append(line)
+            bullet_count = 0
+            continue
+        # Keep first 2 bullets per block, skip the rest
+        if stripped.startswith("-") or stripped.startswith("•"):
+            if bullet_count < 2:
+                # Truncate long bullets to 120 chars
+                truncated = stripped[:120] + ("…" if len(stripped) > 120 else "")
+                slim.append("  " + truncated)
+                bullet_count += 1
+            # else: skip
+            continue
+        slim.append(line)
+    return "\n".join(slim)
+
+
 # ─── Step 3: Tailor Resume via LLM ───────────────────────────────
 
 
@@ -237,8 +275,8 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"**Company:** {ctx['job']['company']}\n\n"
         f"{ctx['job']['description']}\n\n"
         f"---\n\n"
-        f"## Candidate Resume\n\n"
-        f"{ctx['master_resume']}\n\n"
+        f"## Candidate Resume (structure summary — step 3b has the full text)\n\n"
+        f"{_slim_resume_for_analysis(ctx['master_resume'])}\n\n"
         f"---\n\n"
         f"{ai_context_section}"
         f"Produce the tailoring brief."

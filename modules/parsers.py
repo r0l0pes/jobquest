@@ -281,9 +281,10 @@ def apply_resume_edits(base_latex: str, edits: dict) -> str:
     result = base_latex
 
     if edits.get("tagline"):
+        tagline_replacement = "{\\small " + _escape_latex(edits["tagline"]) + "}"
         result = re.sub(
             r"\{\\small [^}]+\}",
-            "{\\small " + _escape_latex(edits["tagline"]) + "}",
+            lambda m: tagline_replacement,
             result, count=1,
         )
 

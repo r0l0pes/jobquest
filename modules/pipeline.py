@@ -18,7 +18,7 @@ from rich.prompt import Confirm
 
 from modules.llm_client import LLMClient, create_writing_client
 from modules.job_scraper import scrape_job_posting, research_company
-from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers
+from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers, parse_resume_edits, apply_resume_edits
 
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
@@ -290,13 +290,55 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
     console.print(f"  Tailoring brief: {len(tailoring_brief)} chars")
 
     # --- Stage 3b: LaTeX generation (writing LLM) ---
-    # The writing model receives the pre-built brief as explicit context, so it
-    # executes a plan rather than deriving one mid-generation.
+    # Two modes:
+    # - Targeted edit mode (TARGETED_EDITS=1): model returns a small JSON patch
+    #   (~400-600 tokens output). Applied to the base template. Works with Flash.
+    # - Full generation (default): model writes complete LaTeX (~4,000+ tokens).
+    #   Required for DeepSeek, Gemini Pro, OpenRouter.
     console.print(f"  3b: Generating LaTeX ({writing_llm.model_name()})...")
-    system_prompt = _load_voice_prefix() + _load_prompt("resume_tailor")
+
+    targeted_mode = os.getenv("TARGETED_EDITS", "0") == "1"
+
+    if targeted_mode:
+        base_latex = (PROJECT_ROOT / "templates" / "resume.tex").read_text()
+        edits_system = _load_voice_prefix() + _load_prompt("resume_edits")
+        edits_user = (
+            f"## Tailoring Brief\n\n{tailoring_brief}\n\n"
+            f"---\n\n"
+            f"## Master Resume\n\n{ctx['master_resume']}\n\n"
+            f"---\n\n"
+            f"Return only the JSON with the targeted changes."
+        )
+        raw_edits = writing_llm.generate(edits_system, edits_user, temperature=0.2)
+        ctx["tailor_raw"] = raw_edits
+        edits = parse_resume_edits(raw_edits)
+        if edits:
+            tagline_str = tagline
+            edits["tagline"] = edits.get("tagline") or tagline_str
+            patched = apply_resume_edits(base_latex, edits)
+            # Inject the correct tagline from pipeline config (overrides model output)
+            patched = re.sub(
+                r"\{\\small [^}]+\}",
+                "{\\small " + tagline + "}",
+                patched, count=1,
+            )
+            ctx["tailored_latex"] = fix_markdown_lists(patched)
+            console.print(f"  Targeted edits applied: {len(edits.get('wfp_bullets', []))} WFP bullets, skills updated")
+        else:
+            console.print("  [yellow]Targeted edits parse failed, falling back to full generation[/yellow]")
+            targeted_mode = False  # fall through to full generation below
+
+    if not targeted_mode:
+        pass  # full generation path below
+    
+    if not targeted_mode:
+        system_prompt = _load_voice_prefix() + _load_prompt("resume_tailor")
     # Static/semi-static content first (cached by DeepSeek prefix cache),
     # dynamic content last (changes per application, always after the cached prefix).
-    user_prompt = (
+    if targeted_mode:
+        pass  # already handled above
+    else:
+     user_prompt = (
         f"## Tailoring Brief\n\n"
         f"This analysis was produced for you in advance. Follow it — it tells you "
         f"which bullets to touch, what the summary strategy is, and what to leave alone.\n\n"

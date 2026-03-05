@@ -139,18 +139,22 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
 
     # Writing model selector
     writing_provider_map = {
+        "Gemini Flash": "gemini",
         "Gemini Pro": "gemini",
         "DeepSeek V3": "deepseek",
         "OpenRouter": "openrouter",
     }
     writing_model_map = {
+        "Gemini Flash": "gemini-3-flash",
         "Gemini Pro": "gemini-3-pro",
         "DeepSeek V3": "deepseek-chat",
         "OpenRouter": "openrouter",
     }
-    wm = writing_model or "Gemini Flash"
-    full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "gemini")
-    full_env["GEMINI_WRITING_MODEL"] = writing_model_map.get(wm, "gemini-3-flash")
+    wm = writing_model or "DeepSeek V3"
+    full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "deepseek")
+    full_env["GEMINI_WRITING_MODEL"] = writing_model_map.get(wm, "")
+    # Gemini Flash uses targeted edit mode (JSON patch, ~500 tokens output vs 4k+)
+    full_env["TARGETED_EDITS"] = "1" if wm == "Gemini Flash" else "0"
 
     # Override master resume ID and set role variant for the subprocess
     variant_label = resume_variant or "Growth PM"
@@ -264,7 +268,7 @@ def create_app_form(slot_num):
             )
         with gr.Row():
             writing_model = gr.Radio(
-                choices=["DeepSeek V3", "Gemini Pro", "OpenRouter"],
+                choices=["DeepSeek V3", "Gemini Pro", "Gemini Flash", "OpenRouter"],
                 value="DeepSeek V3",
                 label="Writing model (steps 3, 6, 8)",
             )

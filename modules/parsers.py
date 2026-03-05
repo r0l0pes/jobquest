@@ -221,3 +221,143 @@ def _extract_pairs(pattern: re.Pattern, text: str) -> list[dict]:
         {"question": q.strip(), "answer": a.strip()}
         for q, a in matches
     ]
+
+
+# ─── Targeted resume edit helpers ────────────────────────────────────────────
+
+def parse_resume_edits(text: str) -> dict | None:
+    """Extract targeted edits JSON from LLM response.
+
+    Returns dict with keys: tagline, summary_bullet, wfp_bullets, skills.
+    Returns None if no valid JSON found.
+    """
+    # Strip think tokens
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
+    # Strip markdown code fences if present
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+
+    try:
+        data = json.loads(text)
+        if "wfp_bullets" in data or "summary_bullet" in data:
+            return data
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Try extracting first JSON object from mixed response
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group(0))
+            if "wfp_bullets" in data or "summary_bullet" in data:
+                return data
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    return None
+
+
+def _escape_latex(text: str) -> str:
+    """Escape special LaTeX characters in plain text."""
+    # Order matters: backslash first
+    text = text.replace("\\", r"\textbackslash{}")
+    for char, repl in [
+        ("&", r"\&"), ("%", r"\%"), ("$", r"\$"),
+        ("#", r"\#"), ("_", r"\_"), ("{", r"\{"), ("}", r"\}"),
+        ("~", r"\textasciitilde{}"), ("^", r"\textasciicircum{}"),
+    ]:
+        text = text.replace(char, repl)
+    return text
+
+
+def apply_resume_edits(base_latex: str, edits: dict) -> str:
+    """Apply targeted edits JSON to the base LaTeX template.
+
+    Only modifies: tagline, summary bullet, WFP bullets, skills section.
+    All other sections (HELLA, Accenture, C&A, Education, Languages) are
+    left exactly as they appear in the base template.
+    """
+    result = base_latex
+
+    if edits.get("tagline"):
+        result = re.sub(
+            r"\{\\small [^}]+\}",
+            "{\\small " + _escape_latex(edits["tagline"]) + "}",
+            result, count=1,
+        )
+
+    if edits.get("summary_bullet"):
+        result = _replace_itemize_block(
+            result,
+            r"\\section\*\{Summary\}",
+            [edits["summary_bullet"]],
+        )
+
+    if edits.get("wfp_bullets"):
+        result = _replace_company_bullets(
+            result, "World Food Programme", edits["wfp_bullets"]
+        )
+
+    if edits.get("skills"):
+        result = _replace_skills(result, edits["skills"])
+
+    return result
+
+
+def _replace_itemize_block(latex: str, section_pattern: str, bullets: list) -> str:
+    """Find the first itemize block after section_pattern and replace its items."""
+    pattern = (
+        rf"({section_pattern}.*?\\begin{{itemize}}[^\n]*\n)"
+        rf"(.*?)"
+        rf"(\\end{{itemize}})"
+    )
+    items = "\n".join(f"\\item {_escape_latex(b)}" for b in bullets)
+
+    def replacer(m):
+        return m.group(1) + items + "\n" + m.group(3)
+
+    return re.sub(pattern, replacer, latex, flags=re.DOTALL, count=1)
+
+
+def _replace_company_bullets(latex: str, company: str, bullets: list) -> str:
+    """Replace bullet points for a specific company entry."""
+    esc = re.escape(company)
+    pattern = (
+        rf"(\\noindent\\textbf\{{{esc}\}}.*?\\begin{{itemize}}[^\n]*\n)"
+        rf"(.*?)"
+        rf"(\\end{{itemize}})"
+    )
+    items = "\n".join(f"\\item {_escape_latex(b)}" for b in bullets)
+
+    def replacer(m):
+        return m.group(1) + items + "\n" + m.group(3)
+
+    return re.sub(pattern, replacer, latex, flags=re.DOTALL, count=1)
+
+
+def _replace_skills(latex: str, skills: list) -> str:
+    """Replace the Skills & Tools itemize block."""
+    pattern = (
+        r"(\\section\*\{Skills.*?\}.*?\\begin\{itemize\}[^\n]*\n)"
+        r"(.*?)"
+        r"(\\end\{itemize\})"
+    )
+
+    def make_item(s):
+        if isinstance(s, dict):
+            cat = _escape_latex(s.get("category", ""))
+            content = _escape_latex(s.get("content", ""))
+            return f"\\item \\textbf{{{cat}:}} {content}"
+        # Fallback: plain string
+        if ":" in s:
+            cat, _, rest = s.partition(":")
+            return f"\\item \\textbf{{{_escape_latex(cat.strip())}:}} {_escape_latex(rest.strip())}"
+        return f"\\item {_escape_latex(s)}"
+
+    items = "\n".join(make_item(s) for s in skills)
+
+    def replacer(m):
+        return m.group(1) + items + "\n" + m.group(3)
+
+    return re.sub(pattern, replacer, latex, flags=re.DOTALL, count=1)

@@ -318,9 +318,10 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             edits["tagline"] = edits.get("tagline") or tagline_str
             patched = apply_resume_edits(base_latex, edits)
             # Inject the correct tagline from pipeline config (overrides model output)
+            _tagline_repl = "{\\small " + tagline + "}"
             patched = re.sub(
                 r"\{\\small [^}]+\}",
-                "{\\small " + tagline + "}",
+                lambda m: _tagline_repl,
                 patched, count=1,
             )
             ctx["tailored_latex"] = fix_markdown_lists(patched)

@@ -139,13 +139,11 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
 
     # Writing model selector
     writing_provider_map = {
-        "Gemini Flash": "gemini",
         "Gemini Pro": "gemini",
         "DeepSeek V3": "deepseek",
         "OpenRouter": "openrouter",
     }
     writing_model_map = {
-        "Gemini Flash": "gemini-3-flash",
         "Gemini Pro": "gemini-3-pro",
         "DeepSeek V3": "deepseek-chat",
         "OpenRouter": "openrouter",
@@ -266,8 +264,8 @@ def create_app_form(slot_num):
             )
         with gr.Row():
             writing_model = gr.Radio(
-                choices=["Gemini Flash", "Gemini Pro", "DeepSeek V3", "OpenRouter"],
-                value="Gemini Flash",
+                choices=["DeepSeek V3", "Gemini Pro", "OpenRouter"],
+                value="DeepSeek V3",
                 label="Writing model (steps 3, 6, 8)",
             )
         with gr.Row():

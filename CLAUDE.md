@@ -62,9 +62,9 @@ Copy `.env.example` to `.env` and fill in values. Required fields:
 
 ```env
 LLM_PROVIDER=gemini                    # gemini | groq | sambanova (ATS check step 5 only)
-WRITING_PROVIDER=deepseek              # deepseek | openrouter | anthropic | gemini | groq | sambanova
+WRITING_PROVIDER=gemini               # gemini | deepseek | openrouter | groq | sambanova
 GEMINI_API_KEY=...
-DEEPSEEK_API_KEY=...                   # primary writing provider (~$0.008/app with caching)
+DEEPSEEK_API_KEY=...                   # writing fallback (~$0.008/app with caching)
 NOTION_TOKEN=...
 NOTION_APPLICATIONS_DB_ID=...
 NOTION_MASTER_RESUME_ID=...
@@ -82,9 +82,9 @@ Optional (enable fallback/enhanced scraping):
 GROQ_API_KEY=...
 SAMBANOVA_API_KEY=...
 OPENROUTER_API_KEY=...                 # writing fallback (Qwen3.5-397B, ~$0.014/app)
-ANTHROPIC_API_KEY=...                  # writing last resort (Haiku 4.5, ~$0.06/app)
 FIRECRAWL_API_KEY=...
 RESUME_VARIANT=Tech-First              # Tech-First | Exp-First
+ROLE_VARIANT=growth_pm                 # growth_pm | generalist | ai_pm
 ```
 
 ---
@@ -116,7 +116,7 @@ Two separate client tiers — never mix them:
 
 **ATS check (step 5):** `LLM_PROVIDER` env var selects the provider. `FallbackClient` wraps `GeminiClient`, `GroqClient`, `SambaNovaClient`. On rate-limit, tries next model within provider, then next provider (Gemini 3.1 Pro → Groq → SambaNova).
 
-**Writing steps (3, 6, 8):** `create_writing_client()` reads `WRITING_PROVIDER` env var (default: `deepseek`). Returns a `_WritingFallbackClient` that tries providers in order: DeepSeek V3.2 → OpenRouter/Qwen3.5-397B → Anthropic/Haiku 4.5 → Gemini → Groq → SambaNova. The fallback triggers on ANY error from the current provider (not just rate limits), so a bad API key or 400 error will still fall through gracefully.
+**Writing steps (3, 6, 8):** `create_writing_client()` reads `WRITING_PROVIDER` env var (default: `gemini`). Returns a `_WritingFallbackClient` that tries providers in order: Gemini → DeepSeek V3.2 → OpenRouter/Qwen3.5-397B → Groq → SambaNova. The fallback triggers on ANY error from the current provider (not just rate limits), so a bad API key or 400 error will still fall through gracefully.
 
 Concrete clients: `GeminiClient`, `GroqClient`, `SambaNovaClient`, `DeepSeekClient`, `OpenRouterClient`, `AnthropicClient`. Never bypass this abstraction when adding LLM calls.
 

@@ -12,8 +12,9 @@ Or: `python web_ui.py`
 
 The browser UI provides:
 - 3 parallel application forms (run multiple jobs simultaneously)
+- Resume variant selector: **Growth PM**, **Generalist**, **AI-PM** (adjusts tagline, Q&A framing, AI context injection)
 - ATS provider selection for step 5 (Gemini, Groq, SambaNova — free tiers)
-- Writing steps (3, 6, 8) always use the quality-first provider chain (DeepSeek → OpenRouter → Haiku)
+- Writing steps (3, 6, 8) use the quality-first provider chain (Gemini → DeepSeek → OpenRouter)
 - Per-provider usage tracking
 - Real-time pipeline output
 
@@ -43,7 +44,7 @@ Job URL
 
 Two separate provider tiers — one for quality, one for speed.
 
-**Writing steps (resume tailor, ATS edits, Q&A):** Paid quality-first chain with automatic fallback.
+**Writing steps (resume tailor, ATS edits, Q&A):** Quality-first chain with automatic fallback.
 
 | Provider | Model | Get Key |
 |----------|-------|---------|
@@ -87,13 +88,12 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # Configure .env (see .env.example)
-WRITING_PROVIDER=deepseek
-DEEPSEEK_API_KEY=...    # primary writing provider
-GEMINI_API_KEY=...      # ATS check step (free)
+WRITING_PROVIDER=gemini
+GEMINI_API_KEY=...      # primary writing provider (also ATS check step, free)
+DEEPSEEK_API_KEY=...    # writing fallback
 GROQ_API_KEY=...        # optional ATS fallback
 SAMBANOVA_API_KEY=...   # optional ATS fallback
 OPENROUTER_API_KEY=...  # optional writing fallback
-ANTHROPIC_API_KEY=...   # optional writing last resort
 FIRECRAWL_API_KEY=...   # optional, better JS page scraping
 NOTION_TOKEN=...
 # ... (see .env.example for full list)
@@ -188,13 +188,13 @@ JobQuest/
 
 **Writing steps (3, 6, 8) — quality-first:**
 ```
-DeepSeek V3.2
+Gemini 2.5 Flash (free, 1500 RPD)
     │
-    └─ Any error? → OpenRouter / Qwen3.5-397B
+    └─ Any error? → DeepSeek V3.2
                          │
-                         └─ Any error? → Anthropic / Haiku 4.5
+                         └─ Any error? → OpenRouter / Qwen3.5-397B
                                               │
-                                              └─ Any error? → Gemini → Groq → SambaNova
+                                              └─ Any error? → Groq → SambaNova
 ```
 
 **ATS check (step 5) — free-tier:**
@@ -209,7 +209,7 @@ User-selected provider (Gemini / Groq / SambaNova)
     Gemini model order: 3.1-pro → 3-pro → 3-flash → 2.5-pro → 2.5-flash → 2.5-flash-lite
 ```
 
-**Prompt caching:** DeepSeek V3.2 has automatic prefix caching. User prompt is ordered static-first (master resume, templates) then dynamic (job posting, questions), so the master resume is cached after the first application of the day.
+**Prompt caching:** Gemini and DeepSeek V3.2 both have automatic prefix caching. User prompt is ordered static-first (master resume, templates) then dynamic (job posting, questions), so the master resume is cached after the first application of the day.
 
 ### Web Scraping Strategy
 

@@ -331,59 +331,51 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             targeted_mode = False  # fall through to full generation below
 
     if not targeted_mode:
-        pass  # full generation path below
-    
-    if not targeted_mode:
         system_prompt = _load_voice_prefix() + _load_prompt("resume_tailor")
-    # Static/semi-static content first (cached by DeepSeek prefix cache),
-    # dynamic content last (changes per application, always after the cached prefix).
-    if targeted_mode:
-        pass  # already handled above
-    else:
-     user_prompt = (
-        f"## Tailoring Brief\n\n"
-        f"This analysis was produced for you in advance. Follow it — it tells you "
-        f"which bullets to touch, what the summary strategy is, and what to leave alone.\n\n"
-        f"{tailoring_brief}\n\n"
-        f"---\n\n"
-        f"## Locked Header (copy character-for-character, do not change anything)\n\n"
-        f"\\begin{{center}}\n"
-        f"  {{\\Huge\\bfseries Rodrigo Lopes,}} {{\\small {tagline}}}\\\\[6pt]\n"
-        f"  \\href{{https://rodrigolopes.eu/?utm_source=resume&utm_medium=pdf}}{{rodrigolopes.eu}} \\textbar{{}}\n"
-        f"  \\href{{mailto:contact@rodrigolopes.eu}}{{contact@rodrigolopes.eu}} \\textbar{{}}\n"
-        f"  \\href{{https://www.linkedin.com/in/rodecalo/}}{{linkedin.com/in/rodecalo}} \\textbar{{}}\n"
-        f"  +49 0172 5626057\n"
-        f"\\end{{center}}\n\n"
-        f"---\n\n"
-        f"## Master Resume\n\n"
-        f"{ctx['master_resume']}\n\n"
-        f"---\n\n"
-        f"## Job Posting\n\n"
-        f"**URL:** {ctx['job']['url']}\n"
-        f"**Title:** {ctx['job']['title']}\n"
-        f"**Company:** {ctx['job']['company']}\n\n"
-        f"{ctx['job']['description']}\n\n"
-        f"---\n\n"
-        f"Generate the complete tailored LaTeX resume following the tailoring brief above.\n\n"
-        f"CRITICAL: The output MUST include every single section of the master resume — "
-        f"all experience roles, Skills & Tools, Certifications, Languages, and Education. "
-        f"Sections marked 'do not change' or 'leave as-is' in the brief must be copied "
-        f"VERBATIM from the master resume. 'Leave as-is' means reproduce it exactly, NOT omit it. "
-        f"A resume missing any section is broken and unusable.\n\n"
-        f"Output ONLY the LaTeX content between ```latex and ``` markers."
-    )
-
-    raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.3)
-    ctx["tailor_raw"] = raw
-
-    latex = extract_latex(raw)
-    if not latex:
-        raise RuntimeError(
-            "LLM did not return parseable LaTeX. "
-            "Raw response saved to run directory for debugging."
+        user_prompt = (
+            f"## Tailoring Brief\n\n"
+            f"This analysis was produced for you in advance. Follow it — it tells you "
+            f"which bullets to touch, what the summary strategy is, and what to leave alone.\n\n"
+            f"{tailoring_brief}\n\n"
+            f"---\n\n"
+            f"## Locked Header (copy character-for-character, do not change anything)\n\n"
+            f"\\begin{{center}}\n"
+            f"  {{\\Huge\\bfseries Rodrigo Lopes,}} {{\\small {tagline}}}\\\\[6pt]\n"
+            f"  \\href{{https://rodrigolopes.eu/?utm_source=resume&utm_medium=pdf}}{{rodrigolopes.eu}} \\textbar{{}}\n"
+            f"  \\href{{mailto:contact@rodrigolopes.eu}}{{contact@rodrigolopes.eu}} \\textbar{{}}\n"
+            f"  \\href{{https://www.linkedin.com/in/rodecalo/}}{{linkedin.com/in/rodecalo}} \\textbar{{}}\n"
+            f"  +49 0172 5626057\n"
+            f"\\end{{center}}\n\n"
+            f"---\n\n"
+            f"## Master Resume\n\n"
+            f"{ctx['master_resume']}\n\n"
+            f"---\n\n"
+            f"## Job Posting\n\n"
+            f"**URL:** {ctx['job']['url']}\n"
+            f"**Title:** {ctx['job']['title']}\n"
+            f"**Company:** {ctx['job']['company']}\n\n"
+            f"{ctx['job']['description']}\n\n"
+            f"---\n\n"
+            f"Generate the complete tailored LaTeX resume following the tailoring brief above.\n\n"
+            f"CRITICAL: The output MUST include every single section of the master resume — "
+            f"all experience roles, Skills & Tools, Certifications, Languages, and Education. "
+            f"Sections marked 'do not change' or 'leave as-is' in the brief must be copied "
+            f"VERBATIM from the master resume. 'Leave as-is' means reproduce it exactly, NOT omit it. "
+            f"A resume missing any section is broken and unusable.\n\n"
+            f"Output ONLY the LaTeX content between ```latex and ``` markers."
         )
-    ctx["tailored_latex"] = fix_markdown_lists(latex)
-    console.print(f"  Tailored LaTeX generated: {len(latex)} chars")
+
+        raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.3)
+        ctx["tailor_raw"] = raw
+
+        latex = extract_latex(raw)
+        if not latex:
+            raise RuntimeError(
+                "LLM did not return parseable LaTeX. "
+                "Raw response saved to run directory for debugging."
+            )
+        ctx["tailored_latex"] = fix_markdown_lists(latex)
+        console.print(f"  Tailored LaTeX generated: {len(latex)} chars")
 
     # --- Stage 3c: Brief compliance review (free-tier LLM) ---
     # Checks whether the writing model followed the plan. Runs automatically

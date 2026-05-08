@@ -14,29 +14,28 @@ RETRY_BASE_DELAY = 10  # seconds (longer for rate limits)
 # Default provider (can override in .env with LLM_PROVIDER)
 DEFAULT_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
 
-# Available Gemini models (as of Feb 2026)
-# Each model has separate quota on free tier (20 requests/day, 5/minute)
+# Available Gemini models (free tier only, as of May 2026)
+# Source: https://ai.google.dev/gemini-api/docs/pricing
+# 3.1 Pro is paid-only — not included.
+# 3 Pro Preview was shut down March 9, 2026.
 GEMINI_MODELS = {
-    # Gemini 3.1 (Feb 2026 upgrade)
-    "gemini-3-1-pro": "models/gemini-3-1-pro-preview",      # Upgraded reasoning, Feb 2026
-    # Gemini 3 (latest)
-    "gemini-3-flash": "models/gemini-3-flash-preview",      # Fast, latest
-    "gemini-3-pro": "models/gemini-3-pro-preview",          # High quality, latest
-    # Gemini 2.5 (stable)
-    "gemini-2.5-flash": "models/gemini-2.5-flash",          # Fast, stable
-    "gemini-2.5-flash-lite": "models/gemini-2.5-flash-lite", # Lightweight
-    "gemini-2.5-pro": "models/gemini-2.5-pro",              # High quality, stable
+    # Gemini 3 (free tier)
+    "gemini-3-flash": "models/gemini-3-flash-preview",       # Free, 500 RPD
+    "gemini-3.1-flash-lite": "models/gemini-3.1-flash-lite", # Free, cheapest, stable
+    # Gemini 2.5 (free tier)
+    "gemini-2.5-pro": "models/gemini-2.5-pro",               # Free, most capable, 25 RPD
+    "gemini-2.5-flash": "models/gemini-2.5-flash",           # Free, 500 RPD
+    "gemini-2.5-flash-lite": "models/gemini-2.5-flash-lite", # Free, 1500 RPD
 }
 
-# Fallback order when hitting rate limits (each has separate quota)
-# Quality-first: start with the most capable, fall back to faster/lighter models
+# Fallback order when hitting rate limits
+# Start with fastest/cheapest, fall back to alternative models
 MODEL_FALLBACK_ORDER = [
-    "models/gemini-3-flash-preview",  # 0. Fast, latest gen — start here for testing
-    "models/gemini-2.5-flash",        # 1. Stable fast, 500 RPD free tier
-    "models/gemini-3-pro-preview",    # 2. High quality fallback
-    "models/gemini-3-1-pro-preview",  # 3. Best quality (Feb 2026 upgrade)
-    "models/gemini-2.5-pro",          # 4. Stable high quality
-    "models/gemini-2.5-flash-lite",   # 5. Last resort
+    "models/gemini-3-flash-preview",     # Fast, latest gen
+    "models/gemini-2.5-flash",           # Stable fast, 500 RPD
+    "models/gemini-3.1-flash-lite",      # Cheapest, stable
+    "models/gemini-2.5-pro",             # Most capable, 25 RPD
+    "models/gemini-2.5-flash-lite",      # Last resort, 1500 RPD
 ]
 
 DEFAULT_MODEL = "gemini-3-flash"

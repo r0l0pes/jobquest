@@ -57,13 +57,23 @@ def parse_args(argv: list[str] | None = None):
         action="store_true",
         help="Show pipeline plan without executing",
     )
+    parser.add_argument(
+        "--fill-form",
+        action="store_true",
+        help="Open browser form filler after PDF generation (reviews fields, never auto-submits)",
+    )
+    parser.add_argument(
+        "--skip-form",
+        action="store_true",
+        help="Skip form filler step (default behavior; use --fill-form to enable)",
+    )
     return parser.parse_args(argv)
 
 
 
 
 
-def build_steps():
+def build_steps(fill_form: bool = False):
     """Build the pipeline steps list with lazy imports."""
     from modules.pipeline import (
         step_scrape_job,
@@ -75,9 +85,10 @@ def build_steps():
         step_compile_pdf,
         step_generate_qa,
         step_create_notion_entry,
+        step_run_form_filler,
     )
     
-    return [
+    steps = [
         ("scrape", "Scrape job posting", step_scrape_job),
         ("resume", "Read master resume from Notion", step_read_master_resume),
         ("tailor", "Tailor resume via LLM", step_tailor_resume),
@@ -88,6 +99,11 @@ def build_steps():
         ("qa", "Generate Q&A answers", step_generate_qa),
         ("notion", "Create Notion entry", step_create_notion_entry),
     ]
+
+    if fill_form:
+        steps.append(("form", "Open form filler", step_run_form_filler))
+
+    return steps
 
 
 def execute_step(step_fn, ctx, llm, console):
@@ -105,8 +121,8 @@ def show_dry_run(ctx: dict, console: Console, steps):
         skip = ""
         if step_id == "notion" and ctx.get("skip_notion"):
             skip = "[yellow]SKIP[/yellow]"
-        elif step_id == "qa" and not ctx.get("questions"):
-            skip = "[dim]no questions[/dim]"
+        elif step_id == "form" and ctx.get("skip_form"):
+            skip = "[yellow]SKIP[/yellow]"
         else:
             skip = "[green]RUN[/green]"
         table.add_row(f"{i}", desc, skip)
@@ -164,7 +180,8 @@ def run_pipeline_from_cli(args) -> int:
     
     console = Console()
     
-    STEPS = build_steps()
+    fill_form = getattr(args, 'fill_form', False) and not getattr(args, 'skip_form', False)
+    STEPS = build_steps(fill_form=fill_form)
     
     # Resolve provider: CLI arg > env var > default
     provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")
@@ -175,6 +192,7 @@ def run_pipeline_from_cli(args) -> int:
         "company_url": args.company_url,
         "questions": [q.strip() for q in args.questions if q.strip()],
         "skip_notion": args.skip_notion,
+        "skip_form": not fill_form,
         "provider": provider,
     }
 

@@ -230,7 +230,7 @@ class TestDryRun:
         """All 9 pipeline steps should be registered."""
         from apply import build_steps
 
-        steps = build_steps()
+        steps = build_steps(fill_form=False)
         step_ids = [s[0] for s in steps]
         assert len(steps) == 9, f"Expected 9 steps, got {len(steps)}"
         assert "scrape" in step_ids
@@ -242,6 +242,20 @@ class TestDryRun:
         assert "compile" in step_ids
         assert "qa" in step_ids
         assert "notion" in step_ids
+
+    def test_form_filler_optional(self):
+        """Form filler should only be included when --fill-form is passed."""
+        from apply import build_steps
+
+        steps_default = build_steps(fill_form=False)
+        step_ids = [s[0] for s in steps_default]
+        assert "form" not in step_ids, "Form filler should be off by default"
+        assert len(steps_default) == 9
+
+        steps_enabled = build_steps(fill_form=True)
+        step_ids_enabled = [s[0] for s in steps_enabled]
+        assert "form" in step_ids_enabled, "Form filler should be included when requested"
+        assert len(steps_enabled) == 10
 
     def test_dry_run_no_api_calls(self):
         """Dry run should not make any API calls."""

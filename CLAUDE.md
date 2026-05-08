@@ -234,7 +234,7 @@ Four skills are defined for use within Claude Code sessions. Invoke with `/skill
 - `/ats-fixer` — Review ATS report and apply keyword edits to the `.tex` file
 - `/qa-generator` — Review or regenerate Q&A answers against voice rules
 
-The old `.agent/skills/` directory is superseded by `.claude/skills/` and can be removed.
+
 
 ## Claude Code Agents (`.claude/agents/`)
 

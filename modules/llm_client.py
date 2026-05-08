@@ -109,15 +109,24 @@ class GeminiClient(LLMClient):
 
             for attempt in range(retries_for_model):
                 try:
+                    # For Gemini 3 models, max_output_tokens is a combined budget (thinking + output).
+                    # 16384 is often too small causing truncation. Use 65536 for gemini-3, else 8192.
+                    max_tokens = 65536 if "gemini-3" in model_id else 8192
+                    
                     response = self._client.models.generate_content(
                         model=model_id,
                         contents=user_prompt,
                         config=types.GenerateContentConfig(
                             system_instruction=system_prompt,
                             temperature=temperature,
-                            max_output_tokens=16384,
+                            max_output_tokens=max_tokens,
                         ),
                     )
+                    # Check finish reason for truncation diagnostics
+                    if response.candidates:
+                        finish_reason = getattr(response.candidates[0], 'finish_reason', None)
+                        if finish_reason and str(finish_reason) not in ('STOP', 'FinishReason.STOP', '1'):
+                            print(f"  ⚠️  Gemini finish_reason: {finish_reason} (model: {model_id.split('/')[-1]}, output: {len(response.text or '')} chars)", flush=True)
                     if model_id != self._model_id:
                         print(f"  ✓ Success with fallback: {model_id.split('/')[-1]}", flush=True)
                     return response.text

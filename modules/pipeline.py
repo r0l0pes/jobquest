@@ -215,7 +215,7 @@ def _slim_resume_for_analysis(master_resume: str) -> str:
 TAGLINES = {
     "growth_pm": "Experiments that accelerate revenue.",
     "generalist": "End-to-end ownership. Outcomes delivered.",
-    "ai_pm": "GenAI product delivery. End-to-end, governance included.",
+    "ai_pm": "AI products, from 0 to 1.",
 }
 
 
@@ -374,6 +374,27 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
                 "LLM did not return parseable LaTeX. "
                 "Raw response saved to run directory for debugging."
             )
+
+        # Completeness check: catch truncated LLM output before it hits pdflatex
+        _REQUIRED_SECTIONS = [
+            (r"\\section\*\{Experience\}", "Experience"),
+            (r"\\section\*\{Skills", "Skills & Tools"),
+            (r"\\section\*\{Education\}", "Education"),
+        ]
+        missing = [
+            name for pattern, name in _REQUIRED_SECTIONS
+            if not re.search(pattern, latex)
+        ]
+        if missing:
+            # Save truncated output for debugging
+            (run_dir / f"TRUNCATED_resume_{ctx['company_safe']}.tex").write_text(latex)
+            raise RuntimeError(
+                f"LLM returned truncated LaTeX (missing sections: {', '.join(missing)}). "
+                f"Output was {len(latex)} chars vs ~7,800 expected. "
+                f"Truncated file saved for debugging. Try re-running or switching "
+                f"WRITING_PROVIDER (current: {writing_llm.model_name()})."
+            )
+
         ctx["tailored_latex"] = fix_markdown_lists(latex)
         console.print(f"  Tailored LaTeX generated: {len(latex)} chars")
 

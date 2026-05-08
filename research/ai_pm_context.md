@@ -46,11 +46,11 @@ Built an end-to-end agentic PM workflow: structured product context as markdown 
 
 ### Timeline of tools (WFP period)
 
-**Mar 2024 – Oct 2024**: Cursor (AI-native editor) as primary interface. Claude Sonnet via API for generation and reasoning tasks (PRD drafts, synthesis, analysis). ChatGPT for quick brainstorms. Notion AI for meeting notes and knowledge management.
+**Mar 2024 – Oct 2024**: Cursor (AI-native editor) as primary interface. Claude Sonnet via API for generation and reasoning tasks (PRD drafts, synthesis, analysis). Gemini for quick brainstorms. Notion AI for meeting notes and knowledge management.
 
-**Nov 2024 – Apr 2025**: MCP (Model Context Protocol) launches November 2024. Starts connecting Claude to external tools (Notion, data sources) via standardised protocol. Moves from one-off chat interactions to multi-step automated workflows.
+**Nov 2024 – Apr 2025**: MCP (Model Context Protocol) launches November 2024. Starts connecting Claude to external tools (Notion, data sources) via standardised protocol. Moves from one-off chat interactions to multi-step automated workflows. Codex CLI (OpenAI, open-source terminal coding agent) launches April 2025, used for comparison and specific OpenAI-model tasks.
 
-**May 2025 – Dec 2025**: Claude Code (terminal-based agentic interface) becomes primary execution layer. Cursor remains part of the stack for file editing. Combined with MCP integrations for Notion and task management tools.
+**May 2025 – Dec 2025**: Claude Code (terminal-based agentic interface, GA May 2025) becomes primary execution layer. Cursor remains part of the stack for file editing. Combined with MCP integrations for Notion and task management tools. Claude Cowork (desktop automation agent, research preview Jan 2026) used for document workflows and file management tasks that do not require codebase access.
 
 ### Workflows
 
@@ -103,3 +103,38 @@ This is the shift Frank Lee describes: from "I spend Sundays building metrics an
 - "The tools that changed things most in this period: Cursor for editing (from day one), Claude Sonnet via API for reasoning tasks (2024), Claude Code for execution (from May 2025 when it launched). Each jump expanded what I could automate without an engineer."
 - "I think of it as: what PM tasks are repetitive, data-heavy, and have clear enough output criteria that an agent can run them? Those get automated. The synthesis of 'so what' and the decisions stay with me."
 - "MCP changed the workflow in late 2024 — instead of copying data between tools manually, agents could pull from Notion, push to task management, read analytics exports, all in one orchestrated run."
+
+---
+
+## AI Tool Landscape Reference (as of March 2026)
+
+This section documents the current state of key AI coding/PM tools for accurate resume and Q&A generation. Update periodically.
+
+### OpenAI Codex
+- Originally the model behind GitHub Copilot (2021). Evolved into a full software engineering agent by 2025.
+- **Codex CLI**: Open-source terminal coding agent (April 2025, Apache 2.0). Runs locally, reads/changes/executes code. Built in Rust. Included with ChatGPT Plus/Pro/Business/Edu/Enterprise plans.
+- **Codex App**: macOS (Feb 2, 2026), Windows (Mar 4, 2026). Multi-agent workflows, built-in worktrees, cloud environments for parallel execution.
+- **Current model**: GPT-5.3-Codex (Feb 2026). Trained via reinforcement learning on real-world coding projects. Previous iterations: GPT-5-Codex (Sep 2025), GPT-5.2-Codex (Dec 2025).
+- **GPT model lineage**: GPT-5 (Aug 2025), GPT-5.2 (Dec 2025), GPT-5.3 (Feb 2026), GPT-5.4 (current as of Mar 2026). GPT-4 is obsolete.
+- **Resume context**: Codex is the correct term for OpenAI's coding agent. Prefer "Codex" over "GPT" when referring to coding/agentic workflows. "ChatGPT" is the consumer chat product name.
+
+### Claude Code (Anthropic)
+- Agentic CLI tool for developers. Beta Feb 2025, GA May 2025.
+- Reads/modifies files across entire codebases from terminal or IDE (VS Code, JetBrains).
+- **Feb 2026 updates**: Remote control (continue sessions from mobile/web), agent teams, Claude Code Security (vulnerability scanning).
+- **Current model**: Opus 4.6 (Feb 2026). Enhanced planning, extended agentic tasks, better reliability in large codebases.
+- **Resume context**: This is Rodrigo's primary execution layer for PM workflows (PRD drafting, data analysis, ticket creation via MCP).
+
+### Claude Cowork (Anthropic)
+- Desktop automation agent, research preview Jan 2026.
+- Operates in Claude Desktop app (visual interface, no terminal needed). Built for non-coders and knowledge workers.
+- Automates multi-step file/document tasks: organises files, extracts data, creates formatted documents (Word, spreadsheets, PDFs), synthesises research.
+- Connects to Gmail, Google Drive, GitHub, Slack. Scheduled tasks added Feb 2026.
+- Runs in sandboxed VM on user's machine. Built by Claude Code itself ("vibe coding").
+- **Resume context**: Useful for document-heavy PM workflows (research synthesis, report generation, invoice/contract management). Different from Claude Code: Cowork = desktop/document layer, Claude Code = codebase layer.
+
+### Key distinctions for resume writing
+- **Claude Code** vs **Claude Cowork**: Code is for developers/technical PMs (terminal, codebase). Cowork is for desktop automation (documents, files, integrations). They are NOT the same tool.
+- **Codex** vs **ChatGPT**: Codex is OpenAI's coding agent. ChatGPT is the consumer chat interface. Use Codex when discussing coding/agentic work.
+- **GPT-4 is obsolete**: Current GPT is 5.4 (Mar 2026). Never reference GPT-4 in generated resumes.
+- **Claude** alone (without Code/Cowork suffix) refers to Anthropic's general-purpose LLM (Claude Sonnet, Claude Opus), used via API or chat interface.

@@ -1,3 +1,12 @@
+"""JobQuest — Batch Job Search (P1 Prototype)
+
+DISCOVERY PROTOTYPE — will be absorbed into P1 job discovery feature.
+Searches DuckDuckGo for PM roles at a hardcoded list of Berlin startups.
+Used as reference for the modes/discover.md agent instruction.
+
+Not wired into the pipeline. Run standalone:
+    python batch_job_search.py companies.md
+"""
 
 import time
 from duckduckgo_search import DDGS

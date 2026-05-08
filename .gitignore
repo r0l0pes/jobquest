@@ -27,6 +27,7 @@ templates/*.pdf
 .usage_stats.json
 .master_resume_cache*.txt
 .pytest_cache/
+data/applications.json
 
 # Temporary analysis/debug docs
 Step-6-breaks-analysis.md

@@ -9,3 +9,4 @@ google-genai
 googlesearch-python
 requests
 gradio
+pytest

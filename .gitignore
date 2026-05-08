@@ -25,7 +25,8 @@ templates/*.pdf
 
 # Runtime state
 .usage_stats.json
-.master_resume_cache.txt
+.master_resume_cache*.txt
+.pytest_cache/
 
 # Temporary analysis/debug docs
 Step-6-breaks-analysis.md

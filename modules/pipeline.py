@@ -26,8 +26,12 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 PROMPTS_DIR = PROJECT_ROOT / "prompts"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 VENV_PYTHON = str(PROJECT_ROOT / "venv" / "bin" / "python")
-RESUME_CACHE_FILE = PROJECT_ROOT / ".master_resume_cache.txt"
 RESUME_CACHE_TTL = 24 * 3600  # 24 hours
+
+def _resume_cache_file(master_resume_id: str) -> Path:
+    """Cache file keyed by resume ID to avoid cross-variant cache hits."""
+    safe_id = master_resume_id.replace("-", "_")[:8]
+    return PROJECT_ROOT / f".master_resume_cache_{safe_id}.txt"
 
 
 def _load_prompt(name: str) -> str:
@@ -143,15 +147,16 @@ def step_read_master_resume(
     console.print("\n[bold]Step 2/9:[/bold] Reading master resume from Notion...")
 
     from config import MASTER_RESUME_ID
+    cache_file = _resume_cache_file(MASTER_RESUME_ID)
 
     # Use local cache if fresh (avoids Notion API slowness on every run)
-    if RESUME_CACHE_FILE.exists():
-        age = time.time() - RESUME_CACHE_FILE.stat().st_mtime
+    if cache_file.exists():
+        age = time.time() - cache_file.stat().st_mtime
         if age < RESUME_CACHE_TTL:
-            output = RESUME_CACHE_FILE.read_text()
+            output = cache_file.read_text()
             if len(output) < 500:
                 console.print(f"  [yellow]Cache corrupted ({len(output)} chars), re-fetching...[/yellow]")
-                RESUME_CACHE_FILE.unlink()
+                cache_file.unlink()
             else:
                 console.print(f"  Loaded {len(output)} chars (cached {int(age / 3600)}h ago)")
                 ctx["master_resume"] = output
@@ -165,7 +170,7 @@ def step_read_master_resume(
             f"Master resume read returned suspiciously short content "
             f"({len(output)} chars). Notion may be degraded. Raw: {output[:200]!r}"
         )
-    RESUME_CACHE_FILE.write_text(output)
+    cache_file.write_text(output)
     ctx["master_resume"] = output
     console.print(f"  Loaded {len(output)} chars")
     return ctx

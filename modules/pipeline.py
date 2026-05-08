@@ -52,8 +52,14 @@ def _get_writing_client() -> LLMClient:
 
 
 def _load_voice_prefix() -> str:
-    """Load rodrigo-voice.md as a system prompt prefix for writing steps."""
-    voice_path = PROMPTS_DIR / "rodrigo-voice.md"
+    """Load rodrigo-voice-lite.md as a system prompt prefix for writing steps.
+
+    Default: lite version (~60 lines, ~500 tokens) for cost efficiency.
+    Set USE_FULL_VOICE=1 in .env to use the full 322-line version when
+    output quality drops and you need tighter enforcement.
+    """
+    voice_name = "rodrigo-voice" if os.getenv("USE_FULL_VOICE") == "1" else "rodrigo-voice-lite"
+    voice_path = PROMPTS_DIR / f"{voice_name}.md"
     if voice_path.exists():
         return voice_path.read_text() + "\n\n---\n\n"
     return ""

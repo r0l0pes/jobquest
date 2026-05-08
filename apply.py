@@ -13,6 +13,8 @@ import sys
 import json
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).parent
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -86,7 +88,14 @@ def build_steps(fill_form: bool = False):
         step_generate_qa,
         step_create_notion_entry,
         step_run_form_filler,
+        compute_pipeline_score,
     )
+
+    def _step_score(ctx, llm, console):
+        """Thin wrapper: compute_pipeline_score matches the step signature."""
+        console.print("\n[bold]Step 9/10:[/bold] Computing pipeline score...")
+        compute_pipeline_score(ctx, console)
+        return ctx
     
     steps = [
         ("scrape", "Scrape job posting", step_scrape_job),
@@ -97,6 +106,7 @@ def build_steps(fill_form: bool = False):
         ("ats_apply", "Review & apply ATS edits", step_apply_ats_edits),
         ("compile", "Compile PDF", step_compile_pdf),
         ("qa", "Generate Q&A answers", step_generate_qa),
+        ("score", "Compute pipeline score", _step_score),
         ("notion", "Create Notion entry", step_create_notion_entry),
     ]
 
@@ -164,6 +174,12 @@ def show_summary(ctx: dict, console: Console):
 
     if ctx.get("notion_page_id"):
         table.add_row("Notion Entry", ctx["notion_page_id"])
+
+    score = ctx.get("pipeline_score")
+    if score is not None:
+        label = ctx.get("pipeline_score_label", "?")
+        style = {"STRONG": "green", "GOOD": "yellow", "WEAK": "yellow", "SKIP": "red"}.get(label, "")
+        table.add_row("Pipeline Score", f"[{style}]{score}/100 — {label}[/{style}]")
 
     table.add_row("Output Dir", ctx.get("run_dir", "?"))
 
@@ -241,6 +257,7 @@ def run_pipeline_from_cli(args) -> int:
 
     # Done - save context and show summary
     _save_context(ctx, console)
+    _save_application_json(ctx, console)
     console.print(
         Panel("[bold green]Pipeline complete.[/bold green]", style="green")
     )
@@ -268,6 +285,37 @@ def _save_context(ctx: dict, console: Console):
         path = Path(run_dir) / "pipeline_context.json"
         path.write_text(json.dumps(safe_ctx, indent=2, default=str))
         console.print(f"  [dim]Context saved: {path}[/dim]")
+    except Exception:
+        pass
+
+
+def _save_application_json(ctx: dict, console: Console):
+    """Append application to data/applications.json for the tracker."""
+    try:
+        data_dir = PROJECT_ROOT / "data"
+        data_dir.mkdir(exist_ok=True)
+        app_file = data_dir / "applications.json"
+
+        apps = []
+        if app_file.exists():
+            apps = json.loads(app_file.read_text())
+
+        from datetime import datetime
+        app = {
+            "company": ctx.get("job", {}).get("company", "?"),
+            "role": ctx.get("job", {}).get("title", "?"),
+            "url": ctx.get("job_url", ""),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "score": ctx.get("pipeline_score"),
+            "score_label": ctx.get("pipeline_score_label"),
+            "status": "applied",
+            "notes": "",
+            "pdf_path": ctx.get("pdf_path", ""),
+            "run_dir": ctx.get("run_dir", ""),
+        }
+        apps.append(app)
+        app_file.write_text(json.dumps(apps, indent=2))
+        console.print(f"  [dim]Tracker updated: {app_file} ({len(apps)} entries)[/dim]")
     except Exception:
         pass
 

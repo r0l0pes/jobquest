@@ -21,6 +21,7 @@ apply.py / web_ui.py           ← Entry points (CLI and Gradio browser UI)
 ```
 
 **Key directories:**
+
 - `modules/` — Core logic imported by entry points
 - `scripts/` — Subprocess utilities called via `subprocess.run()`, output JSON
 - `prompts/` — LLM prompt templates as `.md` files, loaded at runtime
@@ -78,6 +79,7 @@ APPLICANT_LOCATION=...
 ```
 
 Optional (enable fallback/enhanced scraping):
+
 ```env
 GROQ_API_KEY=...
 SAMBANOVA_API_KEY=...
@@ -121,9 +123,11 @@ Two separate client tiers — never mix them:
 Concrete clients: `GeminiClient`, `GroqClient`, `SambaNovaClient`, `DeepSeekClient`, `OpenRouterClient`, `AnthropicClient`. Never bypass this abstraction when adding LLM calls.
 
 ### Prompts as Files (`prompts/`)
+
 All LLM prompts live in `prompts/*.md` and are loaded at runtime with `_load_prompt()`. Do not inline prompt text in Python files. This keeps prompts easy to iterate on and reduces Claude Code token usage when sharing code context.
 
 Prompt files:
+
 - `jobquest_system_prompt.md` — Standalone prompt for manual LLM use (not loaded by the pipeline). Copy-paste into any LLM chat to use it as a job application assistant.
 - `rodrigo-voice.md` — Voice, tone, banned phrases, and writing quality rules. Injected as system prompt prefix for steps 3 and 8. Single source of truth for all writing style rules.
 - `jd_analysis.md` — Step 3a analysis prompt. Produces a structured tailoring brief (role priorities, bullet targets, summary strategy, do-not-change list) using the free-tier LLM before the writing model runs.
@@ -133,11 +137,13 @@ Prompt files:
 - `qa_generator.md` — Q&A and cover letter generation instructions (task-specific only; voice rules are in rodrigo-voice.md)
 
 ### Subprocess Isolation (`scripts/`)
+
 Scripts called via `subprocess.run()` return JSON on stdout. This isolates Notion calls and PDF rendering from the main pipeline. Follow this pattern for new external integrations.
 
 ### Web Scraping Hierarchy (`modules/job_scraper.py`)
 
 **Job posting scraping:**
+
 ```
 Known ATS platform? → Structured API (Greenhouse / Lever / Ashby / Workable / Personio / Screenloop)
 Unknown platform?   → HTML scraping
@@ -146,6 +152,7 @@ Unknown platform?   → HTML scraping
 ```
 
 **Company research scraping** (step 8, Q&A generation):
+
 ```
 Company URL provided? → Playwright (free, JS-rendering, one browser instance for up to 5 pages)
                           → crawl4ai (free, if Playwright returns all "Homepage" — SPA trap)
@@ -159,9 +166,11 @@ The `_discover_important_pages()` function finds relevant pages (about, solution
 Add new ATS platforms to the structured API layer first; only fall through to HTML when necessary.
 
 ### Non-Interactive Mode
+
 `pipeline.py` accepts an `interactive=False` flag used by `web_ui.py` to skip ATS review prompts and auto-apply edits. Any new interactive steps must respect this flag.
 
 ### Parser Resilience (`modules/parsers.py`)
+
 Parsers strip `<think>...</think>` blocks (from DeepSeek-style reasoning models) before extracting LaTeX, JSON, or markdown from LLM responses. Any new parser functions must also handle these tokens.
 
 `fix_markdown_lists()` is applied after every LLM LaTeX response (steps 3 and 6). It converts bare `- item` lines under `\section*{}` headings into proper `\begin{itemize}...\end{itemize}` blocks. This corrects a common LLM formatting failure in Certifications, Languages, and Education sections.
@@ -179,6 +188,7 @@ When a JD has AI tool/workflow requirements (AI PM, LLM, Claude, Cursor, MCP, vi
 The context doc (`research/ai_pm_context.md`) covers: tools timeline (Cursor from Mar 2024, MCP from Nov 2024, Claude Code from May 2025), specific workflows (PRD drafting, LLM evaluation, data analysis, feedback synthesis, automated reporting, engineering coordination), and talking points grounded in the WFP tenure. Edit that file to update the substance — do not inline content in pipeline.py.
 
 ### apply.py Implementation
+
 - `apply.py` calls `load_dotenv()` inside `run_pipeline_from_cli()`.
 - The pipeline step list is built by `build_steps()`.
 - Each step is executed via `execute_step()` and returns an updated `ctx`.
@@ -188,6 +198,7 @@ The context doc (`research/ai_pm_context.md`) covers: tools timeline (Cursor fro
 ## Key Dependencies
 
 Managed via `requirements.txt`:
+
 - `google-generativeai` — Gemini LLM API
 - `notion-client` — Notion API integration
 - `playwright` — Headless browser for scraping
@@ -234,8 +245,6 @@ Four skills are defined for use within Claude Code sessions. Invoke with `/skill
 - `/ats-fixer` — Review ATS report and apply keyword edits to the `.tex` file
 - `/qa-generator` — Review or regenerate Q&A answers against voice rules
 
-
-
 ## Claude Code Agents (`.claude/agents/`)
 
 One subagent is defined. Claude can automatically delegate to it when the description matches:
@@ -265,37 +274,45 @@ One subagent is defined. Claude can automatically delegate to it when the descri
 ## Claude Code Workflow
 
 ### Plan before building
+
 Enter plan mode for any non-trivial change (3+ steps, touches `pipeline.py` or `llm_client.py`, or involves architectural decisions). If something goes sideways mid-implementation, stop and re-plan — don't keep pushing. Write the approach out before touching code.
 
 ### Verify before marking done
+
 After any pipeline change, run a quick import check at minimum:
+
 ```bash
 source venv/bin/activate && python3 -c "from modules.pipeline import _is_ai_heavy_jd; print('ok')"
 ```
+
 For larger changes, run `python apply.py "URL" --dry-run`. Never mark a task complete without proving it works.
 
 ### Subagents for research, not for code
+
 Use subagents (Explore, general-purpose) to keep the main context clean. Research tasks (market analysis, JD exploration, tool timelines, library docs) go to subagents. Code changes happen in the main context where the full pipeline state is visible.
 
 ### Bug reports: just fix them
+
 When given a bug or error: diagnose from logs and code, fix it, verify. Don't ask for hand-holding or confirm each step. Zero context-switching required from the user.
 
 ### Elegance check for non-trivial changes
+
 Before presenting a solution to a complex problem, ask: is there a more elegant way? If a fix feels like a workaround, it probably is. Skip this for simple, obvious changes — don't over-engineer.
 
 ### Self-correction
+
 After any correction from the user, update the memory files (`memory/MEMORY.md` or a topic file) with the pattern so the same mistake doesn't repeat. This is the equivalent of `tasks/lessons.md` — our memory system serves that role.
 
 ---
 
 ## Supported Job Platforms
 
-| Platform | URL Pattern | Scraper Type |
-|----------|-------------|--------------|
-| Greenhouse | `boards.greenhouse.io`, `job-boards.eu.greenhouse.io` | JSON API |
-| Lever | `jobs.lever.co` | Postings API v0 |
-| Ashby | `jobs.ashbyhq.com` | GraphQL API |
-| Workable | `apply.workable.com` | Widget API |
-| Personio | `*.jobs.personio.de/com` | HTML + JSON |
-| Screenloop | `app.screenloop.com` | HTML scraping |
-| Others | Any URL | HTML → Firecrawl → Playwright |
+| Platform   | URL Pattern                                           | Scraper Type                  |
+| ---------- | ----------------------------------------------------- | ----------------------------- |
+| Greenhouse | `boards.greenhouse.io`, `job-boards.eu.greenhouse.io` | JSON API                      |
+| Lever      | `jobs.lever.co`                                       | Postings API v0               |
+| Ashby      | `jobs.ashbyhq.com`                                    | GraphQL API                   |
+| Workable   | `apply.workable.com`                                  | Widget API                    |
+| Personio   | `*.jobs.personio.de/com`                              | HTML + JSON                   |
+| Screenloop | `app.screenloop.com`                                  | HTML scraping                 |
+| Others     | Any URL                                               | HTML → Firecrawl → Playwright |

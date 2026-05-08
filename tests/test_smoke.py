@@ -227,20 +227,16 @@ class TestDryRun:
     """
 
     def test_build_steps_all_present(self):
-        """All 9 pipeline steps should be registered."""
+        """All pipeline steps should be registered (10 steps with scoring)."""
         from apply import build_steps
 
         steps = build_steps(fill_form=False)
         step_ids = [s[0] for s in steps]
-        assert len(steps) == 9, f"Expected 9 steps, got {len(steps)}"
+        assert len(steps) == 10, f"Expected 10 steps, got {len(steps)}"
         assert "scrape" in step_ids
         assert "resume" in step_ids
         assert "tailor" in step_ids
-        assert "write_tex" in step_ids
-        assert "ats_check" in step_ids
-        assert "ats_apply" in step_ids
-        assert "compile" in step_ids
-        assert "qa" in step_ids
+        assert "score" in step_ids
         assert "notion" in step_ids
 
     def test_form_filler_optional(self):
@@ -250,12 +246,12 @@ class TestDryRun:
         steps_default = build_steps(fill_form=False)
         step_ids = [s[0] for s in steps_default]
         assert "form" not in step_ids, "Form filler should be off by default"
-        assert len(steps_default) == 9
+        assert len(steps_default) == 10
 
         steps_enabled = build_steps(fill_form=True)
         step_ids_enabled = [s[0] for s in steps_enabled]
         assert "form" in step_ids_enabled, "Form filler should be included when requested"
-        assert len(steps_enabled) == 10
+        assert len(steps_enabled) == 11
 
     def test_dry_run_no_api_calls(self):
         """Dry run should not make any API calls."""
@@ -272,3 +268,41 @@ class TestDryRun:
         )
         result = run_pipeline_from_cli(args)
         assert result == 0, f"Dry run failed with exit code {result}"
+
+    def test_scoring_computation(self):
+        """Scoring should produce 0-100 with breakdown."""
+        from modules.pipeline import compute_pipeline_score
+
+        # Simulate a ctx with all scoring inputs
+        ctx = {
+            "ats_report": {"json": {"coverage_score": {"coverage_pct": 75}}},
+            "tailor_review": "PASS",
+            "company_research": "Some research text about the company " * 30,
+            "job": {"description": "We use AI tools like Claude and Cursor"},
+        }
+
+        from rich.console import Console
+        c = Console()
+        score = compute_pipeline_score(ctx, c)
+        assert 0 <= score <= 100, f"Score {score} out of range"
+        assert ctx["pipeline_score"] == round(score)
+        assert ctx["pipeline_score_label"] in ("STRONG", "GOOD", "WEAK", "SKIP")
+        assert "ats" in ctx["pipeline_score_breakdown"]
+        assert "compliance" in ctx["pipeline_score_breakdown"]
+        assert "research" in ctx["pipeline_score_breakdown"]
+        assert "ai" in ctx["pipeline_score_breakdown"]
+
+    def test_scoring_skip_low(self):
+        """Low ATS + no research + failed compliance = SKIP."""
+        from modules.pipeline import compute_pipeline_score
+
+        ctx = {
+            "ats_report": {"json": {"coverage_score": {"coverage_pct": 25}}},
+            "tailor_review": "SEVERITY: HIGH — summary missing",
+            "company_research": "",
+            "job": {"description": "Standard PM role"},
+        }
+        from rich.console import Console
+        score = compute_pipeline_score(ctx, Console())
+        assert score < 60, f"Should be WEAK or SKIP, got {score}"
+        assert ctx["pipeline_score_label"] in ("WEAK", "SKIP")

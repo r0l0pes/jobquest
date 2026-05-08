@@ -586,6 +586,86 @@ def step_ats_check(ctx: dict, llm: LLMClient, console: Console) -> dict:
     return ctx
 
 
+# ─── Score Application ──────────────────────────────────────────
+
+
+def compute_pipeline_score(ctx: dict, console: Console) -> float:
+    """Compute a 0-100 fit score from data the pipeline already generated.
+
+    No new LLM calls. Uses ATS coverage (step 5), brief compliance (step 3c),
+    company research depth (step 8), AI signal detection, and resume variant.
+
+    Returns score 0-100.
+    """
+    scores = {}
+
+    # ATS keyword coverage (40%)
+    ats_json = (ctx.get("ats_report", {}).get("json") or {})
+    ats_pct = ats_json.get("coverage_score", {}).get("coverage_pct", 50)
+    if isinstance(ats_pct, str):
+        ats_pct = int(ats_pct) if ats_pct.isdigit() else 50
+    scores["ats"] = min(ats_pct, 100)
+
+    # Brief compliance (20%)
+    review = ctx.get("tailor_review", "").upper()
+    if review.startswith("PASS"):
+        scores["compliance"] = 100
+    elif "SEVERITY: HIGH" in review:
+        scores["compliance"] = 50
+    elif review:
+        scores["compliance"] = 75
+    else:
+        scores["compliance"] = 60
+
+    # Company research depth (20%)
+    research = ctx.get("company_research", "")
+    scores["research"] = 100 if len(research) > 500 else 50 if research else 30
+
+    # AI signal match (10%)
+    ai_detected = _is_ai_heavy_jd(ctx.get("job", {}).get("description", ""))
+    scores["ai"] = 100 if ai_detected else 50
+
+    # Resume variant quality — user-selected (10%)
+    scores["variant"] = 100
+
+    # Weighted total
+    total = (
+        scores["ats"] * 0.40
+        + scores["compliance"] * 0.20
+        + scores["research"] * 0.20
+        + scores["ai"] * 0.10
+        + scores["variant"] * 0.10
+    )
+
+    ctx["pipeline_score"] = round(total)
+    ctx["pipeline_score_breakdown"] = scores
+
+    # Label
+    s = ctx["pipeline_score"]
+    if s >= 80:
+        label = "STRONG"
+        style = "green"
+    elif s >= 60:
+        label = "GOOD"
+        style = "yellow"
+    elif s >= 40:
+        label = "WEAK"
+        style = "yellow"
+    else:
+        label = "SKIP"
+        style = "red"
+
+    ctx["pipeline_score_label"] = label
+
+    console.print(
+        f"  Pipeline Score: [{style}]{s}/100 — {label}[/{style}] "
+        f"(ATS:{scores['ats']} C:{scores['compliance']} "
+        f"R:{scores['research']} AI:{scores['ai']} V:{scores['variant']})"
+    )
+
+    return total
+
+
 # ─── Step 6: Apply ATS Edits ─────────────────────────────────────
 
 

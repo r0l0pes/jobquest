@@ -1,0 +1,100 @@
+# JobQuest — Portal Scanner Configuration
+#
+# Companies to monitor for new job openings.
+# Read by modes/discover.md (agent instruction) and modes/scan.md (portal scanner).
+
+search_queries:
+  # Broad cross-ATS searches — discovers new companies not yet tracked
+  - query: 'site:jobs.ashbyhq.com "Senior Product Manager" Berlin'
+    enabled: true
+  - query: 'site:boards.greenhouse.io "Product Manager" Growth'
+    enabled: true
+  - query: 'site:jobs.lever.co "Senior Product Manager" Germany'
+    enabled: true
+
+tracked_companies:
+  # Fintech / Payments (Berlin — hottest sector for checkout PMs)
+  - name: SumUp
+    careers_url: https://www.sumup.com/careers
+    notes: Berlin fintech, POS/payments, direct match for checkout experience
+
+  - name: N26
+    careers_url: https://n26.com/en/careers
+    notes: Berlin digital bank, growth team active
+
+  - name: Trade Republic
+    careers_url: https://jobs.traderepublic.com
+    notes: Berlin neobroker, Series C+, growing fast
+
+  - name: Mollie
+    careers_url: https://careers.mollie.com
+    notes: Amsterdam payments, German office
+
+  - name: Adyen
+    careers_url: https://careers.adyen.com
+    notes: Amsterdam payments giant, checkout focus
+
+  # B2B SaaS (Berlin)
+  - name: Contentful
+    careers_url: https://www.contentful.com/careers
+    notes: Berlin-based, Series F, CMS for enterprise
+
+  - name: n8n
+    careers_url: https://n8n.io/careers
+    notes: Berlin-based, workflow automation, Series B
+
+  - name: Camunda
+    careers_url: https://camunda.com/careers
+    notes: Berlin process automation, Series B
+
+  - name: Staffbase
+    careers_url: https://staffbase.com/en/careers
+    notes: Chemnitz/Berlin, internal comms, Series E
+
+  # E-commerce / Marketplace
+  - name: Zalando
+    careers_url: https://jobs.zalando.com
+    notes: Berlin fashion e-commerce, checkout/growth PM roles
+
+  - name: Delivery Hero
+    careers_url: https://careers.deliveryhero.com
+    notes: Berlin food delivery, marketplace, growth
+
+  - name: HelloFresh
+    careers_url: https://careers.hellofresh.com
+    notes: Berlin meal kit, growth/experimentation
+
+  - name: AUTO1 Group
+    careers_url: https://www.auto1-group.com/en/careers
+    notes: Berlin auto marketplace, B2B platform
+
+  # Mobility
+  - name: Flix
+    careers_url: https://careers.flix.com
+    notes: Munich/Berlin, travel tech, marketplace
+
+  - name: Tier Mobility
+    careers_url: https://careers.tier.app
+    notes: Berlin micromobility, growth
+
+  # AI / ML companies
+  - name: DeepL
+    careers_url: https://www.deepl.com/careers
+    notes: Cologne/Berlin, AI translation, high growth
+
+  - name: Aleph Alpha
+    careers_url: https://aleph-alpha.com/careers
+    notes: Heidelberg/Berlin, German AI champion
+
+  # Spain
+  - name: Glovo
+    careers_url: https://jobs.glovoapp.com
+    notes: Barcelona delivery, marketplace
+
+  - name: TravelPerk
+    careers_url: https://www.travelperk.com/careers
+    notes: Barcelona business travel, Series D
+
+  - name: Factorial
+    careers_url: https://factorialhr.com/careers
+    notes: Barcelona HR SaaS, Series C

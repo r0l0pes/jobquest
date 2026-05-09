@@ -24,6 +24,7 @@ pytest tests/ -v
 ## Web UI
 
 3 parallel application slots. Each slot:
+
 - Job URL + Company URL + Questions
 - Resume variant: Growth PM / Generalist / AI-PM
 - Writing model: DeepSeek V3 / Gemini 2.5 Flash / Gemini Flash / OpenRouter
@@ -43,6 +44,7 @@ output/CompanyName_YYYY-MM-DD/
 ## Environment
 
 Copy `.env.example` → `.env`. Required keys:
+
 - `GEMINI_API_KEY` (free tier)
 - `DEEPSEEK_API_KEY` (or another writing provider)
 - `NOTION_TOKEN`, `NOTION_MASTER_RESUME_ID`

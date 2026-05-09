@@ -49,21 +49,21 @@ Job URL
 
 Pi reads mode files from `modes/`:
 
-| Mode | File | What it does |
-|---|---|---|
-| Discover | `modes/discover.md` | Search 10+ platforms, output to `data/job_queue.html` |
-| Interview Prep | `modes/prep_interview.md` | Company-specific research + STAR story bank |
-| Batch | `modes/batch.md` | Process job queue sequentially or via web UI |
+| Mode           | File                      | What it does                                          |
+| -------------- | ------------------------- | ----------------------------------------------------- |
+| Discover       | `modes/discover.md`       | Search 10+ platforms, output to `data/job_queue.html` |
+| Interview Prep | `modes/prep_interview.md` | Company-specific research + STAR story bank           |
+| Batch          | `modes/batch.md`          | Process job queue sequentially or via web UI          |
 
 ## Resume Variants
 
 Three variants in Notion, toggled in the web UI:
 
-| Variant | Tagline |
-|---|---|
-| Growth PM | "Experiments that accelerate revenue." |
-| Generalist | "End-to-end ownership. Outcomes delivered." |
-| AI PM | "GenAI product delivery. End-to-end, governance included." |
+| Variant    | Tagline                                                    |
+| ---------- | ---------------------------------------------------------- |
+| Growth PM  | "Experiments that accelerate revenue."                     |
+| Generalist | "End-to-end ownership. Outcomes delivered."                |
+| AI PM      | "GenAI product delivery. End-to-end, governance included." |
 
 ## Setup
 
@@ -128,12 +128,12 @@ pytest tests/ -v               # 22 tests in ~0.2s
 
 ## Supported Platforms
 
-| Platform | URL Pattern |
-|----------|-------------|
+| Platform   | URL Pattern                                           |
+| ---------- | ----------------------------------------------------- |
 | Greenhouse | `boards.greenhouse.io`, `job-boards.eu.greenhouse.io` |
-| Lever | `jobs.lever.co` |
-| Ashby | `jobs.ashbyhq.com` |
-| Workable | `apply.workable.com` |
-| Personio | `*.jobs.personio.de`, `*.jobs.personio.com` |
-| Screenloop | `app.screenloop.com` |
-| Others | HTML scraping fallback |
+| Lever      | `jobs.lever.co`                                       |
+| Ashby      | `jobs.ashbyhq.com`                                    |
+| Workable   | `apply.workable.com`                                  |
+| Personio   | `*.jobs.personio.de`, `*.jobs.personio.com`           |
+| Screenloop | `app.screenloop.com`                                  |
+| Others     | HTML scraping fallback                                |

@@ -2,6 +2,8 @@
 
 Pi reads this file first. It defines the project, the rules, and how to work here.
 
+**After reading this, read `SESSION_HANDOFF.md` for the current state and next steps.**
+
 ---
 
 ## What This Is
@@ -97,27 +99,28 @@ JobQuest/
 8. Generate Q&A answers (with company research)
 9. **Compute pipeline score (0-100)** — NEW
 10. Create Notion tracker entry
-11. *(Optional)* Open form filler (`--fill-form`)
+11. _(Optional)_ Open form filler (`--fill-form`)
 
 ---
 
 ## Key Features (May 2026)
 
-| Feature | Where | How |
-|---|---|---|
-| **Job Discovery** | `modes/discover.md` | Pi searches boards, outputs to `data/job_queue.html` |
-| **Fit Scoring** | `modules/pipeline.py` | 0-100 score from ATS, compliance, research, AI signals |
-| **Application Tracker** | `data/tracker.html` | Sortable HTML table, `python serve_tracker.py` |
-| **Interview Prep** | `modes/prep_interview.md` | Company-specific research + story bank |
-| **Batch Processing** | `modes/batch.md` | Queue → pipeline, sequential or parallel |
-| **3 Resume Variants** | Growth PM / Generalist / AI-PM | Notion-backed, toggled in web UI |
-| **Voice Enforcement** | `prompts/rodrigo-voice-lite.md` | ~500 token writing rules, injected into all writing steps |
+| Feature                 | Where                           | How                                                       |
+| ----------------------- | ------------------------------- | --------------------------------------------------------- |
+| **Job Discovery**       | `modes/discover.md`             | Pi searches boards, outputs to `data/job_queue.html`      |
+| **Fit Scoring**         | `modules/pipeline.py`           | 0-100 score from ATS, compliance, research, AI signals    |
+| **Application Tracker** | `data/tracker.html`             | Sortable HTML table, `python serve_tracker.py`            |
+| **Interview Prep**      | `modes/prep_interview.md`       | Company-specific research + story bank                    |
+| **Batch Processing**    | `modes/batch.md`                | Queue → pipeline, sequential or parallel                  |
+| **3 Resume Variants**   | Growth PM / Generalist / AI-PM  | Notion-backed, toggled in web UI                          |
+| **Voice Enforcement**   | `prompts/rodrigo-voice-lite.md` | ~500 token writing rules, injected into all writing steps |
 
 ---
 
 ## LLM Architecture
 
 **Writing steps (3, 6, 8):** Quality-first chain
+
 ```
 Gemini 3 Flash (free, 500 RPD)
   → DeepSeek V3.2 (~$0.005/app)
@@ -126,12 +129,14 @@ Gemini 3 Flash (free, 500 RPD)
 ```
 
 **ATS check (step 5):** Free-tier providers
+
 ```
 User-selected (Gemini / Groq / SambaNova)
   → Rate-limit → next model → next provider
 ```
 
 **Free-tier Gemini models (verified May 2026):**
+
 - Gemini 3 Flash (500 RPD) — default
 - Gemini 3.1 Flash-Lite (stable, cheapest)
 - Gemini 2.5 Pro (25 RPD, most capable)

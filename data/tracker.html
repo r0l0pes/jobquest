@@ -1,172 +1,336 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JobQuest — Application Tracker</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }
-  h1 { font-size: 1.5em; margin-bottom: 16px; color: #58a6ff; }
-  .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-  .toolbar input, .toolbar select { background: #161b22; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 12px; border-radius: 6px; font-size: 14px; }
-  .toolbar input { width: 240px; }
-  .toolbar input::placeholder { color: #484f58; }
-  #save-btn { background: #238636; border: none; color: white; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; display: none; }
-  #save-btn:hover { background: #2ea043; }
-  #save-btn.dirty { display: inline-block; }
-  .stats { color: #8b949e; font-size: 13px; margin-left: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; padding: 10px 12px; border-bottom: 1px solid #30363d; color: #8b949e; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
-  th:hover { color: #c9d1d9; }
-  th .arrow { font-size: 10px; margin-left: 4px; }
-  td { padding: 10px 12px; border-bottom: 1px solid #21262d; vertical-align: middle; }
-  tr:hover { background: #161b22; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-  .badge-strong { background: #238636; color: white; }
-  .badge-good { background: #9e6a03; color: white; }
-  .badge-weak { background: #6e40c9; color: white; }
-  .badge-skip { background: #da3633; color: white; }
-  .badge-na { background: #30363d; color: #8b949e; }
-  select.status-select { background: #161b22; border: 1px solid #30363d; color: #c9d1d9; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-  input.notes-input { background: #161b22; border: 1px solid #30363d; color: #c9d1d9; padding: 4px 8px; border-radius: 4px; font-size: 13px; width: 100%; min-width: 120px; }
-  td.days { color: #8b949e; font-size: 13px; }
-  a { color: #58a6ff; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .empty { text-align: center; padding: 40px; color: #484f58; }
-</style>
-</head>
-<body>
-<h1>📋 JobQuest Tracker</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobQuest — Application Tracker</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 16px;
+        color: #58a6ff;
+      }
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .toolbar input,
+      .toolbar select {
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .toolbar input {
+        width: 240px;
+      }
+      .toolbar input::placeholder {
+        color: #484f58;
+      }
+      #save-btn {
+        background: #238636;
+        border: none;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        display: none;
+      }
+      #save-btn:hover {
+        background: #2ea043;
+      }
+      #save-btn.dirty {
+        display: inline-block;
+      }
+      .stats {
+        color: #8b949e;
+        font-size: 13px;
+        margin-left: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid #30363d;
+        color: #8b949e;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      th:hover {
+        color: #c9d1d9;
+      }
+      th .arrow {
+        font-size: 10px;
+        margin-left: 4px;
+      }
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #21262d;
+        vertical-align: middle;
+      }
+      tr:hover {
+        background: #161b22;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .badge-strong {
+        background: #238636;
+        color: white;
+      }
+      .badge-good {
+        background: #9e6a03;
+        color: white;
+      }
+      .badge-weak {
+        background: #6e40c9;
+        color: white;
+      }
+      .badge-skip {
+        background: #da3633;
+        color: white;
+      }
+      .badge-na {
+        background: #30363d;
+        color: #8b949e;
+      }
+      select.status-select {
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      input.notes-input {
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 13px;
+        width: 100%;
+        min-width: 120px;
+      }
+      td.days {
+        color: #8b949e;
+        font-size: 13px;
+      }
+      a {
+        color: #58a6ff;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .empty {
+        text-align: center;
+        padding: 40px;
+        color: #484f58;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📋 JobQuest Tracker</h1>
 
-<div class="toolbar">
-  <input type="text" id="search" placeholder="Search company or role..." oninput="render()">
-  <select id="status-filter" onchange="render()">
-    <option value="">All statuses</option>
-    <option value="applied">Applied</option>
-    <option value="screening">Screening</option>
-    <option value="interview">Interview</option>
-    <option value="offer">Offer</option>
-    <option value="rejected">Rejected</option>
-    <option value="skipped">Skipped</option>
-  </select>
-  <button id="save-btn" onclick="save()">💾 Save Changes</button>
-  <span class="stats" id="stats"></span>
-</div>
+    <div class="toolbar">
+      <input
+        type="text"
+        id="search"
+        placeholder="Search company or role..."
+        oninput="render()"
+      />
+      <select id="status-filter" onchange="render()">
+        <option value="">All statuses</option>
+        <option value="applied">Applied</option>
+        <option value="screening">Screening</option>
+        <option value="interview">Interview</option>
+        <option value="offer">Offer</option>
+        <option value="rejected">Rejected</option>
+        <option value="skipped">Skipped</option>
+      </select>
+      <button id="save-btn" onclick="save()">💾 Save Changes</button>
+      <span class="stats" id="stats"></span>
+    </div>
 
-<div id="analytics" style="display:flex; gap:20px; margin-bottom:16px; flex-wrap:wrap;"></div>
+    <div
+      id="analytics"
+      style="display: flex; gap: 20px; margin-bottom: 16px; flex-wrap: wrap"
+    ></div>
 
-<table>
-  <thead>
-    <tr>
-      <th onclick="sortBy('company')">Company <span class="arrow" id="arrow-company"></span></th>
-      <th onclick="sortBy('role')">Role <span class="arrow" id="arrow-role"></span></th>
-      <th onclick="sortBy('score')">Score <span class="arrow" id="arrow-score"></span></th>
-      <th onclick="sortBy('date')">Date <span class="arrow" id="arrow-date"></span></th>
-      <th>Days</th>
-      <th>Status</th>
-      <th>Notes</th>
-    </tr>
-  </thead>
-  <tbody id="tbody"></tbody>
-</table>
-<div class="empty" id="empty" style="display:none">No applications yet. Run the pipeline to populate the tracker.</div>
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('company')">
+            Company <span class="arrow" id="arrow-company"></span>
+          </th>
+          <th onclick="sortBy('role')">
+            Role <span class="arrow" id="arrow-role"></span>
+          </th>
+          <th onclick="sortBy('score')">
+            Score <span class="arrow" id="arrow-score"></span>
+          </th>
+          <th onclick="sortBy('date')">
+            Date <span class="arrow" id="arrow-date"></span>
+          </th>
+          <th>Days</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display: none">
+      No applications yet. Run the pipeline to populate the tracker.
+    </div>
 
-<script>
-let apps = [];
-let sortCol = 'date';
-let sortDir = -1;
-let dirty = false;
+    <script>
+      let apps = [];
+      let sortCol = "date";
+      let sortDir = -1;
+      let dirty = false;
 
-const STATUS_OPTIONS = ['applied', 'screening', 'interview', 'offer', 'rejected', 'skipped'];
+      const STATUS_OPTIONS = [
+        "applied",
+        "screening",
+        "interview",
+        "offer",
+        "rejected",
+        "skipped",
+      ];
 
-async function load() {
-  try {
-    const resp = await fetch('/api/applications');
-    apps = await resp.json();
-    render();
-  } catch(e) {
-    document.getElementById('empty').style.display = 'block';
-    document.getElementById('empty').textContent = 'Could not load applications. Make sure the server is running.';
-  }
-}
+      async function load() {
+        try {
+          const resp = await fetch("/api/applications");
+          apps = await resp.json();
+          render();
+        } catch (e) {
+          document.getElementById("empty").style.display = "block";
+          document.getElementById("empty").textContent =
+            "Could not load applications. Make sure the server is running.";
+        }
+      }
 
-function scoreBadge(score, label) {
-  if (score == null) return '<span class="badge badge-na">—</span>';
-  const cls = {
-    'STRONG': 'badge-strong',
-    'GOOD': 'badge-good',
-    'WEAK': 'badge-weak',
-    'SKIP': 'badge-skip',
-  }[label] || 'badge-na';
-  return `<span class="badge ${cls}">${score} ${label}</span>`;
-}
+      function scoreBadge(score, label) {
+        if (score == null) return '<span class="badge badge-na">—</span>';
+        const cls =
+          {
+            STRONG: "badge-strong",
+            GOOD: "badge-good",
+            WEAK: "badge-weak",
+            SKIP: "badge-skip",
+          }[label] || "badge-na";
+        return `<span class="badge ${cls}">${score} ${label}</span>`;
+      }
 
-function daysAgo(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const now = new Date();
-  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
-}
+      function daysAgo(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        const now = new Date();
+        return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+      }
 
-function render() {
-  const search = document.getElementById('search').value.toLowerCase();
-  const statusFilter = document.getElementById('status-filter').value;
+      function render() {
+        const search = document.getElementById("search").value.toLowerCase();
+        const statusFilter = document.getElementById("status-filter").value;
 
-  let filtered = apps;
-  if (search) {
-    filtered = filtered.filter(a =>
-      (a.company || '').toLowerCase().includes(search) ||
-      (a.role || '').toLowerCase().includes(search)
-    );
-  }
-  if (statusFilter) {
-    filtered = filtered.filter(a => a.status === statusFilter);
-  }
+        let filtered = apps;
+        if (search) {
+          filtered = filtered.filter(
+            (a) =>
+              (a.company || "").toLowerCase().includes(search) ||
+              (a.role || "").toLowerCase().includes(search),
+          );
+        }
+        if (statusFilter) {
+          filtered = filtered.filter((a) => a.status === statusFilter);
+        }
 
-  // Sort
-  filtered.sort((a, b) => {
-    let va = a[sortCol] || '';
-    let vb = b[sortCol] || '';
-    if (sortCol === 'score') { va = Number(va) || 0; vb = Number(vb) || 0; }
-    if (sortCol === 'date') { va = va.toString(); vb = vb.toString(); }
-    if (va < vb) return -1 * sortDir;
-    if (va > vb) return 1 * sortDir;
-    return 0;
-  });
+        // Sort
+        filtered.sort((a, b) => {
+          let va = a[sortCol] || "";
+          let vb = b[sortCol] || "";
+          if (sortCol === "score") {
+            va = Number(va) || 0;
+            vb = Number(vb) || 0;
+          }
+          if (sortCol === "date") {
+            va = va.toString();
+            vb = vb.toString();
+          }
+          if (va < vb) return -1 * sortDir;
+          if (va > vb) return 1 * sortDir;
+          return 0;
+        });
 
-  // Update arrows
-  document.querySelectorAll('.arrow').forEach(el => el.textContent = '');
-  const arrow = document.getElementById('arrow-' + sortCol);
-  if (arrow) arrow.textContent = sortDir === 1 ? '▲' : '▼';
+        // Update arrows
+        document
+          .querySelectorAll(".arrow")
+          .forEach((el) => (el.textContent = ""));
+        const arrow = document.getElementById("arrow-" + sortCol);
+        if (arrow) arrow.textContent = sortDir === 1 ? "▲" : "▼";
 
-  // Stats
-  document.getElementById('stats').textContent = `${filtered.length} applications`;
+        // Stats
+        document.getElementById("stats").textContent =
+          `${filtered.length} applications`;
 
-  // Analytics overview
-  const analytics = document.getElementById('analytics');
-  const total = apps.length;
-  if (total === 0) { analytics.innerHTML = ''; }
-  else {
-    const counts = {};
-    const scores = { strong: 0, good: 0, weak: 0, skip: 0 };
-    apps.forEach(a => {
-      counts[a.status] = (counts[a.status] || 0) + 1;
-      if (a.score_label === 'STRONG') scores.strong++;
-      else if (a.score_label === 'GOOD') scores.good++;
-      else if (a.score_label === 'WEAK') scores.weak++;
-      else if (a.score_label === 'SKIP') scores.skip++;
-    });
-    const responded = (counts['screening'] || 0) + (counts['interview'] || 0) + (counts['offer'] || 0);
-    const responseRate = total > 0 ? Math.round(responded / total * 100) : 0;
-    analytics.innerHTML = `
+        // Analytics overview
+        const analytics = document.getElementById("analytics");
+        const total = apps.length;
+        if (total === 0) {
+          analytics.innerHTML = "";
+        } else {
+          const counts = {};
+          const scores = { strong: 0, good: 0, weak: 0, skip: 0 };
+          apps.forEach((a) => {
+            counts[a.status] = (counts[a.status] || 0) + 1;
+            if (a.score_label === "STRONG") scores.strong++;
+            else if (a.score_label === "GOOD") scores.good++;
+            else if (a.score_label === "WEAK") scores.weak++;
+            else if (a.score_label === "SKIP") scores.skip++;
+          });
+          const responded =
+            (counts["screening"] || 0) +
+            (counts["interview"] || 0) +
+            (counts["offer"] || 0);
+          const responseRate =
+            total > 0 ? Math.round((responded / total) * 100) : 0;
+          analytics.innerHTML = `
       <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;">
         <span style="color:#8b949e;font-size:12px;">TOTAL</span><br>
         <span style="font-size:24px;font-weight:700;">${total}</span>
       </div>
       <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;">
         <span style="color:#8b949e;font-size:12px;">RESPONSE RATE</span><br>
-        <span style="font-size:24px;font-weight:700;color:${responseRate > 20 ? '#238636' : responseRate > 0 ? '#9e6a03' : '#8b949e'};">${responseRate}%</span>
+        <span style="font-size:24px;font-weight:700;color:${responseRate > 20 ? "#238636" : responseRate > 0 ? "#9e6a03" : "#8b949e"};">${responseRate}%</span>
       </div>
       <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;">
         <span style="color:#8b949e;font-size:12px;">SCORES</span><br>
@@ -174,80 +338,83 @@ function render() {
       </div>
       <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;">
         <span style="color:#8b949e;font-size:12px;">FUNNEL</span><br>
-        <span style="font-size:14px;">${counts['applied'] || 0} applied → ${counts['screening'] || 0} screening → ${counts['interview'] || 0} interview → ${counts['offer'] || 0} offer</span>
+        <span style="font-size:14px;">${counts["applied"] || 0} applied → ${counts["screening"] || 0} screening → ${counts["interview"] || 0} interview → ${counts["offer"] || 0} offer</span>
       </div>
     `;
-  }
+        }
 
-  // Render
-  const tbody = document.getElementById('tbody');
-  if (filtered.length === 0) {
-    tbody.innerHTML = '';
-    document.getElementById('empty').style.display = 'block';
-    return;
-  }
-  document.getElementById('empty').style.display = 'none';
+        // Render
+        const tbody = document.getElementById("tbody");
+        if (filtered.length === 0) {
+          tbody.innerHTML = "";
+          document.getElementById("empty").style.display = "block";
+          return;
+        }
+        document.getElementById("empty").style.display = "none";
 
-  tbody.innerHTML = filtered.map((a, i) => {
-    const idx = apps.indexOf(a);
-    const days = daysAgo(a.date);
-    return `<tr>
-      <td><a href="${a.url || '#'}" target="_blank">${a.company || '?'}</a></td>
-      <td>${a.role || '?'}</td>
+        tbody.innerHTML = filtered
+          .map((a, i) => {
+            const idx = apps.indexOf(a);
+            const days = daysAgo(a.date);
+            return `<tr>
+      <td><a href="${a.url || "#"}" target="_blank">${a.company || "?"}</a></td>
+      <td>${a.role || "?"}</td>
       <td>${scoreBadge(a.score, a.score_label)}</td>
-      <td>${a.date || ''}</td>
-      <td class="days">${days !== '' ? days + 'd' : ''}</td>
-      <td><select class="status-select" data-idx="${idx}" onchange="markDirty()">${
-        STATUS_OPTIONS.map(s => `<option value="${s}" ${a.status === s ? 'selected' : ''}>${s}</option>`).join('')
-      }</select></td>
-      <td><input class="notes-input" data-idx="${idx}" value="${(a.notes || '').replace(/"/g, '&quot;')}" oninput="markDirty()" placeholder="Add note..."></td>
+      <td>${a.date || ""}</td>
+      <td class="days">${days !== "" ? days + "d" : ""}</td>
+      <td><select class="status-select" data-idx="${idx}" onchange="markDirty()">${STATUS_OPTIONS.map(
+        (s) =>
+          `<option value="${s}" ${a.status === s ? "selected" : ""}>${s}</option>`,
+      ).join("")}</select></td>
+      <td><input class="notes-input" data-idx="${idx}" value="${(a.notes || "").replace(/"/g, "&quot;")}" oninput="markDirty()" placeholder="Add note..."></td>
     </tr>`;
-  }).join('');
-}
+          })
+          .join("");
+      }
 
-function markDirty() {
-  dirty = true;
-  document.getElementById('save-btn').classList.add('dirty');
-}
+      function markDirty() {
+        dirty = true;
+        document.getElementById("save-btn").classList.add("dirty");
+      }
 
-function sortBy(col) {
-  if (sortCol === col) {
-    sortDir = -sortDir;
-  } else {
-    sortCol = col;
-    sortDir = col === 'date' ? -1 : 1;
-  }
-  render();
-}
+      function sortBy(col) {
+        if (sortCol === col) {
+          sortDir = -sortDir;
+        } else {
+          sortCol = col;
+          sortDir = col === "date" ? -1 : 1;
+        }
+        render();
+      }
 
-async function save() {
-  // Collect changes from DOM
-  document.querySelectorAll('.status-select').forEach(sel => {
-    const idx = parseInt(sel.dataset.idx);
-    apps[idx].status = sel.value;
-  });
-  document.querySelectorAll('.notes-input').forEach(inp => {
-    const idx = parseInt(inp.dataset.idx);
-    apps[idx].notes = inp.value;
-  });
+      async function save() {
+        // Collect changes from DOM
+        document.querySelectorAll(".status-select").forEach((sel) => {
+          const idx = parseInt(sel.dataset.idx);
+          apps[idx].status = sel.value;
+        });
+        document.querySelectorAll(".notes-input").forEach((inp) => {
+          const idx = parseInt(inp.dataset.idx);
+          apps[idx].notes = inp.value;
+        });
 
-  try {
-    const resp = await fetch('/api/applications', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(apps),
-    });
-    if (resp.ok) {
-      dirty = false;
-      document.getElementById('save-btn').classList.remove('dirty');
-      render();
-    }
-  } catch(e) {
-    alert('Save failed.');
-  }
-}
+        try {
+          const resp = await fetch("/api/applications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(apps),
+          });
+          if (resp.ok) {
+            dirty = false;
+            document.getElementById("save-btn").classList.remove("dirty");
+            render();
+          }
+        } catch (e) {
+          alert("Save failed.");
+        }
+      }
 
-load();
-</script>
-</body>
+      load();
+    </script>
+  </body>
 </html>

@@ -31,6 +31,7 @@ answers, maintain 5-10 deep stories that answer any behavioral question.
 <!-- Stories will be added here by modes/prep_interview.md -->
 
 ### Growth PM — Checkout Conversion at Accenture
+
 **Source:** Master Resume — Accenture Brasil
 **S (Situation):** Natura's Brazil e-commerce had a checkout funnel losing users at
 each step. 4 Latin American markets with different payment methods and regulations.
@@ -47,6 +48,7 @@ learning — what worked in Brazil sometimes failed in Mexico, and vice versa.
 experimentation," "Working across cultures," "Data-driven decisions"
 
 ### Growth PM — B2B Platform at FORVIA HELLA
+
 **Source:** Master Resume — FORVIA HELLA
 **S (Situation):** Post-merger (Faurecia + Hella), responsible for the B2B
 e-commerce platform serving 60,000+ workshops. Two legacy systems to integrate.

@@ -21,6 +21,7 @@ through the pipeline, run them sequentially.
 ## Parallel mode (when available)
 
 If the user wants to run jobs in parallel, use the web UI's 3-slot design:
+
 - Open `python web_ui.py`
 - Paste URLs into the 3 slots
 - The web UI runs them in parallel subprocesses

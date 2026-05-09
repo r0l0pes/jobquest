@@ -131,32 +131,24 @@ site:berlinstartupjobs.com "Senior Product"
 
 ## Output Format
 
-Append to `data/job_queue.md`:
+Add discovered jobs to `data/job_queue.html` by appending entries to the
+`JOBS` array inside the `<script>` tag. Format each entry as:
 
-```markdown
-## [YYYY-MM-DD] — Discovered [N] jobs
-
-### 🇩🇪 Germany
-
-#### Growth PM
-- [ ] <URL> | <Company> | <Title> | <Source> | <City/Remote>
-
-#### AI PM
-- [ ] <URL> | <Company> | <Title> | <Source> | <City/Remote>
-
-#### Generalist PM
-- [ ] <URL> | <Company> | <Title> | <Source> | <City/Remote>
-
-### 🇪🇸 Spain
-...
+```javascript
+{ company: "CompanyName", title: "Role Title", url: "https://...", location: "City, Country", country: "de", roleType: "growth", date: "YYYY-MM-DD", source: "linkedin" }
 ```
 
-Group by country, then by role type. Include city or "Remote".
+Fields:
+- `country`: "de" or "es"
+- `roleType`: "growth", "ai", or "generalist"
+- `date`: date the job was posted or discovered
+- `source`: platform where found (linkedin, stepstone, infojobs, wellfound, etc.)
+
+Group entries by country, then by role type, separated by comments.
 
 ## Anti-Duplication
 
-Before adding a job, check:
-1. Already in this session's results?
-2. `data/job_queue.md` — already queued from previous sessions?
-3. `data/applications.json` — already applied?
-4. More than 3 jobs from the same company already in this session? Skip.
+Before adding a job, check the `JOBS` array in `data/job_queue.html` for:
+- Same URL → skip
+- Same company + same title → skip
+- More than 2 jobs from the same company already in the array → skip

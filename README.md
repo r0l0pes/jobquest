@@ -1,84 +1,69 @@
 # JobQuest
 
-Automated job application pipeline. Paste a URL, get a tailored PDF resume + ATS report + application answers + Notion tracking.
+Automated job application pipeline. Discovery, tailoring, scoring, and tracking — all from a single URL.
 
-<img width="1566" height="1035" alt="Screenshot 2026-02-04 at 19 19 39" src="https://github.com/user-attachments/assets/43b96708-5ea7-4425-9de0-62ea30fb4894" />
+## What It Does
+
+1. **Discover** — Agent finds jobs across LinkedIn, StepStone, Wellfound, and more (via `modes/discover.md`)
+2. **Tailor** — 3-stage LLM resume tailoring with ATS keyword coverage check
+3. **Score** — 0-100 pipeline score from ATS match, compliance, company research, and AI signals
+4. **Track** — Sortable HTML tracker with editable status, notes, and analytics
+
+Manual apply only. No auto-submission.
 
 ## Quick Launch
 
-**Double-click** `JobQuest.command` → Opens browser UI at http://127.0.0.1:7860
+```bash
+# Web UI (3 parallel application slots)
+python web_ui.py                    → http://127.0.0.1:7860
 
-Or: `python web_ui.py`
+# CLI
+python apply.py "JOB_URL"
 
-The browser UI provides:
-- 3 parallel application forms (run multiple jobs simultaneously)
-- Resume variant selector: **Growth PM**, **Generalist**, **AI-PM** (adjusts tagline, Q&A framing, AI context injection)
-- ATS provider selection for step 5 (Gemini, Groq, SambaNova — free tiers)
-- Writing steps (3, 6, 8) use the quality-first provider chain (Gemini → DeepSeek → OpenRouter)
-- Per-provider usage tracking
-- Real-time pipeline output
+# Tracker
+python serve_tracker.py             → http://127.0.0.1:7878
+```
 
-## How It Works
+## Pipeline
 
 ```
 Job URL
   │
-  ├─ 1. Scrape job posting (Greenhouse/Lever/Ashby/Workable/Personio/Screenloop)
-  ├─ 2. Read master resume from Notion
-  ├─ 3. Tailor resume via LLM — three stages:
-  │       3a. Analyse JD → structured tailoring brief (free-tier LLM)
-  │       3b. Generate LaTeX from the brief (writing LLM)
-  │       3c. Compliance check: brief vs LaTeX, log misses (free-tier LLM)
-  ├─ 4. Write .tex file
-  ├─ 5. Run ATS keyword coverage check (60-80% target)
-  ├─ 6. Review & apply ATS edits
-  ├─ 7. Compile PDF via pdflatex
-  ├─ 8. Generate Q&A answers (company research + voice matching)
-  └─ 9. Create Notion tracker entry
+  ├─  1. Scrape job posting (6 ATS platforms + HTML fallback)
+  ├─  2. Read master resume from Notion (cached per variant)
+  ├─  3. Tailor resume via LLM (3-stage: analysis → LaTeX → compliance)
+  ├─  4. Write .tex file
+  ├─  5. Run ATS keyword coverage check
+  ├─  6. Review & apply ATS edits
+  ├─  7. Compile PDF via pdflatex
+  ├─  8. Generate Q&A answers (with company research)
+  ├─  9. Compute pipeline score (0-100)
+  ├─ 10. Create Notion tracker entry
+  └─ 11. (Optional) Open form filler
           │
           ▼
-     Output: PDF + Q&A ready to copy/paste
+     Output: PDF + Q&A + score
 ```
 
-## LLM Architecture
+## Agent Modes
 
-Two separate provider tiers — one for quality, one for speed.
+Pi reads mode files from `modes/`:
 
-**Writing steps (resume tailor, ATS edits, Q&A):** Quality-first chain with automatic fallback.
+| Mode | File | What it does |
+|---|---|---|
+| Discover | `modes/discover.md` | Search 10+ platforms, output to `data/job_queue.html` |
+| Interview Prep | `modes/prep_interview.md` | Company-specific research + STAR story bank |
+| Batch | `modes/batch.md` | Process job queue sequentially or via web UI |
 
-| Provider | Model | Get Key |
-|----------|-------|---------|
-| DeepSeek V3.2 | deepseek-chat | [platform.deepseek.com](https://platform.deepseek.com) |
-| OpenRouter | Qwen3.5-397B | [openrouter.ai](https://openrouter.ai) |
-| Anthropic | Haiku 4.5 | [console.anthropic.com](https://console.anthropic.com) |
+## Resume Variants
 
-**ATS check step (step 5):** Free-tier providers with automatic fallback.
+Three variants in Notion, toggled in the web UI:
 
-| Provider | Daily Limit | Get Key |
-|----------|-------------|---------|
-| Gemini 3.1 Pro | ~250 req | [aistudio.google.com](https://aistudio.google.com/apikey) |
-| Groq | 1,000 req | [console.groq.com](https://console.groq.com) |
-| SambaNova | ~500 req | [cloud.sambanova.ai](https://cloud.sambanova.ai) |
-
-## CLI Usage
-
-```bash
-# Basic
-python apply.py "https://jobs.lever.co/company/abc"
-
-# With company URL (better research)
-python apply.py "JOB_URL" --company-url "https://company.com"
-
-# With application questions
-python apply.py "JOB_URL" --questions "Why this role?" --questions "Cover letter"
-
-# Select provider
-python apply.py "JOB_URL" --provider groq
-
-# Preview
-python apply.py "JOB_URL" --dry-run
---dry-run prints the planned pipeline steps and does not execute the pipeline (no prompts, no file writes, no API calls).
-```
+| Variant | Tagline |
+|---|---|
+| Growth PM | "Experiments that accelerate revenue." |
+| Generalist | "End-to-end ownership. Outcomes delivered." |
+| AI PM | "GenAI product delivery. End-to-end, governance included." |
 
 ## Setup
 
@@ -88,34 +73,57 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # Configure .env (see .env.example)
-WRITING_PROVIDER=gemini
-GEMINI_API_KEY=...      # primary writing provider (also ATS check step, free)
-DEEPSEEK_API_KEY=...    # writing fallback
-GROQ_API_KEY=...        # optional ATS fallback
-SAMBANOVA_API_KEY=...   # optional ATS fallback
-OPENROUTER_API_KEY=...  # optional writing fallback
-FIRECRAWL_API_KEY=...   # optional, better JS page scraping
+GEMINI_API_KEY=...          # Free tier at aistudio.google.com
+DEEPSEEK_API_KEY=...        # ~$0.005/app with caching
 NOTION_TOKEN=...
-# ... (see .env.example for full list)
-
-JobQuest loads environment variables from a local .env file at CLI startup.
-At least one API key must be set in .env: GEMINI_API_KEY or GROQ_API_KEY or SAMBANOVA_API_KEY.
+NOTION_MASTER_RESUME_ID=...
 
 # Ensure pdflatex
 brew install --cask mactex  # macOS
 ```
 
+## LLM Providers
+
+**Writing steps:** Gemini 3 Flash (free) → DeepSeek V3.2 → OpenRouter → Groq → SambaNova
+
+**ATS check:** Free-tier providers (Gemini, Groq, SambaNova) with automatic fallback
+
 ## Output
 
 ```
 output/CompanyName_YYYY-MM-DD/
-  ├── tailoring_brief_*.md     # JD analysis used to drive step 3 (inspect if quality is off)
-  ├── tailor_review_*.md       # Step 3c compliance check (HIGH = writing model missed the plan)
+  ├── tailoring_brief_*.md     # JD analysis
+  ├── tailor_review_*.md       # Compliance check
   ├── resume_tailored_*.tex    # LaTeX source
   ├── resume_tailored_*.pdf    # Ready to upload
   ├── ats_report_*.md          # Keyword coverage
-  ├── qa_*.md                  # Answers to copy/paste
-  └── pipeline_context.json    # Debug info
+  ├── qa_*.md                  # Application answers
+  └── pipeline_context.json    # Full context + score
+```
+
+## Project Structure
+
+```
+JobQuest/
+├── AGENTS.md                  ← Pi reads this first
+├── apply.py                   ← CLI pipeline
+├── web_ui.py                  ← Gradio UI (3 slots)
+├── serve_tracker.py           ← Tracker server
+├── config.py
+├── modules/                   ← Core logic
+├── scripts/                   ← Subprocess utilities
+├── prompts/                   ← LLM prompt templates
+├── modes/                     ← Pi agent instructions
+├── data/                      ← Tracker + job queue
+├── specs/                     ← Feature specifications
+├── tests/                     ← pytest (22 tests)
+└── templates/                 ← LaTeX resume template
+```
+
+## Testing
+
+```bash
+pytest tests/ -v               # 22 tests in ~0.2s
 ```
 
 ## Supported Platforms
@@ -129,146 +137,3 @@ output/CompanyName_YYYY-MM-DD/
 | Personio | `*.jobs.personio.de`, `*.jobs.personio.com` |
 | Screenloop | `app.screenloop.com` |
 | Others | HTML scraping fallback |
-
-## Project Structure
-
-```
-JobQuest/
-├── web_ui.py              # Browser UI (Gradio)
-├── apply.py               # CLI pipeline orchestrator
-├── JobQuest.command       # Double-click launcher
-├── COMMANDS.md            # Full command reference
-│
-├── modules/
-│   ├── llm_client.py      # Multi-provider LLM (Gemini/Groq/SambaNova + fallback)
-│   ├── job_scraper.py     # ATS APIs + HTML scraping
-│   └── pipeline.py        # 9 pipeline steps
-│
-├── prompts/
-│   ├── rodrigo-voice.md   # Shared voice/tone/banned phrases (injected into writing steps)
-│   ├── jd_analysis.md     # Step 3a: JD analysis → tailoring brief (free-tier LLM)
-│   ├── resume_tailor.md   # Step 3b: LaTeX generation from brief (writing LLM)
-│   ├── tailor_review.md   # Step 3c: compliance check, brief vs LaTeX (free-tier LLM)
-│   ├── ats_check.md       # ATS analysis prompt
-│   └── qa_generator.md    # Q&A generation prompt
-│
-├── scripts/
-│   ├── notion_tracker.py  # Notion integration
-│   └── render_pdf.py      # LaTeX → PDF
-│
-└── templates/
-    └── resume.tex         # Master LaTeX template
-```
-
-## Key Principles
-
-- **Human-in-the-loop**: System generates materials, you submit
-- **Honest materials**: Only uses skills from pre-validated master resume
-- **ATS-aware**: Targets 60-80% keyword coverage, avoids stuffing
-
----
-
-## Technical Architecture
-
-### API Integrations
-
-| Service | Purpose | API Type |
-|---------|---------|----------|
-| **Notion** | Master resume storage, application tracking | REST API |
-| **Greenhouse** | Job scraping | Public JSON API |
-| **Lever** | Job scraping | Postings API v0 |
-| **Ashby** | Job scraping | GraphQL API |
-| **Workable** | Job scraping | Widget API |
-| **Personio** | Job scraping | HTML + JSON extraction |
-| **Screenloop** | Job scraping | HTML scraping |
-| **DuckDuckGo** | Company research fallback | HTML scraping |
-| **Firecrawl** | Enhanced web scraping (JS, anti-bot) | REST API |
-
-### LLM Fallback Strategy
-
-**Writing steps (3, 6, 8) — quality-first:**
-```
-Gemini 2.5 Flash (free, 1500 RPD)
-    │
-    └─ Any error? → DeepSeek V3.2
-                         │
-                         └─ Any error? → OpenRouter / Qwen3.5-397B
-                                              │
-                                              └─ Any error? → Groq → SambaNova
-```
-
-**ATS check (step 5) — free-tier:**
-```
-User-selected provider (Gemini / Groq / SambaNova)
-    │
-    ├─ Rate limit? → Try next model within provider
-    │                  (Gemini: 3.1-pro → 3-flash → 2.5-pro → 2.5-flash → 2.5-flash-lite)
-    │
-    └─ All models exhausted? → Try next provider (Gemini → Groq → SambaNova)
-
-    Gemini model order: 3.1-pro → 3-pro → 3-flash → 2.5-pro → 2.5-flash → 2.5-flash-lite
-```
-
-**Prompt caching:** Gemini and DeepSeek V3.2 both have automatic prefix caching. User prompt is ordered static-first (master resume, templates) then dynamic (job posting, questions), so the master resume is cached after the first application of the day.
-
-### Web Scraping Strategy
-
-**Job posting scraping:**
-```
-Job URL
-    │
-    ├─ Known ATS? → Structured API (Greenhouse, Lever, Ashby, Workable, Personio, Screenloop)
-    │
-    └─ Unknown?  → HTML scraping
-                     │
-                     └─ JS-heavy? → Playwright (free, headless Chromium)
-                                       │
-                                       └─ Still thin? → Firecrawl 
-```
-
-**Company research scraping** (used in step 8 for Q&A context):
-```
-Company URL provided?
-    │
-    ├─ Playwright first — discovers up to 5 pages via nav links
-    │
-    ├─ Thin result/SPA trap? → crawl4ai (handles JS routing)
-    │
-    └─ Still thin? → Firecrawl 
-                         │
-                         └─ Failed? → Plain HTML → Web search
-```
-
-
-### Token Optimization
-
-We considered several approaches to reduce Claude Code token usage:
-
-1. **Prompts in files** (implemented): All LLM prompts stored in `prompts/*.md`, loaded at runtime
-2. **Templates over generation**: LaTeX structure comes from master template, LLM only modifies content
-3. **Structured extraction**: Job scraping uses APIs when available (cheaper than LLM parsing HTML)
-4. **Context7 MCP** (configured): Provides up-to-date documentation to avoid outdated API calls
-
-**Pipeline vs Claude Code split:**
-- Writing steps (resume tailoring, ATS edits, Q&A) → DeepSeek V3.2
-- ATS keyword check → Gemini/Groq/SambaNova (free)
-- System development → Claude Code (when modifying the codebase)
-
-### MCP Integration
-
-`.mcp.json` configures Model Context Protocol servers:
-
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"]
-    }
-  }
-}
-```
-
-**Context7** provides real-time documentation for APIs (Google Gemini, Notion, etc.) to avoid errors from outdated SDK usage.
-
-

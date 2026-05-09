@@ -53,6 +53,7 @@ Remote EU roles also accepted.
 
 Search each location separately with different keywords to surface different companies.
 Never restrict searches to a single city — use country-wide terms:
+
 - Germany: "Germany" OR "Deutschland" OR "DE"
 - Spain: "Spain" OR "España" OR "ES"
 
@@ -120,8 +121,7 @@ site:berlinstartupjobs.com "Senior Product"
 ### Rules
 
 1. **No company names in queries.** Role title + location only.
-2. **Maximum 2 jobs from the same company per session.** If you see the same
-   company appearing, note it and move to the next query.
+2. **No company filtering.** If a company has multiple relevant roles, include all of them. The user decides which are worth applying to.
 3. **10+ rounds minimum.** Do not stop at 3. The first 3 rounds surface big
    companies. Rounds 5-10 surface startups and lesser-known companies.
 4. **Use different phrasings.** "Growth PM" vs "Product Manager Growth" vs
@@ -139,6 +139,7 @@ Add discovered jobs to `data/job_queue.html` by appending entries to the
 ```
 
 Fields:
+
 - `country`: "de" or "es"
 - `roleType`: "growth", "ai", or "generalist"
 - `date`: date the job was posted or discovered
@@ -149,6 +150,7 @@ Group entries by country, then by role type, separated by comments.
 ## Anti-Duplication
 
 Before adding a job, check the `JOBS` array in `data/job_queue.html` for:
+
 - Same URL → skip
 - Same company + same title → skip
 - More than 2 jobs from the same company already in the array → skip

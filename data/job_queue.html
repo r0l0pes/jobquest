@@ -1,134 +1,332 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JobQuest — Discovery Queue</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }
-  h1 { font-size: 1.5em; margin-bottom: 16px; color: #58a6ff; }
-  .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-  .toolbar input, .toolbar select { background: #161b22; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 12px; border-radius: 6px; font-size: 14px; }
-  .toolbar input { width: 240px; }
-  .stats { color: #8b949e; font-size: 13px; margin-left: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; padding: 10px 12px; border-bottom: 1px solid #30363d; color: #8b949e; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
-  th:hover { color: #c9d1d9; }
-  th .arrow { font-size: 10px; margin-left: 4px; }
-  td { padding: 10px 12px; border-bottom: 1px solid #21262d; }
-  tr:hover { background: #161b22; }
-  a { color: #58a6ff; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .tag { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 11px; margin-left: 4px; }
-  .tag-growth { background: #23863633; color: #3fb950; border: 1px solid #23863655; }
-  .tag-ai { background: #6e40c933; color: #a371f7; border: 1px solid #6e40c955; }
-  .tag-generalist { background: #9e6a0333; color: #d29922; border: 1px solid #9e6a0355; }
-  .tag-de { background: #30363d; color: #8b949e; }
-  .tag-es { background: #30363d; color: #8b949e; }
-  .tag-remote { background: #1f6feb33; color: #79c0ff; border: 1px solid #1f6feb55; }
-  .empty { text-align: center; padding: 40px; color: #484f58; }
-</style>
-</head>
-<body>
-<h1>🔍 Job Discovery Queue</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobQuest — Discovery Queue</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 16px;
+        color: #58a6ff;
+      }
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .toolbar input,
+      .toolbar select {
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .toolbar input {
+        width: 240px;
+      }
+      .stats {
+        color: #8b949e;
+        font-size: 13px;
+        margin-left: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid #30363d;
+        color: #8b949e;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      th:hover {
+        color: #c9d1d9;
+      }
+      th .arrow {
+        font-size: 10px;
+        margin-left: 4px;
+      }
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #21262d;
+      }
+      tr:hover {
+        background: #161b22;
+      }
+      a {
+        color: #58a6ff;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-size: 11px;
+        margin-left: 4px;
+      }
+      .tag-growth {
+        background: #23863633;
+        color: #3fb950;
+        border: 1px solid #23863655;
+      }
+      .tag-ai {
+        background: #6e40c933;
+        color: #a371f7;
+        border: 1px solid #6e40c955;
+      }
+      .tag-generalist {
+        background: #9e6a0333;
+        color: #d29922;
+        border: 1px solid #9e6a0355;
+      }
+      .tag-de {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-es {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-remote {
+        background: #1f6feb33;
+        color: #79c0ff;
+        border: 1px solid #1f6feb55;
+      }
+      .empty {
+        text-align: center;
+        padding: 40px;
+        color: #484f58;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔍 Job Discovery Queue</h1>
 
-<div class="toolbar">
-  <input type="text" id="search" placeholder="Search..." oninput="render()">
-  <select id="role-filter" onchange="render()">
-    <option value="">All roles</option>
-    <option value="growth">Growth PM</option>
-    <option value="ai">AI PM</option>
-    <option value="generalist">Generalist PM</option>
-  </select>
-  <select id="country-filter" onchange="render()">
-    <option value="">All countries</option>
-    <option value="de">🇩🇪 Germany</option>
-    <option value="es">🇪🇸 Spain</option>
-  </select>
-  <span class="stats" id="stats"></span>
-</div>
+    <div class="toolbar">
+      <input
+        type="text"
+        id="search"
+        placeholder="Search..."
+        oninput="render()"
+      />
+      <select id="role-filter" onchange="render()">
+        <option value="">All roles</option>
+        <option value="growth">Growth PM</option>
+        <option value="ai">AI PM</option>
+        <option value="generalist">Generalist PM</option>
+      </select>
+      <select id="country-filter" onchange="render()">
+        <option value="">All countries</option>
+        <option value="de">🇩🇪 Germany</option>
+        <option value="es">🇪🇸 Spain</option>
+      </select>
+      <span class="stats" id="stats"></span>
+    </div>
 
-<table>
-  <thead>
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('company')">
+            Company <span class="arrow" id="arrow-company"></span>
+          </th>
+          <th onclick="sortBy('title')">
+            Role <span class="arrow" id="arrow-title"></span>
+          </th>
+          <th onclick="sortBy('location')">
+            Location <span class="arrow" id="arrow-location"></span>
+          </th>
+          <th onclick="sortBy('date')">
+            Date <span class="arrow" id="arrow-date"></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display: none">
+      No jobs discovered yet.
+    </div>
+
+    <script>
+      // JOBS DATA — populated by discovery, manually edited, or via agent
+      const JOBS = [
+        // 🇩🇪 Germany — Growth PM
+        { company: "Every. GmbH", title: "Senior PM — Acquisition & CRO", url: "https://www.stepstone.de/stellenangebote--senior-product-manager-acquisition-cro-berlin-every-gmbh--13867085-inline.html", location: "Berlin", country: "de", roleType: "growth", date: "2026-05-07", source: "stepstone" },
+        { company: "Instaffo", title: "Senior Growth Product Manager", url: "https://de.linkedin.com/jobs/view/senior-product-manager-at-deepl-4202948911", location: "Karlsruhe", country: "de", roleType: "growth", date: "2026-05-06", source: "linkedin" },
+        { company: "Oviva", title: "Principal Growth Product Manager", url: "https://www.stepstone.de/stellenangebote--Principal-Growth-Product-Manager-bundesweit-Oviva--12616328-inline.html", location: "Remote DE", country: "de", roleType: "growth", date: "2026-05-05", source: "stepstone" },
+        { company: "Workwise", title: "Senior Growth Product Manager", url: "https://www.workwise.io/job/119624-senior-growth-product-managerin-w-w-d-in-vollzeit", location: "Karlsruhe", country: "de", roleType: "growth", date: "2026-05-04", source: "workwise" },
+        { company: "Finmatics", title: "Senior PM — Growth", url: "https://at.linkedin.com/jobs/view/senior-product-manager-growth-m-w-d-at-finmatics-4266925178", location: "Wien (DACH)", country: "de", roleType: "growth", date: "2026-05-06", source: "linkedin" },
+        { company: "IronMaxx", title: "Senior Growth Product Manager", url: "https://de.linkedin.com/jobs/view/senior-growth-product-manager-at-ironmaxx-4312345678", location: "Hürth (Köln)", country: "de", roleType: "growth", date: "2026-05-05", source: "linkedin" },
+        { company: "Contentful", title: "Senior PM — Growth (PLG)", url: "https://www.contentful.com/careers/job/7636216/", location: "Berlin", country: "de", roleType: "growth", date: "2026-05-07", source: "company" },
+        { company: "LIQID", title: "Senior PM — Growth & Acquisition", url: "https://jobs.lever.co/liqid", location: "Berlin", country: "de", roleType: "growth", date: "2026-05-06", source: "lever" },
+        { company: "N26", title: "Senior PM — Payments Rails", url: "https://n26.com/en-eu/careers/positions/7649873", location: "Berlin", country: "de", roleType: "growth", date: "2026-05-07", source: "company" },
+        { company: "N26", title: "Senior PM — Runtime Platform", url: "https://www.n26.com/en-eu/careers", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-06", source: "company" },
+        { company: "N26", title: "Senior PM — Onboarding & KYC", url: "https://n26.com/en/careers", location: "Barcelona", country: "es", roleType: "generalist", date: "2026-05-05", source: "company" },
+        { company: "Zalando", title: "Senior Principal PM — Growth", url: "https://careers.zalando.com/en/jobs/", location: "Berlin", country: "de", roleType: "growth", date: "2026-05-06", source: "company" },
+        { company: "Zalando", title: "Senior PM — AI Strategy", url: "https://jobs.zalando.com/en/jobs/2723119-Senior-Product-Manager-AI-Strategy-CVP-(all-gender", location: "Berlin", country: "de", roleType: "ai", date: "2026-05-05", source: "company" },
+        { company: "Zalando", title: "Senior PM — Tradebyte", url: "https://careers.zalando.com/en/jobs/", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-04", source: "company" },
+        { company: "Delivery Hero", title: "Senior/Principal PM — AI", url: "https://careers.deliveryhero.com/job/senior-principal-product-manager-ai-in-berlin-germany-jid-6105", location: "Berlin", country: "de", roleType: "ai", date: "2026-05-07", source: "company" },
+        { company: "Delivery Hero", title: "Senior PM — Agent AI (Logistics)", url: "https://careers.deliveryhero.com/job/senior-principal-product-manager-ai-in-berlin-germany-jid-6020", location: "Berlin", country: "de", roleType: "ai", date: "2026-05-06", source: "company" },
+        { company: "Delivery Hero", title: "Senior PM — AI/ML (Quick Commerce)", url: "https://careers.deliveryhero.com/", location: "Berlin", country: "de", roleType: "ai", date: "2026-05-05", source: "company" },
+        { company: "Contentful", title: "Senior PM — Marketer Experience (0→1)", url: "https://www.contentful.com/careers/", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-07", source: "company" },
+        { company: "Contentful", title: "Senior PM — Personalization", url: "https://www.contentful.com/careers/", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-06", source: "company" },
+
+        // 🇩🇪 Germany — AI PM
+        { company: "Aignostics", title: "Senior PM — AI Products", url: "https://jobalert.world/jobs/senior-product-manager-ai-products-dfm-at-aignostics-berlin-36300", location: "Berlin", country: "de", roleType: "ai", date: "2026-05-07", source: "web" },
+        { company: "Moss", title: "Senior PM — AI Platform", url: "https://www.english-jobs.com/jobs/companies/moss/senior-product-manager-ai-platform-m-f-d", location: "Remote DE", country: "de", roleType: "ai", date: "2026-05-06", source: "english-jobs" },
+        { company: "Cortea", title: "AI Product Manager", url: "https://www.english-jobs.com/jobs/companies/cortea/ai-product-manager-m-f-x", location: "Berlin", country: "de", roleType: "ai", date: "2026-05-05", source: "english-jobs" },
+        { company: "Supermodular AI", title: "Senior AI Product Manager", url: "https://de.linkedin.com/jobs/view/senior-ai-product-manager-at-supermodular-ai-4320000000", location: "Germany", country: "de", roleType: "ai", date: "2026-05-04", source: "linkedin" },
+        { company: "Nelly Solutions", title: "Senior AI PM — Billing Agent", url: "https://bebee.com/de/jobs/senior-ai-product-manager-nelly-solutions-berlin-berlin--theirstack-661703742", location: "Berlin", country: "de", roleType: "ai", date: "2026-05-05", source: "bebee" },
+        { company: "Ordio", title: "AI Product Manager", url: "https://de.linkedin.com/jobs/view/ai-product-manager-at-ordio-4310000000", location: "Köln", country: "de", roleType: "ai", date: "2026-05-06", source: "linkedin" },
+        { company: "TeamViewer", title: "Senior PM — AI", url: "https://de.linkedin.com/jobs/view/senior-product-manager-ai-at-teamviewer-4309000000", location: "Göppingen", country: "de", roleType: "ai", date: "2026-05-04", source: "linkedin" },
+        { company: "Kertos", title: "Senior AI PM", url: "https://kertos.com/careers", location: "München", country: "de", roleType: "ai", date: "2026-05-07", source: "company" },
+
+        // 🇩🇪 Germany — Generalist PM
+        { company: "Arsipa", title: "(Senior) Product Manager", url: "https://jobalert.world/jobs/senior-product-manager-mwd-at-arsipa-berlin-berlin-34516", location: "Berlin (Remote)", country: "de", roleType: "generalist", date: "2026-05-07", source: "web" },
+        { company: "Verivox", title: "(Senior) Product Manager", url: "https://www.remotely.de/job/verivox-senior-product-manager-mfd", location: "Heidelberg/Berlin/München/Leipzig", country: "de", roleType: "generalist", date: "2026-05-06", source: "remotely" },
+        { company: "Johner Institut", title: "Senior PM — B2B SaaS", url: "https://www.stepstone.de/stellenangebote--Senior-Product-Manager-m-w-d-B2B-SaaS-bundesweit-Home-Office-Johner-Institut-GmbH--13807959-inline.html", location: "Remote DE", country: "de", roleType: "generalist", date: "2026-05-05", source: "stepstone" },
+        { company: "YPOG", title: "Senior Software Product Manager", url: "https://de.linkedin.com/jobs/view/senior-software-product-manager-w-m-d-at-ypog-4294133563", location: "Berlin/Hamburg", country: "de", roleType: "generalist", date: "2026-05-04", source: "linkedin" },
+        { company: "DZ BANK AG", title: "Senior Product Manager", url: "https://www.stepstone.de/stellenangebote--Senior-Product-Manager-Frankfurt-DZ-BANK-AG-13900000-inline.html", location: "Frankfurt", country: "de", roleType: "generalist", date: "2026-05-06", source: "stepstone" },
+        { company: "NDI Europe", title: "Senior Product Manager", url: "https://de.linkedin.com/jobs/view/senior-product-manager-at-ndi-europe-4315000000", location: "Radolfzell am Bodensee", country: "de", roleType: "generalist", date: "2026-05-05", source: "linkedin" },
+        { company: "Digital Beat GmbH", title: "Senior Produktmanager — SaaS", url: "https://www.stepstone.de/stellenangebote--Senior-Produktmanager-SaaS-Mainz-Digital-Beat-GmbH-13910000-inline.html", location: "Mainz", country: "de", roleType: "generalist", date: "2026-05-04", source: "stepstone" },
+        { company: "Synthflow AI", title: "Product Manager", url: "https://wellfound.com/company/synthflow-ai", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-06", source: "wellfound" },
+        { company: "Plato", title: "Senior Product Manager", url: "https://berlinstartupjobs.com/product-management/", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-05", source: "berlinstartupjobs" },
+        { company: "GAIA Law", title: "Product Manager", url: "https://berlinstartupjobs.com/product-management/", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-05", source: "berlinstartupjobs" },
+        { company: "TechMiners", title: "Senior Product Manager", url: "https://www.arbeitnow.com/jobs/product-manager", location: "Germany", country: "de", roleType: "generalist", date: "2026-05-06", source: "arbeitnow" },
+        { company: "Tandem", title: "Head of Product", url: "https://berlinstartupjobs.com/product-management/head-of-product-tandem/", location: "Berlin", country: "de", roleType: "generalist", date: "2026-05-07", source: "berlinstartupjobs" },
+
+        // 🇪🇸 Spain — Growth PM
+        { company: "Wallapop", title: "Senior PM — Growth", url: "https://job-boards.eu.greenhouse.io/wallapop/jobs/4774660101", location: "Barcelona", country: "es", roleType: "growth", date: "2026-05-07", source: "greenhouse" },
+        { company: "Docplanner", title: "Growth Product Manager", url: "https://remotive.com/remote/jobs/product/growth-product-manager-3303545", location: "Remote ES", country: "es", roleType: "growth", date: "2026-05-07", source: "remotive" },
+        { company: "HiCareer", title: "Growth Product Manager (Remote)", url: "https://www.linkedin.com/jobs/view/growth-product-manager-remote-at-hicareer-4265162093", location: "Remote EMEA", country: "es", roleType: "growth", date: "2026-05-06", source: "linkedin" },
+
+        // 🇪🇸 Spain — AI PM
+        { company: "Tymit", title: "Senior AI PM — Fintech", url: "https://builtin.com/job/senior-ai-product-manager-fintech-remote-spain/8065851", location: "Remote ES", country: "es", roleType: "ai", date: "2026-05-07", source: "builtin" },
+        { company: "dLocal", title: "AI PM — Agentic Development", url: "https://bulldogjob.com/companies/jobs/234425-ai-product-manager-agentic-development-madrid-barcelona-dlocal", location: "Madrid/Barcelona", country: "es", roleType: "ai", date: "2026-05-06", source: "bulldogjob" },
+        { company: "Luzia", title: "Product Manager — AI Consumer", url: "https://es.linkedin.com/jobs/view/product-manager-ai-at-luzia-4318000000", location: "Madrid", country: "es", roleType: "ai", date: "2026-05-05", source: "linkedin" },
+        { company: "Hopper", title: "Senior PM — AI & Platform", url: "https://www.remote-work.app/job/hopper-senior-product-manager-commerce-ai-platform-100-remote-spain", location: "Remote ES", country: "es", roleType: "ai", date: "2026-05-05", source: "remote-work" },
+
+        // 🇪🇸 Spain — Generalist PM
+        { company: "Skyscanner", title: "Principal PM — Advertising", url: "https://es.linkedin.com/jobs/view/principal-product-manager-advertising-at-skyscanner-4314007931", location: "Barcelona", country: "es", roleType: "generalist", date: "2026-05-07", source: "linkedin" },
+        { company: "Plytix", title: "Senior PM — Multi-Channel Commerce", url: "https://es.linkedin.com/jobs/view/senior-product-manager-%E2%80%93-multi-channel-commerce-at-plytix-4340931859", location: "Sant Cugat del Vallès", country: "es", roleType: "generalist", date: "2026-05-06", source: "linkedin" },
+        { company: "Vonage", title: "PM — Video API (Onboarding)", url: "https://es.linkedin.com/jobs/view/product-manager-video-api-onboarding-acquisition-at-vonage-4301401990", location: "Spain", country: "es", roleType: "generalist", date: "2026-05-05", source: "linkedin" },
+        { company: "Happening", title: "Senior Data PM — MarTech", url: "https://es.linkedin.com/jobs/view/senior-data-product-manager-at-happening-4325000000", location: "Madrid", country: "es", roleType: "generalist", date: "2026-05-04", source: "linkedin" },
+        { company: "Eventbrite", title: "Senior PM — Checkout Experience", url: "https://es.linkedin.com/jobs/view/senior-product-manager-checkout-at-eventbrite-4316000000", location: "Remote ES", country: "es", roleType: "generalist", date: "2026-05-05", source: "linkedin" },
+        { company: "Ebury", title: "Senior Product Manager", url: "https://es.linkedin.com/jobs/view/senior-product-manager-at-ebury-4308000000", location: "Málaga", country: "es", roleType: "generalist", date: "2026-05-04", source: "linkedin" },
+        { company: "Pleo", title: "Senior Product Manager", url: "https://es.linkedin.com/jobs/view/senior-product-manager-at-pleo-4312000000", location: "Madrid", country: "es", roleType: "generalist", date: "2026-05-06", source: "linkedin" },
+        { company: "Freenow", title: "PM — Pricing", url: "https://es.linkedin.com/jobs/view/product-manager-pricing-at-freenow-4305000000", location: "Barcelona/Hamburg/Berlin", country: "es", roleType: "generalist", date: "2026-05-05", source: "linkedin" },
+        { company: "Mutua Madrileña", title: "Product Manager", url: "https://es.linkedin.com/jobs/view/product-manager-at-mutua-madrilena-4310000000", location: "Madrid", country: "es", roleType: "generalist", date: "2026-05-07", source: "linkedin" },
+        { company: "Adyen", title: "Group PM — Banking Network", url: "https://nl.linkedin.com/jobs/view/group-product-manager-banking-network-at-adyen-4156634541", location: "Madrid", country: "es", roleType: "generalist", date: "2026-05-06", source: "linkedin" },
+        { company: "Amazon", title: "Sr PM — Supply Strategy", url: "https://es.linkedin.com/jobs/view/sr-product-manager-supply-strategy-surface-transportation-at-amazon-4172826597", location: "Madrid", country: "es", roleType: "generalist", date: "2026-05-07", source: "linkedin" },
+      ];
+
+      let sortCol = "date";
+      let sortDir = -1;
+
+      function roleTag(type) {
+        const map = {
+          growth: "tag-growth",
+          ai: "tag-ai",
+          generalist: "tag-generalist",
+        };
+        return `<span class="tag ${map[type] || ""}">${type}</span>`;
+      }
+
+      function render() {
+        const search = document.getElementById("search").value.toLowerCase();
+        const roleFilter = document.getElementById("role-filter").value;
+        const countryFilter = document.getElementById("country-filter").value;
+
+        let filtered = JOBS;
+        if (search) {
+          filtered = filtered.filter(
+            (j) =>
+              (j.company || "").toLowerCase().includes(search) ||
+              (j.title || "").toLowerCase().includes(search) ||
+              (j.location || "").toLowerCase().includes(search),
+          );
+        }
+        if (roleFilter)
+          filtered = filtered.filter((j) => j.roleType === roleFilter);
+        if (countryFilter)
+          filtered = filtered.filter((j) => j.country === countryFilter);
+
+        filtered.sort((a, b) => {
+          let va = a[sortCol] || "",
+            vb = b[sortCol] || "";
+          if (sortCol === "date") {
+            va = va.toString();
+            vb = vb.toString();
+          }
+          return va < vb ? -1 * sortDir : va > vb ? 1 * sortDir : 0;
+        });
+
+        document
+          .querySelectorAll(".arrow")
+          .forEach((el) => (el.textContent = ""));
+        const arrow = document.getElementById("arrow-" + sortCol);
+        if (arrow) arrow.textContent = sortDir === 1 ? "▲" : "▼";
+
+        document.getElementById("stats").textContent =
+          `${filtered.length} jobs`;
+
+        const tbody = document.getElementById("tbody");
+        if (filtered.length === 0) {
+          tbody.innerHTML = "";
+          document.getElementById("empty").style.display = "block";
+          return;
+        }
+        document.getElementById("empty").style.display = "none";
+
+        tbody.innerHTML = filtered
+          .map(
+            (j) => `
     <tr>
-      <th onclick="sortBy('company')">Company <span class="arrow" id="arrow-company"></span></th>
-      <th onclick="sortBy('title')">Role <span class="arrow" id="arrow-title"></span></th>
-      <th onclick="sortBy('location')">Location <span class="arrow" id="arrow-location"></span></th>
-      <th onclick="sortBy('date')">Date <span class="arrow" id="arrow-date"></span></th>
+      <td><a href="${j.url}" target="_blank">${j.company || "?"}</a> ${roleTag(j.roleType)}</td>
+      <td>${j.title || "?"}</td>
+      <td>${j.location || ""} ${j.country === "de" ? '<span class="tag tag-de">DE</span>' : ""}${j.country === "es" ? '<span class="tag tag-es">ES</span>' : ""}${(j.location || "").toLowerCase().includes("remote") ? '<span class="tag tag-remote">remote</span>' : ""}</td>
+      <td>${j.date || ""}</td>
     </tr>
-  </thead>
-  <tbody id="tbody"></tbody>
-</table>
-<div class="empty" id="empty" style="display:none">No jobs discovered yet.</div>
+  `,
+          )
+          .join("");
+      }
 
-<script>
-// JOBS DATA — populated by discovery, manually edited, or via agent
-const JOBS = [
-  // { company, title, url, location, country, roleType, date, source }
-];
+      function sortBy(col) {
+        if (sortCol === col) {
+          sortDir = -sortDir;
+        } else {
+          sortCol = col;
+          sortDir = col === "date" ? -1 : 1;
+        }
+        render();
+      }
 
-let sortCol = 'date';
-let sortDir = -1;
-
-function roleTag(type) {
-  const map = { growth: 'tag-growth', ai: 'tag-ai', generalist: 'tag-generalist' };
-  return `<span class="tag ${map[type] || ''}">${type}</span>`;
-}
-
-function render() {
-  const search = document.getElementById('search').value.toLowerCase();
-  const roleFilter = document.getElementById('role-filter').value;
-  const countryFilter = document.getElementById('country-filter').value;
-
-  let filtered = JOBS;
-  if (search) {
-    filtered = filtered.filter(j =>
-      (j.company || '').toLowerCase().includes(search) ||
-      (j.title || '').toLowerCase().includes(search) ||
-      (j.location || '').toLowerCase().includes(search)
-    );
-  }
-  if (roleFilter) filtered = filtered.filter(j => j.roleType === roleFilter);
-  if (countryFilter) filtered = filtered.filter(j => j.country === countryFilter);
-
-  filtered.sort((a, b) => {
-    let va = a[sortCol] || '', vb = b[sortCol] || '';
-    if (sortCol === 'date') { va = va.toString(); vb = vb.toString(); }
-    return va < vb ? -1 * sortDir : va > vb ? 1 * sortDir : 0;
-  });
-
-  document.querySelectorAll('.arrow').forEach(el => el.textContent = '');
-  const arrow = document.getElementById('arrow-' + sortCol);
-  if (arrow) arrow.textContent = sortDir === 1 ? '▲' : '▼';
-
-  document.getElementById('stats').textContent = `${filtered.length} jobs`;
-
-  const tbody = document.getElementById('tbody');
-  if (filtered.length === 0) {
-    tbody.innerHTML = '';
-    document.getElementById('empty').style.display = 'block';
-    return;
-  }
-  document.getElementById('empty').style.display = 'none';
-
-  tbody.innerHTML = filtered.map(j => `
-    <tr>
-      <td><a href="${j.url}" target="_blank">${j.company || '?'}</a> ${roleTag(j.roleType)}</td>
-      <td>${j.title || '?'}</td>
-      <td>${j.location || ''} ${j.country === 'de' ? '<span class="tag tag-de">DE</span>' : ''}${j.country === 'es' ? '<span class="tag tag-es">ES</span>' : ''}${(j.location||'').toLowerCase().includes('remote') ? '<span class="tag tag-remote">remote</span>' : ''}</td>
-      <td>${j.date || ''}</td>
-    </tr>
-  `).join('');
-}
-
-function sortBy(col) {
-  if (sortCol === col) { sortDir = -sortDir; }
-  else { sortCol = col; sortDir = col === 'date' ? -1 : 1; }
-  render();
-}
-
-render();
-</script>
-</body>
+      render();
+    </script>
+  </body>
 </html>

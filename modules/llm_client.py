@@ -1,7 +1,8 @@
 """LLM client abstraction layer.
 
 Provides a pluggable interface for LLM providers.
-Supports: Gemini, Groq, SambaNova (all free tiers).
+Supports: Gemini (free tier), OpenCode Go (Kimi/GLM/DeepSeek V4/Qwen),
+Groq, SambaNova, DeepSeek, OpenRouter, Anthropic.
 """
 
 import os
@@ -16,29 +17,23 @@ DEFAULT_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
 
 # Available Gemini models (free tier only, as of May 2026)
 # Source: https://ai.google.dev/gemini-api/docs/pricing
-# 3.1 Pro is paid-only — not included.
-# 3 Pro Preview was shut down March 9, 2026.
+# 3.1 Pro / 3 Pro / 2.5 Pro are paid-only or quota-limited — not included.
 GEMINI_MODELS = {
-    # Gemini 3 (free tier)
+    "gemini-3.1-flash-lite": "models/gemini-3.1-flash-lite", # Free, GA, fastest
     "gemini-3-flash": "models/gemini-3-flash-preview",       # Free, 500 RPD
-    "gemini-3.1-flash-lite": "models/gemini-3.1-flash-lite", # Free, cheapest, stable
-    # Gemini 2.5 (free tier)
-    "gemini-2.5-pro": "models/gemini-2.5-pro",               # Free, most capable, 25 RPD
     "gemini-2.5-flash": "models/gemini-2.5-flash",           # Free, 500 RPD
     "gemini-2.5-flash-lite": "models/gemini-2.5-flash-lite", # Free, 1500 RPD
 }
 
-# Fallback order when hitting rate limits
-# Start with fastest/cheapest, fall back to alternative models
+# Fallback order when hitting rate limits (free-tier Gemini only)
 MODEL_FALLBACK_ORDER = [
-    "models/gemini-3-flash-preview",     # Fast, latest gen
-    "models/gemini-2.5-flash",           # Stable fast, 500 RPD
-    "models/gemini-3.1-flash-lite",      # Cheapest, stable
-    "models/gemini-2.5-pro",             # Most capable, 25 RPD
-    "models/gemini-2.5-flash-lite",      # Last resort, 1500 RPD
+    "models/gemini-3-flash-preview",
+    "models/gemini-3.1-flash-lite",
+    "models/gemini-2.5-flash",
+    "models/gemini-2.5-flash-lite",
 ]
 
-DEFAULT_MODEL = "gemini-3-flash"
+DEFAULT_MODEL = "gemini-3.1-flash-lite"
 
 
 class LLMClient(ABC):
@@ -474,12 +469,97 @@ class OpenRouterClient(LLMClient):
         return f"openrouter/{self._model_id}"
 
 
+class OpenCodeClient(LLMClient):
+    """OpenCode Go client — flat-rate open-source models via OpenAI-compatible API.
+
+    Base URL: https://opencode.ai/zen/go/v1
+    Models: kimi-k2.6, deepseek-v4-pro, glm-5, qwen3.6-plus, etc.
+    Some models return reasoning_content in addition to content.
+    """
+
+    BASE_URL = "https://opencode.ai/zen/go/v1"
+    DEFAULT_MODEL = "kimi-k2.6"
+
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        self._api_key = api_key or os.getenv("OPENCODE_API_KEY", "")
+        if not self._api_key:
+            raise ValueError(
+                "OPENCODE_API_KEY not set. Add it to your .env file.\n"
+                "Get a key at https://opencode.ai"
+            )
+        self._model_id = model or self.DEFAULT_MODEL
+
+    def generate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.3,
+    ) -> str:
+        import httpx
+
+        timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = httpx.post(
+                    f"{self.BASE_URL}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self._api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self._model_id,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": 8192,
+                    },
+                    timeout=timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                content = data["choices"][0]["message"].get("content", "")
+                if not content:
+                    # Some reasoning models return empty content on short prompts
+                    # Retry with higher max_tokens if content is empty
+                    if attempt < MAX_RETRIES - 1:
+                        continue
+                return content
+            except httpx.TimeoutException as e:
+                print(f"  Timeout (OpenCode/{self._model_id}, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"OpenCode/{self._model_id} timed out after {MAX_RETRIES} attempts")
+            except httpx.RequestError as e:
+                print(f"  Network error (OpenCode/{self._model_id}, attempt {attempt + 1}/{MAX_RETRIES}): {e}", flush=True)
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BASE_DELAY)
+                else:
+                    raise RuntimeError(f"OpenCode/{self._model_id} network error: {e}")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429 and attempt < MAX_RETRIES - 1:
+                    delay = RETRY_BASE_DELAY * (2 ** attempt)
+                    print(f"  Rate limit (OpenCode/{self._model_id}). Waiting {delay}s...", flush=True)
+                    time.sleep(delay)
+                else:
+                    raise
+            except (KeyError, IndexError) as e:
+                raise RuntimeError(f"OpenCode/{self._model_id} unexpected response: {e}")
+
+        raise RuntimeError(f"OpenCode/{self._model_id} failed after {MAX_RETRIES} attempts (empty responses)")
+
+    def model_name(self) -> str:
+        return f"opencode/{self._model_id}"
+
+
 class AnthropicClient(LLMClient):
-    """Anthropic API client — Claude Haiku for quality-critical writing.
+    """Anthropic API client — Claude Haiku for writing fallback.
 
     Default model: claude-haiku-4-5-20251001 ($0.80/$4.00 per 1M tokens).
-    Reliable instruction following for complex multi-rule prompts.
-    Note: prompt caching disabled (plain string system prompt) for stability.
+    Used only as last-resort fallback when OpenCode Go is exhausted.
     """
 
     DEFAULT_MODEL = "claude-haiku-4-5-20251001"
@@ -651,6 +731,7 @@ def _create_single_client(provider: str, model: str | None = None) -> LLMClient:
         "deepseek": DeepSeekClient,
         "openrouter": OpenRouterClient,
         "anthropic": AnthropicClient,
+        "opencode": OpenCodeClient,
     }
     if provider not in providers:
         available = ", ".join(providers.keys())
@@ -685,13 +766,25 @@ def create_client(
         return _create_single_client(provider, model)
 
 
-# Writing provider fallback order
-WRITING_PROVIDER_FALLBACK_ORDER = [
-    "gemini",      # free 1500 RPD — strong instruction following
-    "deepseek",    # ~$0.005/app with caching — DeepSeek V3.2
-    "openrouter",  # ~$0.014/app — Qwen3.5-397B-A17B
-    "groq",
-    "sambanova",
+# ── Writing pipeline: per-task model selection + unified fallback chain ──
+
+# Best model per pipeline step (all via OpenCode Go, flat $10/month)
+# EQ-Creative: Kimi K2.6=1808, DeepSeek V4 Pro ~1600+, GLM-5=1664, Qwen3.6+=strong structured
+WRITING_TASK_MODELS: dict[str, str] = {
+    "resume_tailor":     "kimi-k2.6",       # Step 3b — employer sees this, peak quality
+    "qa_generator":      "kimi-k2.6",       # Step 8  — cover letters, Q&A answers
+    "resume_edits":      "deepseek-v4-pro", # Step 6  — ATS content edits, structural precision
+    "compliance_check":  "glm-5",           # Step 3c — structural compliance review
+    "jd_analysis":       "qwen3.6-plus",    # Step 3a — internal brief, strong structured analysis
+    "default":           "kimi-k2.6",
+}
+
+# Fallback order when primary model fails (all OpenCode Go → free Gemini)
+WRITING_FALLBACK_MODELS = [
+    ("opencode", "deepseek-v4-pro"),
+    ("opencode", "glm-5"),
+    ("opencode", "qwen3.6-plus"),
+    ("gemini",   "gemini-3.1-flash-lite"),
 ]
 
 
@@ -720,40 +813,48 @@ class _WritingFallbackClient(LLMClient):
         return f"writing/{self._clients[0].model_name()}"
 
 
-def create_writing_client() -> LLMClient:
-    """Create a writing-optimised LLM client for quality-critical pipeline steps.
+def create_writing_client(task: str = "default") -> LLMClient:
+    """Create a writing-optimised LLM client with per-task model selection.
 
-    Fallback chain: Gemini → DeepSeek V3.2 → OpenRouter/Qwen3.5 → Claude Haiku.
-    Configure primary provider via WRITING_PROVIDER env var (default: gemini).
+    Task → Best model mapping (all via OpenCode Go flat subscription):
+      resume_tailor    → Kimi K2.6     (EQ-Creative 1808)
+      qa_generator     → Kimi K2.6     (EQ-Creative 1808)
+      resume_edits     → DeepSeek V4 Pro
+      compliance_check → GLM-5         (EQ-Creative 1664)
+      jd_analysis      → Qwen3.6 Plus  (strong structured)
+      default          → Kimi K2.6
 
+    Fallback chain (all OpenCode Go → free Gemini):
+      DeepSeek V4 Pro → GLM-5 → Qwen3.6 Plus → Gemini 3.1 Flash-Lite
     """
-    primary = os.getenv("WRITING_PROVIDER", "gemini")
-    order = [primary] + [p for p in WRITING_PROVIDER_FALLBACK_ORDER if p != primary]
-
-    # Optional: UI can pin a specific Gemini model via GEMINI_WRITING_MODEL env var
-    gemini_writing_model = os.getenv("GEMINI_WRITING_MODEL")
+    # Pick the best model for this task
+    primary_model = WRITING_TASK_MODELS.get(task, WRITING_TASK_MODELS["default"])
 
     available: list[LLMClient] = []
-    for provider in order:
+
+    # Try primary model first (via OpenCode Go)
+    try:
+        available.append(_create_single_client("opencode", model=primary_model))
+    except ValueError:
+        pass
+
+    # Add fallback models
+    for provider, model in WRITING_FALLBACK_MODELS:
+        if provider == "opencode" and model == primary_model:
+            continue  # Already tried as primary
         try:
-            if provider == "gemini" and gemini_writing_model:
-                available.append(_create_single_client(provider, model=gemini_writing_model))
-            else:
-                available.append(_create_single_client(provider))
+            available.append(_create_single_client(provider, model=model))
         except ValueError:
-            pass  # API key not set, skip this provider
+            pass
 
     if not available:
         raise ValueError(
-            "No writing LLM providers configured. Add at least one key to .env:\n"
-            "  DEEPSEEK_API_KEY   https://platform.deepseek.com/api_keys\n"
-            "  OPENROUTER_API_KEY https://openrouter.ai/keys\n"
-            "  ANTHROPIC_API_KEY  https://console.anthropic.com\n"
-            "  GEMINI_API_KEY     https://aistudio.google.com/apikey"
+            "No writing LLM providers configured. Add OPENCODE_API_KEY to .env:\n"
+            "  https://opencode.ai  (Go subscription, $10/month)"
         )
 
     print(
-        f"  Writing LLM: {available[0].model_name()} "
+        f"  Writing [{task}]: {available[0].model_name()} "
         f"(+{len(available) - 1} fallback(s))",
         flush=True,
     )

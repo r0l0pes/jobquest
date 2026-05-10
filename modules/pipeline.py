@@ -39,16 +39,19 @@ def _load_prompt(name: str) -> str:
     return (PROMPTS_DIR / f"{name}.md").read_text()
 
 
-# Module-level writing client cache (created on first use, reused across steps)
-_writing_client_cache: LLMClient | None = None
+# Module-level writing client cache (per task, created on first use)
+_writing_client_cache: dict[str, LLMClient] = {}
 
 
-def _get_writing_client() -> LLMClient:
-    """Return the cached writing LLM client, creating it on first call."""
-    global _writing_client_cache
-    if _writing_client_cache is None:
-        _writing_client_cache = create_writing_client()
-    return _writing_client_cache
+def _get_writing_client(task: str = "default") -> LLMClient:
+    """Return the cached writing LLM client for a given task, creating it on first call.
+
+    Tasks: resume_tailor, qa_generator, resume_edits, compliance_check, jd_analysis
+    Each task gets the optimal model for that specific job.
+    """
+    if task not in _writing_client_cache:
+        _writing_client_cache[task] = create_writing_client(task)
+    return _writing_client_cache[task]
 
 
 def _load_voice_prefix() -> str:
@@ -231,7 +234,7 @@ TAGLINES = {
 
 
 def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    writing_llm = _get_writing_client()
+    writing_llm = _get_writing_client("resume_tailor")
     console.print("\n[bold]Step 3/9:[/bold] Tailoring resume...")
 
     from config import ROLE_VARIANT
@@ -725,7 +728,7 @@ def step_apply_ats_edits(
         return ctx
 
     # Apply edits via LLM (safer than regex on LaTeX)
-    writing_llm = _get_writing_client()
+    writing_llm = _get_writing_client("resume_edits")
     system_prompt = (
         "You are a LaTeX editor. Apply the following edits to the resume. "
         "Output ONLY the complete modified LaTeX between ```latex and ``` markers. "
@@ -834,7 +837,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         ),
     }.get(ROLE_VARIANT, "")
 
-    writing_llm = _get_writing_client()
+    writing_llm = _get_writing_client("qa_generator")
     system_prompt = _load_voice_prefix() + _load_prompt("qa_generator")
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)

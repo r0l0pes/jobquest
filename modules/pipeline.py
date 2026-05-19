@@ -565,10 +565,27 @@ def step_ats_check(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"then the Markdown report between ```markdown and ``` markers."
     )
 
-    raw = llm.generate(system_prompt, user_prompt, temperature=0.2)
-    ctx["ats_raw"] = raw
+    try:
+        raw = llm.generate(system_prompt, user_prompt, temperature=0.2)
+        ctx["ats_raw"] = raw
+        report = parse_ats_report(raw)
+    except Exception as e:
+        console.print(f"  [yellow]ATS check failed ({e}). Continuing with no ATS edits.[/yellow]")
+        report = {
+            "json": {
+                "company": ctx["job"]["company"],
+                "job_title": ctx["job"]["title"],
+                "coverage_score": {"coverage_pct": 50, "verdict": "SKIPPED"},
+                "suggested_edits": [],
+                "consistency": {},
+            },
+            "markdown": (
+                f"# ATS Check: {ctx['job']['company']} - {ctx['job']['title']}\n\n"
+                f"Coverage: SKIPPED — all LLM providers rejected the payload.\n"
+                f"Verdict: SKIPPED\n"
+            ),
+        }
 
-    report = parse_ats_report(raw)
     ctx["ats_report"] = report
 
     # Save reports

@@ -4,7 +4,8 @@ Automated job application pipeline. Discovery, tailoring, scoring, and tracking 
 
 ## What It Does
 
-1. **Discover** — Agent finds jobs across LinkedIn, StepStone, Wellfound, and more (via `modes/discover.md`)
+1. **Discover** — Agent finds jobs across LinkedIn, StepStone, Wellfound, We Work Remotely,
+   Remote OK, Himalayas, Remotive, and more (via `modes/discover.md`)
 2. **Tailor** — 3-stage LLM resume tailoring with ATS keyword coverage check
 3. **Score** — 0-100 pipeline score from ATS match, compliance, company research, and AI signals
 4. **Track** — Sortable HTML tracker with editable status, notes, and analytics
@@ -49,11 +50,11 @@ Job URL
 
 Pi reads mode files from `modes/`:
 
-| Mode           | File                      | What it does                                          |
-| -------------- | ------------------------- | ----------------------------------------------------- |
-| Discover       | `modes/discover.md`       | Search 10+ platforms, output to `data/job_queue.html` |
-| Interview Prep | `modes/prep_interview.md` | Company-specific research + STAR story bank           |
-| Batch          | `modes/batch.md`          | Process job queue sequentially or via web UI          |
+| Mode           | File                      | What it does                                                                   |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| Discover       | `modes/discover.md`       | Search 20+ platforms (12 remote-only + local), output to `data/job_queue.html` |
+| Interview Prep | `modes/prep_interview.md` | Company-specific research + STAR story bank                                    |
+| Batch          | `modes/batch.md`          | Process job queue sequentially or via web UI                                   |
 
 ## Resume Variants
 

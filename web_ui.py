@@ -137,24 +137,32 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
     full_env["LLM_PROVIDER"] = provider
     full_env["PYTHONUNBUFFERED"] = "1"
 
-    # Writing model selector
+    # Writing model selector (free-first, user-selectable)
     writing_provider_map = {
-        "Gemini Flash": "gemini",
-        "Gemini 2.5 Flash": "gemini",
-        "DeepSeek V3": "deepseek",
-        "OpenRouter": "openrouter",
+        "Gemini 2.5 Pro (free)": "gemini",
+        "Gemini 3 Flash (free)": "gemini",
+        "Gemini 3.1 Flash-Lite (free)": "gemini",
+        "Kimi K2.6 (OpenCode · paid)": "opencode",
+        "DeepSeek V4 Flash (OpenRouter · paid)": "openrouter",
+        "OpenRouter Qwen (paid)": "openrouter",
+        "Groq Llama 3.3 70B (free)": "groq",
+        "SambaNova Llama 3.1 (free)": "sambanova",
     }
     writing_model_map = {
-        "Gemini Flash": "gemini-3-flash",
-        "Gemini 2.5 Flash": "gemini-2.5-flash",
-        "DeepSeek V3": "deepseek-chat",
-        "OpenRouter": "openrouter",
+        "Gemini 2.5 Pro (free)": "gemini-2.5-pro",
+        "Gemini 3 Flash (free)": "gemini-3-flash",
+        "Gemini 3.1 Flash-Lite (free)": "gemini-3.1-flash-lite",
+        "Kimi K2.6 (OpenCode · paid)": "kimi-k2.6",
+        "DeepSeek V4 Flash (OpenRouter · paid)": "deepseek-v4-flash",
+        "OpenRouter Qwen (paid)": "qwen3.5-397b-a17b",
+        "Groq Llama 3.3 70B (free)": "llama-3.3-70b",
+        "SambaNova Llama 3.1 (free)": "llama-3.3-70b",
     }
-    wm = writing_model or "DeepSeek V3"
-    full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "deepseek")
-    full_env["GEMINI_WRITING_MODEL"] = writing_model_map.get(wm, "")
-    # Gemini Flash uses targeted edit mode (JSON patch, ~500 tokens output vs 4k+)
-    full_env["TARGETED_EDITS"] = "1" if wm == "Gemini Flash" else "0"
+    wm = writing_model or "Gemini 2.5 Pro (free)"
+    full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "gemini")
+    full_env["GEMINI_WRITING_MODEL"] = writing_model_map.get(wm, "gemini-2.5-pro")
+    # Targeted edit mode: faster JSON patch for Flash models (works best with Gemini Flash variants)
+    full_env["TARGETED_EDITS"] = "1" if ("Flash" in wm and "Gemini" in wm) else "0"
 
     # Override master resume ID and set role variant for the subprocess
     variant_label = resume_variant or "Growth PM"
@@ -163,7 +171,7 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
     role_variant_map = {"Growth PM": "growth_pm", "Generalist": "generalist", "AI-PM": "ai_pm"}
     full_env["ROLE_VARIANT"] = role_variant_map.get(variant_label, variant_label.lower().replace(" ", "_"))
 
-    wm_label = writing_model or "Gemini Flash"
+    wm_label = writing_model or "Gemini 2.5 Pro"
     yield f"🚀 Starting with {provider} (ATS) · {wm_label} (writing) · {variant_label} resume...\n\n"
 
     try:
@@ -268,13 +276,22 @@ def create_app_form(slot_num):
             )
         with gr.Row():
             writing_model = gr.Radio(
-                choices=["DeepSeek V3", "Gemini 2.5 Flash", "Gemini Flash", "OpenRouter"],
-                value="DeepSeek V3",
+                choices=[
+                    "Gemini 2.5 Pro (free)",
+                    "Gemini 3 Flash (free)",
+                    "Gemini 3.1 Flash-Lite (free)",
+                    "Kimi K2.6 (OpenCode · paid)",
+                    "DeepSeek V4 Flash (OpenRouter · paid)",
+                    "OpenRouter Qwen (paid)",
+                    "Groq Llama 3.3 70B (free)",
+                    "SambaNova Llama 3.1 (free)",
+                ],
+                value="Gemini 2.5 Pro (free)",
                 label="Writing model (steps 3, 6, 8)",
             )
         with gr.Row():
             provider = gr.Radio(
-                choices=["gemini", "groq", "sambanova"],
+                choices=["gemini", "groq", "sambanova", "openrouter"],
                 value="gemini",
                 label="ATS provider (step 5)",
             )
@@ -307,7 +324,7 @@ def create_app_form(slot_num):
 
 def create_ui():
     """Create the Gradio interface with 3 parallel forms."""
-    with gr.Blocks(title="JobQuest", theme=gr.themes.Soft()) as app:
+    with gr.Blocks(title="JobQuest") as app:
         gr.Markdown("# 🎯 JobQuest")
 
         with gr.Row():
@@ -361,4 +378,5 @@ if __name__ == "__main__":
         server_port=7860,
         share=False,
         inbrowser=True,
+        theme=gr.themes.Soft(),
     )

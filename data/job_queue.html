@@ -122,6 +122,43 @@
         padding: 40px;
         color: #484f58;
       }
+      #move-btn {
+        background: #1f6feb;
+        border: none;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        display: none;
+      }
+      #move-btn:hover {
+        background: #388bfd;
+      }
+      #move-btn.visible {
+        display: inline-block;
+      }
+      .row-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #1f6feb;
+      }
+      .select-all-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #1f6feb;
+      }
+      .company-url-link {
+        color: #79c0ff;
+        font-size: 11px;
+        margin-left: 6px;
+        text-decoration: none;
+      }
+      .company-url-link:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
@@ -145,12 +182,24 @@
         <option value="de">🇩🇪 Germany</option>
         <option value="es">🇪🇸 Spain</option>
       </select>
+      <button id="move-btn" onclick="moveToTracker()">
+        📋 Move Selected to Tracker
+      </button>
       <span class="stats" id="stats"></span>
     </div>
 
     <table>
       <thead>
         <tr>
+          <th style="width: 30px">
+            <input
+              type="checkbox"
+              class="select-all-checkbox"
+              id="select-all"
+              onchange="toggleSelectAll()"
+              title="Select all visible"
+            />
+          </th>
           <th onclick="sortBy('company')">
             Company <span class="arrow" id="arrow-company"></span>
           </th>
@@ -819,7 +868,8 @@
           .map(
             (j) => `
     <tr>
-      <td><a href="${j.url}" target="_blank">${j.company || "?"}</a> ${roleTag(j.roleType)}</td>
+      <td><input type="checkbox" class="row-checkbox" data-idx="${JOBS.indexOf(j)}" onchange="updateMoveButton()"></td>
+      <td><a href="${j.companyUrl || j.url}" target="_blank">${j.company || "?"}</a>${j.companyUrl ? `<a href="${j.url}" class="company-url-link" title="Board listing">🔗</a>` : ""} ${roleTag(j.roleType)}</td>
       <td>${j.title || "?"}</td>
       <td>${j.location || ""} ${j.country === "de" ? '<span class="tag tag-de">DE</span>' : ""}${j.country === "es" ? '<span class="tag tag-es">ES</span>' : ""}${(j.location || "").toLowerCase().includes("remote") ? '<span class="tag tag-remote">remote</span>' : ""}</td>
       <td>${j.date || ""}</td>
@@ -837,6 +887,89 @@
           sortDir = col === "date" ? -1 : 1;
         }
         render();
+      }
+
+      function toggleSelectAll() {
+        const checked = document.getElementById("select-all").checked;
+        document.querySelectorAll(".row-checkbox").forEach((cb) => {
+          cb.checked = checked;
+        });
+        updateMoveButton();
+      }
+
+      function updateMoveButton() {
+        const anyChecked =
+          document.querySelectorAll(".row-checkbox:checked").length > 0;
+        const btn = document.getElementById("move-btn");
+        if (anyChecked) {
+          btn.classList.add("visible");
+          btn.textContent = `📋 Move Selected to Tracker (${document.querySelectorAll(".row-checkbox:checked").length})`;
+        } else {
+          btn.classList.remove("visible");
+        }
+      }
+
+      async function moveToTracker() {
+        const checked = document.querySelectorAll(".row-checkbox:checked");
+        if (checked.length === 0) return;
+
+        const toMove = [];
+        const indicesToRemove = [];
+
+        checked.forEach((cb) => {
+          const idx = parseInt(cb.dataset.idx);
+          if (idx >= 0 && idx < JOBS.length) {
+            const job = JOBS[idx];
+            toMove.push({
+              company: job.company,
+              role: job.title,
+              url: job.companyUrl || job.url,
+              date: job.date,
+              status: "applied",
+              notes: `Source: ${job.source} | Location: ${job.location}`,
+            });
+            indicesToRemove.push(idx);
+          }
+        });
+
+        if (toMove.length === 0) return;
+
+        try {
+          // Fetch existing tracker apps, append new ones, save back
+          const resp = await fetch("http://127.0.0.1:7878/api/applications");
+          let existing = [];
+          if (resp.ok) {
+            existing = await resp.json();
+          }
+
+          const merged = [...existing, ...toMove];
+
+          const saveResp = await fetch(
+            "http://127.0.0.1:7878/api/applications",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(merged),
+            },
+          );
+
+          if (saveResp.ok) {
+            // Remove from JOBS array (highest index first to avoid shifting)
+            indicesToRemove.sort((a, b) => b - a);
+            indicesToRemove.forEach((idx) => JOBS.splice(idx, 1));
+            document.getElementById("select-all").checked = false;
+            updateMoveButton();
+            render();
+          } else {
+            alert(
+              "Failed to save to tracker. Is the tracker server running? (python serve_tracker.py)",
+            );
+          }
+        } catch (e) {
+          alert(
+            "Could not reach tracker server. Start it with: python serve_tracker.py",
+          );
+        }
       }
 
       render();

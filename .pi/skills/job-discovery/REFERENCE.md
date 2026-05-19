@@ -1,12 +1,9 @@
-# Mode: discover — Job Discovery
-
-When the user asks to discover jobs, search across multiple sources and add
-results to `data/job_queue.md` for review.
+# Job Discovery — Reference
 
 ## Target Roles
 
 Three resume variants in Notion (Growth PM, Generalist, AI-PM). Search all three.
-Cast wide — the variant matching happens in the pipeline, not in discovery.
+Cast wide — variant matching happens in the pipeline, not in discovery.
 
 ### Growth PM (primary)
 
@@ -57,64 +54,81 @@ Never restrict searches to a single city — use country-wide terms:
 - Germany: "Germany" OR "Deutschland" OR "DE"
 - Spain: "Spain" OR "España" OR "ES"
 
-## Execution
+## Platforms
 
-**Minimum 10 search rounds. Target 40-80 jobs per session.**
-Volume is the goal. No company filters. No quality pre-judging.
-If the role title matches, include it. The user reviews later.
+### General / Local Platforms
 
-### Search Strategy
-
-Never search for specific companies. Only search by role title + location.
-Rotate through these patterns across 10+ rounds.
-
-**General / Local Platforms:**
 LinkedIn Jobs, StepStone, Indeed, Wellfound, Berlin Startup Jobs, InfoJobs,
 Tecnoempleo, Arbeitnow, startup.jobs, Google Jobs
 
-**Remote-Only Job Boards (100% verified remote):**
+### Remote-Only Job Boards (100% verified remote)
+
 We Work Remotely, Remote OK, Himalayas.app, Remotive, RemoteOrNothing,
 RemoteRocketship, weloveproduct.co, RemotePMJobs.com, ProductJobsAnywhere.com,
 Remote-Only.dev, Working Nomads, Arc.dev
 
-**Query patterns (rotate, never repeat the same query):**
+## Query Patterns
+
+Rotate through these patterns across 10+ rounds. Never repeat the same query.
+
+### Growth PM — Germany
 
 ```
-# Growth PM — Germany
 "Senior Growth Product Manager" Germany site:linkedin.com/jobs
 "Product Manager Growth" Germany -Berlin site:linkedin.com/jobs
 "Senior Growth PM" Deutschland site:stepstone.de
 "Growth Product Manager" Germany startup site:linkedin.com/jobs
+```
 
-# Growth PM — Spain
+### Growth PM — Spain
+
+```
 "Senior Growth Product Manager" Spain site:linkedin.com/jobs
 "Product Manager Growth" España site:infojobs.net
 "Growth Product Manager" Spain remote site:linkedin.com/jobs
+```
 
-# AI PM — Germany
+### AI PM — Germany
+
+```
 "Senior AI Product Manager" Germany site:linkedin.com/jobs
 "AI Product Manager" Deutschland site:stepstone.de
 "Product Manager AI ML" Germany startup site:linkedin.com/jobs
+```
 
-# AI PM — Spain
+### AI PM — Spain
+
+```
 "Senior AI Product Manager" Spain site:linkedin.com/jobs
 "Product Manager AI" España site:infojobs.net
+```
 
-# Generalist PM — Germany
+### Generalist PM — Germany
+
+```
 "Senior Product Manager" Germany startup site:linkedin.com/jobs
 "Senior Produktmanager" Deutschland site:stepstone.de
 "Senior Product Manager" Germany remote site:linkedin.com/jobs
+```
 
-# Generalist PM — Spain
+### Generalist PM — Spain
+
+```
 "Senior Product Manager" Spain site:linkedin.com/jobs
 "Senior Product Manager" España remote site:infojobs.net
+```
 
-# Startup-focused (cast wider net)
+### Startup-Focused (cast wider net)
+
+```
 site:wellfound.com "Product Manager" Germany
 site:berlinstartupjobs.com "Senior Product"
 "Product Manager" Germany startup site:arbeitnow.com
+```
 
-# Remote-only boards (prioritize for remote-first roles)
+### Remote-Only Boards (prioritize for remote-first roles)
+
+```
 site:weworkremotely.com "Product Manager" Europe
 site:remoteok.com "Senior Product Manager" remote
 site:himalayas.app "Product Manager" Europe timezone
@@ -125,51 +139,48 @@ site:remoteornothing.com "Product Manager" remote
 site:remotepmjobs.com "Senior Product Manager"
 site:productjobsanywhere.com "Product Manager" EMEA
 site:arc.dev "Product Manager" remote
+```
 
-# German language (catch companies that post only in German)
+### German Language (catch companies that post only in German)
+
+```
 "Senior Produktmanager" Wachstum Deutschland
 "Produktmanager" Berlin Startup site:stepstone.de
+```
 
-# Spanish language
+### Spanish Language
+
+```
 "Senior Product Manager" España startup site:tecnoempleo.com
 "Product Manager" Barcelona startup site:linkedin.com/jobs
 ```
 
-### Rules
+## Company URL Lookup (Best-Effort)
 
-1. **No company names in queries.** Role title + location only.
-2. **No company filtering.** If a company has multiple relevant roles, include all of them. The user decides which are worth applying to.
-3. **10+ rounds minimum.** Do not stop at 3. The first 3 rounds surface big
-   companies. Rounds 5-10 surface startups and lesser-known companies.
-4. **Use different phrasings.** "Growth PM" vs "Product Manager Growth" vs
-   "Senior PM Growth" return different results. Rotate.
-5. **Search in German and Spanish** alongside English. Local-language queries
-   find companies that English queries miss.
+After finding a job on a board, try to locate the company's own career page listing.
+The user prefers applying directly on company sites, not through job boards.
 
-## Output Format
+**Strategy:**
 
-Add discovered jobs to `data/job_queue.html` by appending entries to the
-`JOBS` array inside the `<script>` tag. Format each entry as:
+1. Search: `"[Company Name]" careers "[Job Title]"` or `site:[companydomain]/careers "[keywords]"`
+2. Check the company's careers page for the exact job title
+3. If found, store the direct link in the `companyUrl` field
+4. If not found within 1-2 searches, leave `companyUrl` empty — do not spend excessive time
+5. Never block discovery on this step. The board link (`url`) is always the fallback
 
-```javascript
-{ company: "CompanyName", title: "Role Title", url: "https://...", location: "City, Country", country: "de", roleType: "growth", date: "YYYY-MM-DD", source: "linkedin" }
-```
+**Fallback behavior:**
 
-Fields:
+- If `companyUrl` is empty, the queue HTML shows the board link as the primary link
+- The user can still Google the company career page manually
 
-- `country`: "de" or "es" (or "remote" for location-independent roles)
-- `roleType`: "growth", "ai", or "generalist"
-- `date`: date the job was posted or discovered
-- `source`: platform where found (linkedin, stepstone, infojobs, wellfound,
-  weworkremotely, remoteok, himalayas, remotive, remoterocketship, weloveproduct,
-  remoteornothing, remotepmjobs, productjobsanywhere, arc, etc.)
+## Recency Filters
 
-Group entries by country, then by role type, separated by comments.
+When searching, apply recency filters based on the mode:
 
-## Anti-Duplication
+| Mode | Filter                            |
+| ---- | --------------------------------- |
+| 24h  | Past 24 hours, past day, today    |
+| 7d   | Past week, past 7 days, last week |
 
-Before adding a job, check the `JOBS` array in `data/job_queue.html` for:
-
-- Same URL → skip
-- Same company + same title → skip
-- More than 2 jobs from the same company already in the array → skip
+Most job boards support these filters via URL parameters or search UI. For boards
+that don't, filter manually by comparing the posting date against the current date.

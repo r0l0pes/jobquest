@@ -237,7 +237,7 @@ class TestDryRun:
         assert "resume" in step_ids
         assert "tailor" in step_ids
         assert "score" in step_ids
-        assert "notion" in step_ids
+        assert "tracker" in step_ids
 
     def test_form_filler_optional(self):
         """Form filler should only be included when --fill-form is passed."""

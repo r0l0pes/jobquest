@@ -1,0 +1,1 @@
+{"timestamp":"2026-05-17T20:55:42.780Z","filePath":"/Users/carvalho/Documents/VibeCoding/JobSearch/batch_job_search.py","rule":"python-print-statement","tool":"tree-sitter","message":"print() — remove debug output before committing","line":147,"column":6,"fixable":true,"fixSuggestion":"remove this statement","autoFixed":false}

@@ -119,29 +119,35 @@ JobQuest/
 
 ## LLM Architecture
 
-**Writing steps (3, 6, 8):** Quality-first chain
+**Writing steps (3, 6, 8):** Free-first fallback chain
 
 ```
-Gemini 3 Flash (free, 500 RPD)
-  → DeepSeek V3.2 (~$0.005/app)
-    → OpenRouter / Qwen3.5-397B
-      → Groq → SambaNova
+Gemini 2.5 Pro (free, 25 RPD)
+  → Gemini 3 Flash (free, 500 RPD)
+    → Gemini 3.1 Flash-Lite (free, 1500 RPD)
+      → Kimi K2.6 (OpenCode Go, paid)
+        → DeepSeek V4 Flash (OpenRouter, paid)
+          → Qwen 3.5 (OpenRouter, paid)
+            → Groq Llama 3.3 70B (free)
+              → SambaNova Llama 3.1 405B (free)
 ```
 
-**ATS check (step 5):** Free-tier providers
+User selects primary model in web UI or via `--writing-model` CLI flag.
+Fallback proceeds through the chain automatically on rate-limit errors.
+
+**ATS check (step 5):** User-selectable + cross-provider fallback
 
 ```
-User-selected (Gemini / Groq / SambaNova)
-  → Rate-limit → next model → next provider
+User-selected (Gemini / Groq / SambaNova / OpenRouter)
+  → Rate-limit → next provider in chain
 ```
 
-**Free-tier Gemini models (verified May 2026):**
+**All free-tier providers:**
 
-- Gemini 3 Flash (500 RPD) — default
-- Gemini 3.1 Flash-Lite (stable, cheapest)
-- Gemini 2.5 Pro (25 RPD, most capable)
-- Gemini 2.5 Flash (500 RPD)
-- Gemini 2.5 Flash-Lite (1500 RPD)
+- Gemini 2.5 Pro (25 RPD), 3 Flash (500 RPD), 3.1 Flash-Lite (1500 RPD)
+- Groq (1000 RPD for Llama 3.3 70B)
+- SambaNova (30 RPM for Llama 3.1 405B)
+- OpenRouter (200 RPD for free models)
 
 ---
 
@@ -164,7 +170,7 @@ User-selected (Gemini / Groq / SambaNova)
 
 Pi reads mode files from `modes/`. To use:
 
-- **Discover jobs:** "Read `modes/discover.md` and find jobs"
+- **Discover jobs:** "Read `modes/discover.md` and find jobs" (now covers 12 remote-only boards)
 - **Prep interview:** "Read `modes/prep_interview.md` for Company X"
 - **Batch run:** "Read `modes/batch.md` and process my queue"
 

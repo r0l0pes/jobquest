@@ -43,15 +43,16 @@ def _load_prompt(name: str) -> str:
 _writing_client_cache: dict[str, LLMClient] = {}
 
 
-def _get_writing_client(task: str = "default") -> LLMClient:
-    """Return the cached writing LLM client for a given task, creating it on first call.
+def _get_writing_client() -> LLMClient:
+    """Return the cached writing LLM client, creating it on first call.
 
-    Tasks: resume_tailor, qa_generator, resume_edits, compliance_check, jd_analysis
-    Each task gets the optimal model for that specific job.
+    Uses the user's selected model (WRITING_PROVIDER / GEMINI_WRITING_MODEL env vars)
+    with automatic free-first fallback across Gemini → OpenCode → OpenRouter → Groq → SambaNova.
     """
-    if task not in _writing_client_cache:
-        _writing_client_cache[task] = create_writing_client(task)
-    return _writing_client_cache[task]
+    cache_key = "_singleton"
+    if cache_key not in _writing_client_cache:
+        _writing_client_cache[cache_key] = create_writing_client()
+    return _writing_client_cache[cache_key]
 
 
 def _load_voice_prefix() -> str:
@@ -234,7 +235,7 @@ TAGLINES = {
 
 
 def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    writing_llm = _get_writing_client("resume_tailor")
+    writing_llm = _get_writing_client()
     console.print("\n[bold]Step 3/9:[/bold] Tailoring resume...")
 
     from config import ROLE_VARIANT
@@ -353,12 +354,13 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             f"{tailoring_brief}\n\n"
             f"---\n\n"
             f"## Locked Header (copy character-for-character, do not change anything)\n\n"
+            f"\\hypersetup{{colorlinks=true, linkcolor=black, urlcolor=black, citecolor=black}}\n"
             f"\\begin{{center}}\n"
             f"  {{\\Huge\\bfseries Rodrigo Lopes,}} {{\\small {tagline}}}\\\\[6pt]\n"
             f"  \\href{{https://rodrigolopes.eu/?utm_source=resume&utm_medium=pdf}}{{rodrigolopes.eu}} \\textbar{{}}\n"
             f"  \\href{{mailto:contact@rodrigolopes.eu}}{{contact@rodrigolopes.eu}} \\textbar{{}}\n"
             f"  \\href{{https://www.linkedin.com/in/rodecalo/}}{{linkedin.com/in/rodecalo}} \\textbar{{}}\n"
-            f"  +49 0172 5626057\n"
+            f"  +4915203590361\n"
             f"\\end{{center}}\n\n"
             f"---\n\n"
             f"## Master Resume\n\n"
@@ -728,7 +730,7 @@ def step_apply_ats_edits(
         return ctx
 
     # Apply edits via LLM (safer than regex on LaTeX)
-    writing_llm = _get_writing_client("resume_edits")
+    writing_llm = _get_writing_client()
     system_prompt = (
         "You are a LaTeX editor. Apply the following edits to the resume. "
         "Output ONLY the complete modified LaTeX between ```latex and ``` markers. "
@@ -837,7 +839,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         ),
     }.get(ROLE_VARIANT, "")
 
-    writing_llm = _get_writing_client("qa_generator")
+    writing_llm = _get_writing_client()
     system_prompt = _load_voice_prefix() + _load_prompt("qa_generator")
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)
@@ -925,56 +927,54 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
 # ─── Step 9: Notion Tracking ─────────────────────────────────────
 
 
-def step_create_notion_entry(
+def step_create_tracker_entry(
     ctx: dict, llm: LLMClient, console: Console
 ) -> dict:
     import sys
+    from pathlib import Path
 
     if ctx.get("skip_notion"):
-        console.print("\n[bold]Step 9/9:[/bold] Skipping Notion (--skip-notion).")
+        console.print("\n[bold]Step 9/9:[/bold] Skipping tracker entry (--skip-notion).")
         return ctx
 
-    console.print("\n[bold]Step 9/9:[/bold] Creating Notion entry...")
+    console.print("\n[bold]Step 9/9:[/bold] Creating tracker entry...")
     sys.stdout.flush()
-
-    qa_text = ""
-    for qa in ctx.get("qa_answers", []):
-        qa_text += f"Q: {qa['question']}\nA: {qa['answer']}\n\n"
-
-    from config import RESUME_VARIANT
 
     job_title = ctx["job"].get("title") or "Unknown"
     company = ctx["job"].get("company") or "Unknown"
     job_url = ctx["job_url"]
+    score = ctx.get("pipeline_score")
+    score_label = ctx.get("pipeline_score_label", "")
+    date_str = ctx.get("date", "") or __import__("datetime").date.today().isoformat()
 
     console.print(f"  Job: {job_title} at {company}")
+    console.print(f"  Score: {score} ({score_label})")
     sys.stdout.flush()
 
-    args = [
-        "create",
-        "--title", job_title,
-        "--company", company,
-        "--url", job_url,
-    ]
-    if qa_text:
-        args += ["--qa", qa_text[:4000]]
-    if RESUME_VARIANT:
-        args += ["--variant", RESUME_VARIANT]
+    entry = {
+        "company": company,
+        "role": job_title,
+        "url": job_url,
+        "score": score,
+        "score_label": score_label,
+        "date": date_str,
+        "status": "applied",
+        "notes": "",
+    }
+
+    apps_file = Path(__file__).parent.parent / "data" / "applications.json"
 
     try:
-        output = _run_script("notion_tracker.py", args)
-        result = json.loads(output)
-        if result.get("success"):
-            ctx["notion_page_id"] = result.get("page_id")
-            console.print(f"  [green]✓ Created Notion entry: {result.get('url', '')}[/green]")
-        else:
-            console.print(f"  [red]✗ Notion failed: {result}[/red]")
-    except json.JSONDecodeError as e:
-        console.print(f"  [red]✗ Notion JSON parse error: {e}[/red]")
-        console.print(f"  [red]  Raw output: {output[:200]}[/red]")
+        existing = []
+        if apps_file.exists():
+            existing = json.loads(apps_file.read_text())
+        existing.append(entry)
+        apps_file.write_text(json.dumps(existing, indent=2))
+        ctx["tracker_entry_created"] = True
+        console.print(f"  [green]✓ Added to tracker ({len(existing)} total)[/green]")
     except Exception as e:
-        console.print(f"  [red]✗ Notion error: {type(e).__name__}: {e}[/red]")
-        console.print("  Continuing without Notion entry.")
+        console.print(f"  [red]✗ Tracker write error: {type(e).__name__}: {e}[/red]")
+        console.print("  Continuing without tracker entry.")
 
     sys.stdout.flush()
     console.print("  [dim]Step 9/9 complete.[/dim]")

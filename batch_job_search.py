@@ -4,6 +4,11 @@ DISCOVERY PROTOTYPE — will be absorbed into P1 job discovery feature.
 Searches DuckDuckGo for PM roles at a hardcoded list of Berlin startups.
 Used as reference for the modes/discover.md agent instruction.
 
+Note: modes/discover.md now also covers 12 remote-only job boards (May 2026):
+We Work Remotely, Remote OK, Himalayas.app, Remotive, RemoteOrNothing,
+RemoteRocketship, weloveproduct.co, RemotePMJobs.com, ProductJobsAnywhere.com,
+Remote-Only.dev, Working Nomads, Arc.dev.
+
 Not wired into the pipeline. Run standalone:
     python batch_job_search.py companies.md
 """

@@ -8,7 +8,7 @@ This is the compressed version injected into every writing step. The full guide 
 
 1. **No em dashes.** Never use — or --. Use comma, colon, or split sentence.
 2. **No applicant-toney closers.** Last sentence must be a concrete claim, not what Rodrigo wants/hopes/seeks. No "I'm interested in applying," "excited to bring," "looking for a role where," "environment where I do my best work."
-3. **No banned words.** Never: passionate, excited, thrilled, synergy, driven (as adjective), leverage, proven track record, data-driven (as standalone), spearheaded, seamless, robust, innovative (as standalone), pivotal, transformative, cutting-edge, groundbreaking, comprehensive, nuanced, multifaceted, navigate, delve, tapestry, foster, underscore, actionable, stakeholder complexity.
+3. **No banned words.** Never: passionate, excited, thrilled, synergy, driven (as adjective), leverage, proven track record, data-driven (as standalone), spearheaded, seamless, robust, innovative (as standalone), pivotal, transformative, cutting-edge, groundbreaking, comprehensive, nuanced, multifaceted, navigate, delve, tapestry, foster, underscore, actionable, stakeholder complexity, grit, empowered.
 4. **Never start a Q&A answer** with "I solve problems," "I build products," "I am someone who," "My approach is," or any abstract framing. Start with a specific observation about the company or a concrete fact from experience.
 5. **No applicant-toney cover letter openers.** Never "I am writing to express," "What draws me to," "[Company]'s mission resonates," "I am excited to apply," "Having followed [Company]'s work." The opening must be an observation about the company's business challenge, not a compliment.
 

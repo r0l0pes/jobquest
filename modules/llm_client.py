@@ -17,10 +17,10 @@ DEFAULT_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
 
 # Available Gemini models (free tier only, as of May 2026)
 # Source: https://ai.google.dev/gemini-api/docs/pricing
-# 3.1 Pro / 3 Pro / 2.5 Pro are paid-only or quota-limited — not included.
 GEMINI_MODELS = {
-    "gemini-3.1-flash-lite": "models/gemini-3.1-flash-lite", # Free, GA, fastest
+    "gemini-2.5-pro": "models/gemini-2.5-pro",               # Free, 25 RPD, best free writing
     "gemini-3-flash": "models/gemini-3-flash-preview",       # Free, 500 RPD
+    "gemini-3.1-flash-lite": "models/gemini-3.1-flash-lite", # Free, GA, fastest, 1500 RPD
     "gemini-2.5-flash": "models/gemini-2.5-flash",           # Free, 500 RPD
     "gemini-2.5-flash-lite": "models/gemini-2.5-flash-lite", # Free, 1500 RPD
 }
@@ -103,9 +103,15 @@ class GeminiClient(LLMClient):
 
             for attempt in range(retries_for_model):
                 try:
-                    # For Gemini 3 models, max_output_tokens is a combined budget (thinking + output).
-                    # 16384 is often too small causing truncation. Use 65536 for gemini-3, else 8192.
-                    max_tokens = 65536 if "gemini-3" in model_id else 8192
+                    # Model-dependent output token budget.
+                    # Pro models support 64K, lower avoids slow generation.
+                    # Flash/Lite have ~8K hard limits.
+                    if "2.5-pro" in model_id or "2.5-flash-pro" in model_id:
+                        max_tokens = 32768
+                    elif "flash" in model_id or "lite" in model_id:
+                        max_tokens = 8192
+                    else:
+                        max_tokens = 16384
                     
                     response = self._client.models.generate_content(
                         model=model_id,
@@ -633,7 +639,7 @@ class AnthropicClient(LLMClient):
 
 
 # Provider fallback order (tries each in sequence if previous exhausted)
-PROVIDER_FALLBACK_ORDER = ["gemini", "groq", "sambanova"]
+PROVIDER_FALLBACK_ORDER = ["gemini", "groq", "sambanova", "openrouter"]
 
 # Track which provider was actually used (for stats)
 _last_used_provider = None
@@ -766,25 +772,21 @@ def create_client(
         return _create_single_client(provider, model)
 
 
-# ── Writing pipeline: per-task model selection + unified fallback chain ──
+# ── Writing pipeline: user-selectable model with free-first fallback ──
 
-# Best model per pipeline step (all via OpenCode Go, flat $10/month)
-# EQ-Creative: Kimi K2.6=1808, DeepSeek V4 Pro ~1600+, GLM-5=1664, Qwen3.6+=strong structured
-WRITING_TASK_MODELS: dict[str, str] = {
-    "resume_tailor":     "kimi-k2.6",       # Step 3b — employer sees this, peak quality
-    "qa_generator":      "kimi-k2.6",       # Step 8  — cover letters, Q&A answers
-    "resume_edits":      "deepseek-v4-pro", # Step 6  — ATS content edits, structural precision
-    "compliance_check":  "glm-5",           # Step 3c — structural compliance review
-    "jd_analysis":       "qwen3.6-plus",    # Step 3a — internal brief, strong structured analysis
-    "default":           "kimi-k2.6",
-}
-
-# Fallback order when primary model fails (all OpenCode Go → free Gemini)
-WRITING_FALLBACK_MODELS = [
-    ("opencode", "deepseek-v4-pro"),
-    ("opencode", "glm-5"),
-    ("opencode", "qwen3.6-plus"),
-    ("gemini",   "gemini-3.1-flash-lite"),
+# Complete writing model chain (free-first, then paid).
+# Each tuple: (provider, model_alias, user_label)
+# The chain orders models by writing quality vs cost:
+#   Free Gemini → Paid Kimi → Paid OpenRouter → Free Groq/SambaNova
+WRITING_CHAIN: list[tuple[str, str, str]] = [
+    ("gemini",     "gemini-2.5-pro",       "Gemini 2.5 Pro"),       # Best free writing, 25 RPD
+    ("gemini",     "gemini-3-flash",        "Gemini 3 Flash"),        # Excellent free, 500 RPD
+    ("gemini",     "gemini-3.1-flash-lite", "Gemini 3.1 Flash-Lite"), # Fast free, 1500 RPD
+    ("opencode",   "kimi-k2.6",             "Kimi K2.6"),             # Best overall writing, paid
+    ("openrouter", "deepseek-v4-flash",     "DeepSeek V4 Flash"),     # Structured, fast, paid
+    ("openrouter", "qwen3.5-397b-a17b",     "OpenRouter Qwen"),       # Strong structured, paid
+    ("groq",       "llama-3.3-70b",         "Groq Llama 3.3 70B"),    # Free tier fallback
+    ("sambanova",  "llama-3.1-405b",        "SambaNova Llama 3.1"),   # Free tier fallback
 ]
 
 
@@ -797,10 +799,16 @@ class _WritingFallbackClient(LLMClient):
     def generate(
         self, system_prompt: str, user_prompt: str, temperature: float = 0.3
     ) -> str:
+        import sys
         last_error = None
-        for client in self._clients:
+        for i, client in enumerate(self._clients):
             try:
-                return client.generate(system_prompt, user_prompt, temperature)
+                if i > 0:
+                    print(f"  ↳ Falling back to {client.model_name()}...", flush=True)
+                result = client.generate(system_prompt, user_prompt, temperature)
+                if i > 0:
+                    print(f"  ↳ Success with {client.model_name()}", flush=True)
+                return result
             except Exception as e:
                 print(f"  ⚠️  {client.model_name()} failed ({e.__class__.__name__}), trying next writing provider...", flush=True)
                 last_error = e
@@ -813,49 +821,55 @@ class _WritingFallbackClient(LLMClient):
         return f"writing/{self._clients[0].model_name()}"
 
 
-def create_writing_client(task: str = "default") -> LLMClient:
-    """Create a writing-optimised LLM client with per-task model selection.
+def create_writing_client() -> LLMClient:
+    """Create a writing LLM client respecting user's model selection + free-first fallback.
 
-    Task → Best model mapping (all via OpenCode Go flat subscription):
-      resume_tailor    → Kimi K2.6     (EQ-Creative 1808)
-      qa_generator     → Kimi K2.6     (EQ-Creative 1808)
-      resume_edits     → DeepSeek V4 Pro
-      compliance_check → GLM-5         (EQ-Creative 1664)
-      jd_analysis      → Qwen3.6 Plus  (strong structured)
-      default          → Kimi K2.6
-
-    Fallback chain (all OpenCode Go → free Gemini):
-      DeepSeek V4 Pro → GLM-5 → Qwen3.6 Plus → Gemini 3.1 Flash-Lite
+    Reads WRITING_PROVIDER and WRITING_MODEL from env (set by web UI or CLI).
+    Builds the fallback chain: user's choice first, then remaining models in
+    WRITING_CHAIN order (free → paid). Tries each sequentially on rate-limit errors.
     """
-    # Pick the best model for this task
-    primary_model = WRITING_TASK_MODELS.get(task, WRITING_TASK_MODELS["default"])
+    user_provider = os.getenv("WRITING_PROVIDER", "")
+    user_model = os.getenv("GEMINI_WRITING_MODEL", "")  # Legacy env name, kept for backward compat
 
     available: list[LLMClient] = []
+    primary_label = "unknown"
 
-    # Try primary model first (via OpenCode Go)
-    try:
-        available.append(_create_single_client("opencode", model=primary_model))
-    except ValueError:
-        pass
-
-    # Add fallback models
-    for provider, model in WRITING_FALLBACK_MODELS:
-        if provider == "opencode" and model == primary_model:
-            continue  # Already tried as primary
+    # If user specified a provider/model, try it first
+    if user_provider and user_model:
+        primary_label = f"{user_provider}/{user_model}"
         try:
-            available.append(_create_single_client(provider, model=model))
+            available.append(_create_single_client(user_provider, model=user_model))
         except ValueError:
-            pass
+            pass  # API key missing, fall through to chain
+
+    # Build fallback chain from WRITING_CHAIN (skip models already tried)
+    tried_models: set[str] = set()
+    if available:
+        tried_models.add(user_model)
+
+    for provider, model, label in WRITING_CHAIN:
+        if model in tried_models:
+            continue
+        try:
+            client = _create_single_client(provider, model=model)
+            available.append(client)
+            tried_models.add(model)
+        except ValueError:
+            pass  # API key not configured for this provider
 
     if not available:
         raise ValueError(
-            "No writing LLM providers configured. Add OPENCODE_API_KEY to .env:\n"
-            "  https://opencode.ai  (Go subscription, $10/month)"
+            "No writing LLM providers configured. Add at least one API key to .env:\n"
+            "  GEMINI_API_KEY (https://aistudio.google.com/apikey)\n"
+            "  OPENCODE_API_KEY (https://opencode.ai)\n"
+            "  OPENROUTER_API_KEY (https://openrouter.ai)\n"
+            "  GROQ_API_KEY (https://console.groq.com)\n"
+            "  SAMBANOVA_API_KEY (https://cloud.sambanova.ai)"
         )
 
     print(
-        f"  Writing [{task}]: {available[0].model_name()} "
-        f"(+{len(available) - 1} fallback(s))",
+        f"  Writing: {available[0].model_name()}"
+        + (f" (+{len(available) - 1} fallback(s))" if len(available) > 1 else ""),
         flush=True,
     )
 

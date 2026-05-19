@@ -51,8 +51,17 @@ def parse_args(argv: list[str] | None = None):
     )
     parser.add_argument(
         "--provider",
-        choices=["gemini", "groq", "sambanova"],
-        help="LLM provider (default: from LLM_PROVIDER env or gemini)",
+        choices=["gemini", "groq", "sambanova", "openrouter"],
+        help="LLM provider for ATS and free-tier steps (default: from LLM_PROVIDER env or gemini)",
+    )
+    parser.add_argument(
+        "--writing-model",
+        choices=[
+            "gemini-2.5-pro", "gemini-3-flash", "gemini-3.1-flash-lite",
+            "kimi-k2.6", "deepseek-v4-flash", "qwen3.5-397b-a17b",
+            "llama-3.3-70b", "llama-3.1-405b",
+        ],
+        help="Writing model for steps 3, 6, 8 (default: gemini-2.5-pro)",
     )
     parser.add_argument(
         "--dry-run",
@@ -86,7 +95,7 @@ def build_steps(fill_form: bool = False):
         step_apply_ats_edits,
         step_compile_pdf,
         step_generate_qa,
-        step_create_notion_entry,
+        step_create_tracker_entry,
         step_run_form_filler,
         compute_pipeline_score,
     )
@@ -107,7 +116,7 @@ def build_steps(fill_form: bool = False):
         ("compile", "Compile PDF", step_compile_pdf),
         ("qa", "Generate Q&A answers", step_generate_qa),
         ("score", "Compute pipeline score", _step_score),
-        ("notion", "Create Notion entry", step_create_notion_entry),
+        ("tracker", "Create tracker entry", step_create_tracker_entry),
     ]
 
     if fill_form:
@@ -201,6 +210,22 @@ def run_pipeline_from_cli(args) -> int:
     
     # Resolve provider: CLI arg > env var > default
     provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")
+
+    # Resolve writing model: CLI arg > env var > default
+    _WRITING_MODEL_TO_PROVIDER = {
+        "gemini-2.5-pro": "gemini",
+        "gemini-3-flash": "gemini",
+        "gemini-3.1-flash-lite": "gemini",
+        "kimi-k2.6": "opencode",
+        "deepseek-v4-flash": "openrouter",
+        "qwen3.5-397b-a17b": "openrouter",
+        "llama-3.3-70b": "groq",
+        "llama-3.1-405b": "sambanova",
+    }
+    writing_model = getattr(args, 'writing_model', None)
+    if writing_model:
+        os.environ["GEMINI_WRITING_MODEL"] = writing_model
+        os.environ["WRITING_PROVIDER"] = _WRITING_MODEL_TO_PROVIDER.get(writing_model, "gemini")
 
     # Build initial context
     ctx = {

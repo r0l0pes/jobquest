@@ -74,8 +74,11 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # Configure .env (see .env.example)
-GEMINI_API_KEY=...          # Free tier at aistudio.google.com
-DEEPSEEK_API_KEY=...        # ~$0.005/app with caching
+GEMINI_API_KEY=...          # Required (free, aistudio.google.com)
+GROQ_API_KEY=...            # Optional (free, console.groq.com)
+SAMBANOVA_API_KEY=...       # Optional (free, cloud.sambanova.ai)
+OPENCODE_API_KEY=...        # Optional (paid, opencode.go)
+OPENROUTER_API_KEY=...      # Optional (paid, openrouter.ai)
 NOTION_TOKEN=...
 NOTION_MASTER_RESUME_ID=...
 
@@ -85,9 +88,23 @@ brew install --cask mactex  # macOS
 
 ## LLM Providers
 
-**Writing steps:** Gemini 3 Flash (free) → DeepSeek V3.2 → OpenRouter → Groq → SambaNova
+**Writing steps (3, 6, 8):** Free-first fallback chain — user selects primary model
+via `--writing-model` CLI flag or web UI dropdown; falls back automatically on
+rate-limit errors.
 
-**ATS check:** Free-tier providers (Gemini, Groq, SambaNova) with automatic fallback
+| Provider | Model | Tier | Rate Limit |
+| -------- | ----- | ---- | ---------- |
+| Gemini | 2.5 Pro | Free | 25 RPD |
+| Gemini | 3 Flash | Free | 500 RPD |
+| Gemini | 3.1 Flash-Lite | Free | 1500 RPD |
+| OpenCode Go | Kimi K2.6 | Paid | — |
+| OpenRouter | DeepSeek V4 Flash | Paid | — |
+| OpenRouter | Qwen 3.5 | Paid | — |
+| Groq | Llama 3.3 70B | Free | 1000 RPD |
+| SambaNova | Llama 3.1 405B | Free | 30 RPM |
+
+**ATS check (step 5):** User-selectable provider with cross-provider fallback.
+Primary (Gemini / Groq / SambaNova / OpenRouter) → rate-limit → next in chain.
 
 ## Output
 

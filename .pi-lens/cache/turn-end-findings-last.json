@@ -1,4 +1,4 @@
 {
-  "signature": "web_ui.py::Unresolved from this turn — web_ui.py:\n🔴 STOP — 3 issue(s) must be fixed:\n  Import \"gradio\" could not be resolved\n  Argument of type \"Popen[str]\" cannot be assigned to parameter \"value\" of type \"None\" in function \"__setitem__\"\n    \"Popen[str]\" is not assignable to \"None\"\n  \"readline\" is not a known attribute of \"None\"",
-  "sessionId": "lens-mpb4ejot-fba29aea"
+  "signature": "modules/pipeline.py::Unresolved from this turn — modules/pipeline.py:\n🔴 STOP — 1 issue(s) must be fixed:\n  Import \"rich.console\" could not be resolved",
+  "sessionId": "lens-mpcg48hx-5674edee"
 }

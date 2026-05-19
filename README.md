@@ -92,16 +92,16 @@ brew install --cask mactex  # macOS
 via `--writing-model` CLI flag or web UI dropdown; falls back automatically on
 rate-limit errors.
 
-| Provider | Model | Tier | Rate Limit |
-| -------- | ----- | ---- | ---------- |
-| Gemini | 2.5 Pro | Free | 25 RPD |
-| Gemini | 3 Flash | Free | 500 RPD |
-| Gemini | 3.1 Flash-Lite | Free | 1500 RPD |
-| OpenCode Go | Kimi K2.6 | Paid | — |
-| OpenRouter | DeepSeek V4 Flash | Paid | — |
-| OpenRouter | Qwen 3.5 | Paid | — |
-| Groq | Llama 3.3 70B | Free | 1000 RPD |
-| SambaNova | Llama 3.1 405B | Free | 30 RPM |
+| Provider    | Model             | Tier | Rate Limit |
+| ----------- | ----------------- | ---- | ---------- |
+| Gemini      | 2.5 Pro           | Free | 25 RPD     |
+| Gemini      | 3 Flash           | Free | 500 RPD    |
+| Gemini      | 3.1 Flash-Lite    | Free | 1500 RPD   |
+| OpenCode Go | Kimi K2.6         | Paid | —          |
+| OpenRouter  | DeepSeek V4 Flash | Paid | —          |
+| OpenRouter  | Qwen 3.5          | Paid | —          |
+| Groq        | Llama 3.3 70B     | Free | 1000 RPD   |
+| SambaNova   | Llama 3.1 405B    | Free | 30 RPM     |
 
 **ATS check (step 5):** User-selectable provider with cross-provider fallback.
 Primary (Gemini / Groq / SambaNova / OpenRouter) → rate-limit → next in chain.

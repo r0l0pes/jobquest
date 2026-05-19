@@ -746,9 +746,27 @@ def step_apply_ats_edits(
     updated = extract_latex(raw)
 
     if updated:
-        ctx["tailored_latex"] = fix_markdown_lists(updated)
-        Path(ctx["tex_path"]).write_text(ctx["tailored_latex"])
-        console.print("  [green]Edits applied. .tex updated.[/green]")
+        # Completeness check: catch truncated LLM output before it hits pdflatex.
+        # Same check as step 3b — if sections are missing, keep the original.
+        _REQUIRED_SECTIONS = [
+            (r"\\section\*\{Experience\}", "Experience"),
+            (r"\\section\*\{Skills", "Skills & Tools"),
+            (r"\\section\*\{Education\}", "Education"),
+        ]
+        missing = [
+            name for pattern, name in _REQUIRED_SECTIONS
+            if not re.search(pattern, updated)
+        ]
+        if missing:
+            console.print(
+                f"  [red]LLM returned truncated LaTeX after edits "
+                f"(missing sections: {', '.join(missing)}). "
+                f"Keeping original .tex.[/red]"
+            )
+        else:
+            ctx["tailored_latex"] = fix_markdown_lists(updated)
+            Path(ctx["tex_path"]).write_text(ctx["tailored_latex"])
+            console.print("  [green]Edits applied. .tex updated.[/green]")
     else:
         console.print(
             "  [red]Failed to parse edited LaTeX. Keeping original.[/red]"

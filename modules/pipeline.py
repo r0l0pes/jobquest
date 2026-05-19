@@ -284,6 +284,21 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
                     f"{ai_ctx}\n\n"
                     f"---\n\n"
                 )
+    else:
+        # Non-AI role: explicitly de-emphasize WFP so the analyzer doesn't flag it as a partial match
+        console.print("  [dim]Non-AI role: injecting WFP de-emphasis[/dim]")
+        ai_context_section = (
+            f"## Role Context\n\n"
+            f"This is NOT an AI-focused role. The World Food Programme experience "
+            f"(AI voice agent, humanitarian programs) is chronologically recent but "
+            f"NOT relevant to this position. In the <de_emphasize> section, you MUST "
+            f"explicitly instruct the resume writer to:\n\n"
+            f"1. Keep WFP bullets to a MINIMUM (1-2 bullets max if space allows, otherwise keep all 3 but do not expand)\n"
+            f"2. Do NOT use WFP bullets as keyword insertion points for this role's domain\n"
+            f"3. Do NOT reframe WFP work to match this role's requirements\n"
+            f"4. Foreground HELLA, Accenture/Natura, and C&A experience instead\n\n"
+            f"---\n\n"
+        )
 
     analysis_user = (
         f"## Job Posting\n\n"

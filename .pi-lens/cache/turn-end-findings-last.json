@@ -1,4 +1,4 @@
 {
-  "signature": "modules/pipeline.py::Unresolved from this turn — modules/pipeline.py:\n🔴 STOP — 1 issue(s) must be fixed:\n  Import \"rich.console\" could not be resolved",
+  "signature": "modules/llm_client.py::Unresolved from this turn — modules/llm_client.py:\n🔴 STOP — 3 issue(s) must be fixed:\n  \"genai\" is unknown import symbol\n  Import \"google.genai\" could not be resolved\n  Function with declared return type \"str\" must return value on all code paths\n    \"None\" is not assignable to \"str\"",
   "sessionId": "lens-mpcg48hx-5674edee"
 }

@@ -126,7 +126,15 @@ class GeminiClient(LLMClient):
                     if response.candidates:
                         finish_reason = getattr(response.candidates[0], 'finish_reason', None)
                         if finish_reason and str(finish_reason) not in ('STOP', 'FinishReason.STOP', '1'):
-                            print(f"  ⚠️  Gemini finish_reason: {finish_reason} (model: {model_id.split('/')[-1]}, output: {len(response.text or '')} chars)", flush=True)
+                            output_len = len(response.text or '')
+                            print(f"  ⚠️  Gemini finish_reason: {finish_reason} (model: {model_id.split('/')[-1]}, output: {output_len} chars)", flush=True)
+                            # Treat MAX_TOKENS as a model failure so the fallback chain
+                            # automatically tries the next model/provider.
+                            # MAX_TOKENS means output was truncated — always bad for us.
+                            raise RuntimeError(
+                                f"Gemini {model_id.split('/')[-1]} hit {finish_reason} "
+                                f"at {output_len} chars — truncated output, falling back"
+                            )
                     if model_id != self._model_id:
                         print(f"  ✓ Success with fallback: {model_id.split('/')[-1]}", flush=True)
                     return response.text

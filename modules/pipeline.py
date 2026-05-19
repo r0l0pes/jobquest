@@ -381,7 +381,33 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             f"Output ONLY the LaTeX content between ```latex and ``` markers."
         )
 
-        raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.3)
+        # Completeness validator: checks that the extracted LaTeX has all required
+        # sections. If not, _WritingFallbackClient falls back to the next provider.
+        _REQUIRED_SECTIONS = [
+            (r"\\section\*\{Experience\}", "Experience"),
+            (r"\\section\*\{Skills", "Skills & Tools"),
+            (r"\\section\*\{Education\}", "Education"),
+        ]
+
+        def _is_complete_latex(raw_response: str) -> bool:
+            """Return True if the raw LLM response contains a complete LaTeX resume."""
+            latex = extract_latex(raw_response)
+            if not latex:
+                return False
+            missing = [
+                name for pattern, name in _REQUIRED_SECTIONS
+                if not re.search(pattern, latex)
+            ]
+            if missing:
+                (run_dir / f"TRUNCATED_resume_{ctx['company_safe']}.tex").write_text(latex)
+                console.print(f"  [yellow]Truncated output (missing: {', '.join(missing)}), trying next writing provider...[/yellow]")
+                return False
+            return True
+
+        raw = writing_llm.generate(
+            system_prompt, user_prompt, temperature=0.3,
+            content_validator=_is_complete_latex
+        )
         ctx["tailor_raw"] = raw
 
         latex = extract_latex(raw)
@@ -389,26 +415,6 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             raise RuntimeError(
                 "LLM did not return parseable LaTeX. "
                 "Raw response saved to run directory for debugging."
-            )
-
-        # Completeness check: catch truncated LLM output before it hits pdflatex
-        _REQUIRED_SECTIONS = [
-            (r"\\section\*\{Experience\}", "Experience"),
-            (r"\\section\*\{Skills", "Skills & Tools"),
-            (r"\\section\*\{Education\}", "Education"),
-        ]
-        missing = [
-            name for pattern, name in _REQUIRED_SECTIONS
-            if not re.search(pattern, latex)
-        ]
-        if missing:
-            # Save truncated output for debugging
-            (run_dir / f"TRUNCATED_resume_{ctx['company_safe']}.tex").write_text(latex)
-            raise RuntimeError(
-                f"LLM returned truncated LaTeX (missing sections: {', '.join(missing)}). "
-                f"Output was {len(latex)} chars vs ~7,800 expected. "
-                f"Truncated file saved for debugging. Try re-running or switching "
-                f"WRITING_PROVIDER (current: {writing_llm.model_name()})."
             )
 
         ctx["tailored_latex"] = fix_markdown_lists(latex)

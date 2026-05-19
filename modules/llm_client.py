@@ -45,6 +45,7 @@ class LLMClient(ABC):
         system_prompt: str,
         user_prompt: str,
         temperature: float = 0.3,
+        **kwargs,
     ) -> str:
         """Generate text from system + user prompts."""
         ...
@@ -805,8 +806,19 @@ class _WritingFallbackClient(LLMClient):
         self._clients = clients
 
     def generate(
-        self, system_prompt: str, user_prompt: str, temperature: float = 0.3
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.3,
+        content_validator: callable | None = None,
+        **kwargs,
     ) -> str:
+        """Generate content, falling back through providers.
+
+        If content_validator is provided, it's called with each provider's
+        output. If it returns False, the output is treated as a failure and
+        the next provider in the chain is tried.
+        """
         import sys
         last_error = None
         for i, client in enumerate(self._clients):
@@ -814,6 +826,11 @@ class _WritingFallbackClient(LLMClient):
                 if i > 0:
                     print(f"  ↳ Falling back to {client.model_name()}...", flush=True)
                 result = client.generate(system_prompt, user_prompt, temperature)
+                # If a content validator is provided, check output completeness
+                if content_validator is not None and not content_validator(result):
+                    print(f"  ⚠️  {client.model_name()} output failed validation, trying next writing provider...", flush=True)
+                    last_error = RuntimeError(f"{client.model_name()} output failed validation")
+                    continue
                 if i > 0:
                     print(f"  ↳ Success with {client.model_name()}", flush=True)
                 return result

@@ -100,7 +100,7 @@ class GeminiClient(LLMClient):
         last_error = None
         for model_id in models_to_try:
             # Primary model gets more retries, fallbacks get 2 each
-            retries_for_model = 3 if model_id == self._model_id else 2
+            retries_for_model = 2 if model_id == self._model_id else 1
 
             for attempt in range(retries_for_model):
                 try:
@@ -146,9 +146,12 @@ class GeminiClient(LLMClient):
                     is_rate_limit = "429" in error_str or "RESOURCE_EXHAUSTED" in error_str
                     is_daily_limit = "PerDay" in error_str
 
-                    # Daily limit hit → skip to next model immediately
+                    # Daily limit hit → skip ALL Gemini models (they share the same quota)
                     if is_daily_limit:
-                        print(f"  Daily limit for {model_id.split('/')[-1]}, trying next model...", flush=True)
+                        print(f"  Daily limit for {model_id.split('/')[-1]} — skipping remaining Gemini models", flush=True)
+                        # Set last_error so it propagates to FallbackClient
+                        last_error = e
+                        models_to_try = models_to_try[:1]  # Skip remaining models
                         break
 
                     # Minute rate limit → short wait then retry or next model

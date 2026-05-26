@@ -86,6 +86,16 @@ New boards: `4dayweek.io`, `jobspresso.co`, `flexjobs.com`, `nodesk.co`, `workin
 - Master resume tools need updating: add n8n, PostHog, Cursor; replace GitHub Copilot→Cursor, ChatGPT/Claude/Gemini→LLM Workflows
 - Notion master resume needs manual update (source of truth)
 
+### 13. Cover Letter Generation
+- **New feature:** Checkbox in web UI + `--cover-letter` CLI flag to generate a cover letter
+- Template at `templates/cover_letter.tex` with variables: `{role_title}`, `{company}`, `{place}`, `{date}`, `{body}`
+- LLM generates body-only paragraphs (no greeting/sign-off — template supplies those)
+- Output: `Cover-Letter_RodrigoLopes.tex` + `.pdf` in the run directory
+- Optional instructions field for specific emphasis
+- Duplication guard: skips prepending if questions already contain "cover letter"
+- Prompt updated: `qa_generator.md` now has body-only mode instruction
+- 22 tests passing
+
 ## Pending Issues
 
 1. **Single-letter company names** — URL extraction produces "Fe", "Ca", "Ra" etc.

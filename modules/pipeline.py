@@ -1028,7 +1028,8 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
 
     today = date.today()
     date_str = today.strftime("%d.%m.%Y")
-    place = ctx.get("applicant_location", "Berlin")
+    from config import APPLICANT_LOCATION
+    place = APPLICANT_LOCATION or "Berlin"
 
     # Fill template (use .replace to avoid LaTeX brace conflicts with .format)
     latex = template_path.read_text()

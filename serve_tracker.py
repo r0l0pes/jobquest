@@ -37,6 +37,8 @@ class TrackerHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/applications":
             self._serve_json()
+        elif self.path.startswith("/api/check-url"):
+            self._check_url()
         elif self.path == "/" or self.path == "":
             self.path = "/data/tracker.html"
             super().do_GET()
@@ -49,6 +51,50 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
+    def _check_url(self):
+        """Check if a URL already exists in applications.json.
+        Normalizes URLs by stripping hash fragments and trailing slashes.
+        """
+        from urllib.parse import urlparse, urlunparse
+        query = self.path.split("?", 1)[1] if "?" in self.path else ""
+        params = {}
+        for pair in query.split("&"):
+            if "=" in pair:
+                k, v = pair.split("=", 1)
+                params[k] = v
+        target = params.get("url", "")
+        if not target:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error": "missing url parameter"}')
+            return
+
+        def normalize(u):
+            p = urlparse(u)
+            return urlunparse((p.scheme, p.netloc, p.path.rstrip("/") or "/", "", "", ""))
+
+        target_norm = normalize(target)
+        result = {"exists": False, "matched": None}
+        if APP_FILE.exists():
+            apps = json.loads(APP_FILE.read_text())
+            for a in apps:
+                if normalize(a.get("url", "")) == target_norm:
+                    result = {
+                        "exists": True,
+                        "matched": {
+                            "company": a.get("company"),
+                            "role": a.get("role"),
+                            "status": a.get("status"),
+                            "date": a.get("date"),
+                        },
+                    }
+                    break
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(result).encode())
 
     def _serve_json(self):
         if APP_FILE.exists():

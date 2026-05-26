@@ -794,8 +794,6 @@ WRITING_CHAIN: list[tuple[str, str, str]] = [
     ("gemini",     "gemini-2.5-pro",       "Gemini 2.5 Pro"),       # 64K output, best free writing
     ("opencode",   "kimi-k2.6",             "Kimi K2.6"),             # Best overall writing, paid
     ("deepseek",   "deepseek-v4-flash",     "DeepSeek V4 Flash"),     # Fast, direct API key
-    ("groq",       "llama-3.3-70b",         "Groq Llama 3.3 70B"),    # Free tier fallback, 8K ctx
-    ("sambanova",  "llama-3.1-405b",        "SambaNova Llama 3.1"),   # Free tier fallback
 ]
 
 

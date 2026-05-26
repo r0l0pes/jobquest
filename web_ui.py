@@ -147,17 +147,11 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
         "Gemini 2.5 Pro (free)": "gemini",
         "Kimi K2.6 (OpenCode · paid)": "opencode",
         "DeepSeek V4 Flash (OpenRouter · paid)": "openrouter",
-        "OpenRouter Qwen (paid)": "openrouter",
-        "Groq Llama 3.3 70B (free)": "groq",
-        "SambaNova Llama 3.1 (free)": "sambanova",
     }
     writing_model_map = {
         "Gemini 2.5 Pro (free)": "gemini-2.5-pro",
         "Kimi K2.6 (OpenCode · paid)": "kimi-k2.6",
         "DeepSeek V4 Flash (OpenRouter · paid)": "deepseek-v4-flash",
-        "OpenRouter Qwen (paid)": "qwen3.5-397b-a17b",
-        "Groq Llama 3.3 70B (free)": "llama-3.3-70b",
-        "SambaNova Llama 3.1 (free)": "llama-3.3-70b",
     }
     wm = writing_model or "Gemini 2.5 Pro (free)"
     full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "gemini")
@@ -292,9 +286,6 @@ def create_app_form(slot_num):
                     "Gemini 2.5 Pro (free)",
                     "Kimi K2.6 (OpenCode · paid)",
                     "DeepSeek V4 Flash (OpenRouter · paid)",
-                    "OpenRouter Qwen (paid)",
-                    "Groq Llama 3.3 70B (free)",
-                    "SambaNova Llama 3.1 (free)",
                 ],
                 value="Gemini 2.5 Pro (free)",
                 label="Writing model (steps 3, 6, 8)",

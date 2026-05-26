@@ -791,9 +791,7 @@ def create_client(
 # The chain orders models by writing quality vs cost:
 #   Free Gemini → Paid Kimi → Paid OpenRouter → Free Groq/SambaNova
 WRITING_CHAIN: list[tuple[str, str, str]] = [
-    ("gemini",     "gemini-2.5-pro",       "Gemini 2.5 Pro"),       # Best free writing, 25 RPD
-    ("gemini",     "gemini-3-flash",        "Gemini 3 Flash"),        # Excellent free, 500 RPD
-    ("gemini",     "gemini-3.1-flash-lite", "Gemini 3.1 Flash-Lite"), # Fast free, 1500 RPD
+    ("gemini",     "gemini-2.5-pro",       "Gemini 2.5 Pro"),       # 64K output, can handle full LaTeX
     ("opencode",   "kimi-k2.6",             "Kimi K2.6"),             # Best overall writing, paid
     ("openrouter", "deepseek-v4-flash",     "DeepSeek V4 Flash"),     # Structured, fast, paid
     ("openrouter", "qwen3.5-397b-a17b",     "OpenRouter Qwen"),       # Strong structured, paid

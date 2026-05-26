@@ -145,8 +145,6 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
     # Writing model selector (free-first, user-selectable)
     writing_provider_map = {
         "Gemini 2.5 Pro (free)": "gemini",
-        "Gemini 3 Flash (free)": "gemini",
-        "Gemini 3.1 Flash-Lite (free)": "gemini",
         "Kimi K2.6 (OpenCode · paid)": "opencode",
         "DeepSeek V4 Flash (OpenRouter · paid)": "openrouter",
         "OpenRouter Qwen (paid)": "openrouter",
@@ -155,8 +153,6 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
     }
     writing_model_map = {
         "Gemini 2.5 Pro (free)": "gemini-2.5-pro",
-        "Gemini 3 Flash (free)": "gemini-3-flash",
-        "Gemini 3.1 Flash-Lite (free)": "gemini-3.1-flash-lite",
         "Kimi K2.6 (OpenCode · paid)": "kimi-k2.6",
         "DeepSeek V4 Flash (OpenRouter · paid)": "deepseek-v4-flash",
         "OpenRouter Qwen (paid)": "qwen3.5-397b-a17b",
@@ -294,8 +290,6 @@ def create_app_form(slot_num):
             writing_model = gr.Radio(
                 choices=[
                     "Gemini 2.5 Pro (free)",
-                    "Gemini 3 Flash (free)",
-                    "Gemini 3.1 Flash-Lite (free)",
                     "Kimi K2.6 (OpenCode · paid)",
                     "DeepSeek V4 Flash (OpenRouter · paid)",
                     "OpenRouter Qwen (paid)",

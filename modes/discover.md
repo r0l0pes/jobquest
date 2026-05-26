@@ -73,9 +73,12 @@ LinkedIn Jobs, StepStone, Indeed, Wellfound, Berlin Startup Jobs, InfoJobs,
 Tecnoempleo, Arbeitnow, startup.jobs, Google Jobs
 
 **Remote-Only Job Boards (100% verified remote):**
-We Work Remotely, Remote OK, Himalayas.app, Remotive, RemoteOrNothing,
-RemoteRocketship, weloveproduct.co, RemotePMJobs.com, ProductJobsAnywhere.com,
-Remote-Only.dev, Working Nomads, Arc.dev
+We Work Remotely, 4dayweek.io, Jobspresso.co, Himalayas.app, FlexJobs,
+Nodesk.co, Working Nomads, TrulyRemote.co, Flexa.careers, Jobgether,
+Oomple.com, Remote OK, Remotive, RemoteOrNothing, RemoteRocketship,
+CareerVault.io, DailyRemote.com, weloveproduct.co, RemotePMJobs.com,
+ProductJobsAnywhere.com, Remote-Only.dev, Remotely.de, euRemoteJobs.com,
+Arc.dev
 
 **Query patterns (rotate, never repeat the same query):**
 
@@ -116,10 +119,23 @@ site:berlinstartupjobs.com "Senior Product"
 
 # Remote-only boards (prioritize for remote-first roles)
 site:weworkremotely.com "Product Manager" Europe
-site:remoteok.com "Senior Product Manager" remote
+site:4dayweek.io "Product Manager" remote
+site:jobspresso.co "Product Manager" Europe
 site:himalayas.app "Product Manager" Europe timezone
+site:flexjobs.com "Product Manager" remote
+site:nodesk.co "Product Manager" remote
+site:workingnomads.com "Senior Product Manager" remote
+site:trulyremote.co "Product Manager" remote
+site:flexa.careers "Product Manager" remote
+site:jobgether.com "Product Manager" remote
+site:oomple.com "Product Manager" remote
+site:remotely.de "Product Manager" Germany
+site:euremotejobs.com "Product Manager" Europe
+site:remoteok.com "Senior Product Manager" remote
 site:remotive.com "Senior Product Manager" remote
 site:remoterocketship.com "Senior Product Manager" Europe
+site:careervault.io "Product Manager" remote
+site:dailyremote.com "Product Manager" Europe
 site:weloveproduct.co "Senior Product Manager" remote
 site:remoteornothing.com "Product Manager" remote
 site:remotepmjobs.com "Senior Product Manager"

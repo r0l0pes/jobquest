@@ -4,7 +4,7 @@
 
 Inject this file when the JD has AI-related requirements: AI PM, AI-native workflows, using AI for PRDs, vibe coding, LLM tools, MCP, Cursor, Claude, co-pilot, AI-first, etc.
 
-**Resume (step 3):** Instruct the writing model to add a fourth bullet to the WFP section surfacing AI-augmented workflows. Keep the three existing WFP bullets intact. Ground the new bullet in the WFP tenure (Mar 2024 – Dec 2025). Do not add AI workflow bullets to other roles.
+**Resume (step 3):** Instruct the writing model to use the Postscript AI work (message optimization engine, SMS personalization) as the primary AI story. Ground the context in the Postscript tenure (Jul 2024 – Apr 2026). Do not add AI workflow bullets to other roles.
 
 **Q&A (step 8):** Draw from the talking points below when answering questions about AI tool usage, AI PM experience, or how Rodrigo works with AI.
 
@@ -12,129 +12,49 @@ No fabrication: everything below is real.
 
 ---
 
-## WFP role context (Mar 2024 – Dec 2025)
+## Postscript AI work context (Jul 2024 – Apr 2026)
 
-This is not just "used AI tools at work." The WFP role was AI product management:
+This is not just "used AI tools at work." The Postscript role was AI product management for an SMS marketing platform:
 
-- **AI voice agent for smallholder farmers**: Rodrigo owned activation strategy, defined adoption funnel and success metrics, and ran guardrail and governance work. Day-to-day this involved evaluating LLM output quality, reviewing hallucination rates, and working with engineers on prompt design and safety thresholds. Validated 60% cost efficiency vs. human-led outreach.
+- **AI-powered message optimization engine**: Rodrigo led product development of a system that tested hundreds of message variants per automation using predictive analytics and generative AI. The core challenge was solving the tension between sending more SMS messages and keeping every one on-brand. The system continuously learned from engagement data, driving a 28% increase in earnings-per-message for 18,000+ Shopify merchants.
 
-- **AI validation platform**: PM for WFP's internal tool enabling non-technical staff to run ML and GenAI experiments across humanitarian operations without centralised engineering support. This is LLM evaluation infrastructure: defining experiment templates, evaluation criteria, what "good output" looks like per use case, and governance guardrails. The PM role here overlaps significantly with what ML engineers and AI researchers call model evaluation.
+- **SMS compliance and opt-in optimization**: Redesigned subscriber acquisition around SMS compliance, implementing one-tap mobile opt-in. Used data-driven experimentation to reposition incentive timing and simplify consent language. Increased opt-in conversion by 32% and reduced acquisition cost by 18%.
 
-- **Analytics and scaling**: Built the measurement framework for AI interface usability and pilot performance. Translated pilot data into expansion priorities for 20+ country programs, which required synthesising quantitative metrics with qualitative field feedback — a workflow AI tools accelerated significantly.
+- **Analytics instrumentation and engagement measurement**: Built the analytics framework to measure SMS program health across 18,000+ merchant accounts. Established earnings-per-message and click-through rate as primary KPIs. Identified engagement decay patterns unique to SMS versus email channels, translating insights into re-engagement automation roadmaps.
 
 ---
 
 ## AI PM resume case studies (bullet drafts for AI-PM variant)
 
-These are pre-drafted bullet templates for the AI-PM resume variant. Use them as inputs when reframing WFP bullets through the AI PM lens. Each maps to one of the three WFP projects plus the fourth AI tooling bullet.
+These are pre-drafted bullet templates for the AI-PM resume variant. Use them as inputs when reframing Postscript bullets through the AI PM lens.
 
-**Bullet 1 — AI voice agent (emphasis: AI PM ownership, LLM safety, outcomes):**
-Led end-to-end product lifecycle for WFP's AI voice agent serving smallholder farmers: owned activation strategy, defined adoption funnel and LLM output quality criteria, and ran hallucination-rate reviews and governance with engineers. Validated 60% cost efficiency vs. human-led outreach, informing expansion investment decision.
+**Bullet 1 — AI-powered optimization (emphasis: generative AI, model-based systems, outcomes):**
+Led product development for an AI-powered message optimization engine, solving the tension between sending more SMS messages and keeping every one on-brand. Used predictive analytics and generative AI to test hundreds of variants per automation, driving a 28% increase in earnings-per-message for Shopify merchants through continuous model learning.
 
-**Bullet 2 — AI validation platform (emphasis: LLM evaluation infrastructure, scale):**
-Product-managed WFP's internal platform enabling non-technical humanitarian staff to run ML and GenAI experiments without centralised engineering support. Defined experiment templates, evaluation rubrics, and governance guardrails — the same LLM evaluation discipline used by ML research teams. Scaled to 20+ country programs.
+**Bullet 2 — AI-augmented experimentation (emphasis: data-driven iteration, ML learning loops):**
+Designed and ran structured experimentation programs using AI-augmented tools to optimize SMS message content, timing, and audience targeting. Built feedback loops where model predictions improved continuously based on engagement outcomes across 18,000+ merchant accounts.
 
 **Bullet 3 — Analytics and measurement (emphasis: data to strategy pipeline):**
-Built the measurement framework for AI interface usability and pilot performance across WFP's AI portfolio. Synthesised quantitative adoption metrics and qualitative field feedback into expansion priorities for Innovation Accelerator leadership, translating pilot data into scaling decisions.
+Built the analytics instrumentation framework to measure SMS program health across 18,000+ merchant accounts, establishing earnings-per-message and click-through rate as primary KPIs. Identified engagement decay patterns unique to SMS versus email channels, translating insights into re-engagement automation roadmap priorities presented to leadership.
 
 **Bullet 4 — AI-augmented PM workflow (emphasis: Cursor, Claude Code, MCP, agentic execution):**
-Built an end-to-end agentic PM workflow: structured product context as markdown files, connected external sources via MCP, and ran analysis-to-spec cycles in one Claude Code session — from data or feedback input through synthesis, PRD draft, and ticket creation. Used Cursor from Mar 2024, Claude Sonnet via API for reasoning tasks, MCP from Nov 2024, and Claude Code from May 2025. At WFP: applied to activation strategy documentation, analytics framework specs, and governance documentation for the AI validation platform.
+Built an end-to-end agentic PM workflow using Claude Code and MCP: structured product context as markdown files, ran analysis-to-spec cycles in one session from data input through PRD draft and ticket creation. Applied to activation strategy documentation and governance documentation for the AI validation platform.
 
 ---
 
-## How I use AI tools to do PM work
+## Q&A talking points for AI PM roles
 
-### Timeline of tools (WFP period)
+When answering AI-related questions, draw from these angles:
 
-**Mar 2024 – Oct 2024**: Cursor (AI-native editor) as primary interface. Claude Sonnet via API for generation and reasoning tasks (PRD drafts, synthesis, analysis). Gemini for quick brainstorms. Notion AI for meeting notes and knowledge management.
+### AI product ownership
+- Rodrigo owned the full lifecycle of an AI-powered SMS optimization engine: from problem definition (merchants sending too many or too few messages) through model design (predictive analytics + generative AI for message variants) to outcome measurement (earnings-per-message lift).
+- The key challenge was balancing automation quality with brand consistency — the same tension every AI PM faces when putting generative models in front of customers.
 
-**Nov 2024 – Apr 2025**: MCP (Model Context Protocol) launches November 2024. Starts connecting Claude to external tools (Notion, data sources) via standardised protocol. Moves from one-off chat interactions to multi-step automated workflows. Codex CLI (OpenAI, open-source terminal coding agent) launches April 2025, used for comparison and specific OpenAI-model tasks.
+### Experimentation at scale
+- Ran hundreds of A/B tests per automation, using machine learning to identify winning message variants for different customer segments.
+- Built the measurement framework to track not just whether a test won, but whether the learning loop actually improved future predictions.
 
-**May 2025 – Dec 2025**: Claude Code (terminal-based agentic interface, GA May 2025) becomes primary execution layer. Cursor remains part of the stack for file editing. Combined with MCP integrations for Notion and task management tools. Claude Cowork (desktop automation agent, research preview Jan 2026) used for document workflows and file management tasks that do not require codebase access.
-
-### Workflows
-
-**PRD and documentation drafting**
-Maintain product context (roadmap items, specs, research notes) as structured markdown files. Claude reads that context and drafts PRDs from templates without re-explaining the product each session. At WFP: activation strategy docs for the voice agent, analytics framework specs, governance documentation for the AI validation platform.
-
-**LLM evaluation and experiment design**
-As PM on both the voice agent and the validation platform, evaluation was a core workflow: defining what "good" looks like for a generative output, reviewing sample outputs against criteria, structuring rubrics for non-technical reviewers. Used Claude to draft evaluation frameworks, generate adversarial test cases, and synthesise evaluation results across country-program pilots.
-
-**Data and metrics analysis**
-Connect Claude Code to exported analytics or data sources. Point it at a dashboard or CSV, it runs breakdowns and surfaces hypotheses. At WFP: analysing adoption metrics from voice agent field pilots, measuring AI interface usability across country programs, translating field data into scaling arguments for leadership presentations.
-
-**User research and feedback synthesis**
-Feed interview notes, field officer feedback, stakeholder inputs, and pilot reports into context. Claude clusters themes, flags blockers, and structures the output into something actionable. At WFP: synthesising feedback from voice agent pilots across Tanzania field operations, clustering AI use case submissions from country teams on the validation platform.
-
-**Rapid prototyping and use case validation**
-Use Cursor and Claude Code to turn a problem statement into a working prototype fast enough to validate direction before committing engineering. At WFP: prototyping lightweight versions of AI use cases submitted by country teams to test feasibility and user acceptance before full development prioritisation.
-
-**Automated reporting and synthesis pipelines**
-Build agents that pull data from multiple sources, analyse trends, and push a structured summary to Notion or Slack. Replaces manual report prep with a draft already in place before the meeting. At WFP: weekly status summaries for Innovation Accelerator leadership on pilot performance and scaling recommendations.
-
-**Engineering coordination**
-After synthesising insights into a spec, draft acceptance criteria and route to engineering via task management tools. The agent breaks a PRD into structured tickets with requirements and technical considerations, reducing PM-to-engineer handoff friction.
-
----
-
-## End-to-end agentic PM workflow (how it all fits together)
-
-The individual workflows above don't run in isolation — they chain. The pattern, which I run consistently:
-
-1. An anomaly surfaces in a metric or a pile of feedback comes in. Point Claude Code at the data source via MCP. It pulls the underlying data, runs breakdowns by segment and time, and generates hypotheses in a structured format. What used to be 2-3 hours of manual chart-building takes minutes.
-
-2. That analysis feeds directly into synthesis. If it's a metric spike, pull related experiment data and recent feedback into the same context and ask: what changed, when, and what's the most plausible driver? If it's a feedback cluster, group by theme, flag severity, surface what users love vs. what's broken.
-
-3. Synthesis becomes a spec. With the context already loaded, draft a PRD from a template. The agent has the problem statement, the evidence, and the constraints. First draft is substantive, not a blank page. Iterate in the same session.
-
-4. Spec becomes tickets. Break acceptance criteria into structured engineering tickets with requirements and technical considerations, routed to Linear or Jira via MCP.
-
-The whole sequence — from anomaly to tickets in the backlog — runs in one Claude Code session. No context-switching between tools, no copying data between tabs. The PM judgment is at each review point: is this the right hypothesis, is this the right solution, are these the right tickets. The execution between those judgment calls is automated.
-
-This is the shift Frank Lee describes: from "I spend Sundays building metrics and writing narratives" to "Monday morning the draft is already there and I focus on what to do about it."
-
----
-
-## Key talking points for Q&A
-
-- "I shifted from using AI as a writing assistant to using it as an execution layer. Chat is for exploring; Claude Code and MCP are for running workflows."
-- "I keep product context as structured files. Agents read that context, so I never re-explain the product from scratch — continuity is built into the setup."
-- "At WFP, LLM evaluation was part of the job: defining what good output looks like, reviewing samples against criteria, building rubrics that field-non-technical reviewers could apply. That's not that different from what ML teams call evals."
-- "The tools that changed things most in this period: Cursor for editing (from day one), Claude Sonnet via API for reasoning tasks (2024), Claude Code for execution (from May 2025 when it launched). Each jump expanded what I could automate without an engineer."
-- "I think of it as: what PM tasks are repetitive, data-heavy, and have clear enough output criteria that an agent can run them? Those get automated. The synthesis of 'so what' and the decisions stay with me."
-- "MCP changed the workflow in late 2024 — instead of copying data between tools manually, agents could pull from Notion, push to task management, read analytics exports, all in one orchestrated run."
-
----
-
-## AI Tool Landscape Reference (as of March 2026)
-
-This section documents the current state of key AI coding/PM tools for accurate resume and Q&A generation. Update periodically.
-
-### OpenAI Codex
-- Originally the model behind GitHub Copilot (2021). Evolved into a full software engineering agent by 2025.
-- **Codex CLI**: Open-source terminal coding agent (April 2025, Apache 2.0). Runs locally, reads/changes/executes code. Built in Rust. Included with ChatGPT Plus/Pro/Business/Edu/Enterprise plans.
-- **Codex App**: macOS (Feb 2, 2026), Windows (Mar 4, 2026). Multi-agent workflows, built-in worktrees, cloud environments for parallel execution.
-- **Current model**: GPT-5.3-Codex (Feb 2026). Trained via reinforcement learning on real-world coding projects. Previous iterations: GPT-5-Codex (Sep 2025), GPT-5.2-Codex (Dec 2025).
-- **GPT model lineage**: GPT-5 (Aug 2025), GPT-5.2 (Dec 2025), GPT-5.3 (Feb 2026), GPT-5.4 (current as of Mar 2026). GPT-4 is obsolete.
-- **Resume context**: Codex is the correct term for OpenAI's coding agent. Prefer "Codex" over "GPT" when referring to coding/agentic workflows. "ChatGPT" is the consumer chat product name.
-
-### Claude Code (Anthropic)
-- Agentic CLI tool for developers. Beta Feb 2025, GA May 2025.
-- Reads/modifies files across entire codebases from terminal or IDE (VS Code, JetBrains).
-- **Feb 2026 updates**: Remote control (continue sessions from mobile/web), agent teams, Claude Code Security (vulnerability scanning).
-- **Current model**: Opus 4.6 (Feb 2026). Enhanced planning, extended agentic tasks, better reliability in large codebases.
-- **Resume context**: This is Rodrigo's primary execution layer for PM workflows (PRD drafting, data analysis, ticket creation via MCP).
-
-### Claude Cowork (Anthropic)
-- Desktop automation agent, research preview Jan 2026.
-- Operates in Claude Desktop app (visual interface, no terminal needed). Built for non-coders and knowledge workers.
-- Automates multi-step file/document tasks: organises files, extracts data, creates formatted documents (Word, spreadsheets, PDFs), synthesises research.
-- Connects to Gmail, Google Drive, GitHub, Slack. Scheduled tasks added Feb 2026.
-- Runs in sandboxed VM on user's machine. Built by Claude Code itself ("vibe coding").
-- **Resume context**: Useful for document-heavy PM workflows (research synthesis, report generation, invoice/contract management). Different from Claude Code: Cowork = desktop/document layer, Claude Code = codebase layer.
-
-### Key distinctions for resume writing
-- **Claude Code** vs **Claude Cowork**: Code is for developers/technical PMs (terminal, codebase). Cowork is for desktop automation (documents, files, integrations). They are NOT the same tool.
-- **Codex** vs **ChatGPT**: Codex is OpenAI's coding agent. ChatGPT is the consumer chat interface. Use Codex when discussing coding/agentic work.
-- **GPT-4 is obsolete**: Current GPT is 5.4 (Mar 2026). Never reference GPT-4 in generated resumes.
-- **Claude** alone (without Code/Cowork suffix) refers to Anthropic's general-purpose LLM (Claude Sonnet, Claude Opus), used via API or chat interface.
+### Agentic PM workflow
+- Uses Claude Code, Cursor, and MCP to accelerate the cycle from user feedback to technical spec.
+- Structured entire product context as markdown files in a project repository, enabling AI tools to execute analysis-to-PRD cycles in a single session.
+- This is not a side project — it is how product work gets done day-to-day, applied to real merchant problems and internal process documentation.

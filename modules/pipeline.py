@@ -259,15 +259,15 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
                     f"## Candidate AI PM Context\n\n"
                     f"This is an AI-PM resume variant. The candidate's AI product management "
                     f"experience is a primary selling point. Apply the following instructions:\n\n"
-                    f"1. Reframe ALL WFP bullets through the AI PM lens: lead with the AI product "
-                    f"work (voice agent, validation platform, analytics) and ground each bullet in "
+                    f"1. Reframe ALL Postscript bullets through the AI PM lens: lead with the AI product "
+                    f"work (message optimization engine, SMS personalization, analytics) and ground each bullet in "
                     f"measurable outcomes.\n"
-                    f"2. Add a fourth WFP bullet surfacing the candidate's AI-augmented PM workflow "
+                    f"2. Surface the candidate's AI-augmented PM workflow "
                     f"(Cursor, Claude Code, MCP, LLM evaluation — see context below for specifics). "
-                    f"Keep the three existing WFP bullets intact.\n"
                     f"3. In the Skills section, move AI-related skills to the top row and include: "
-                    f"Cursor, Claude Code, MCP (Model Context Protocol), LLM evaluation, Claude Sonnet, "
-                    f"Gemini, Notion AI.\n"
+                    f"Cursor, Claude Code, MCP (Model Context Protocol), LLM evaluation, Prompt Engineering, "
+                    f"Agentic Workflows.\n"
+                    f"4. Do not add AI workflow bullets to HELLA, Accenture, or C&A roles.\n\n"
                     f"4. Do not add AI workflow bullets to HELLA, Accenture, or C&A roles.\n\n"
                     f"{ai_ctx}\n\n"
                     f"---\n\n"
@@ -278,27 +278,15 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
                     f"## Candidate AI PM Context\n\n"
                     f"The JD has AI tool/workflow requirements. The candidate has relevant "
                     f"experience documented below. If the role asks for AI tool usage, "
-                    f"instruct the writing model to add a fourth bullet to the WFP section "
-                    f"surfacing this experience. Keep the three existing WFP bullets intact. "
+                    f"instruct the writing model to surface Postscript's AI work (message optimization engine, personalization) in the summary.\n"
                     f"Do not add AI workflow bullets to other roles.\n\n"
                     f"{ai_ctx}\n\n"
                     f"---\n\n"
                 )
     else:
-        # Non-AI role: explicitly de-emphasize WFP so the analyzer doesn't flag it as a partial match
-        console.print("  [dim]Non-AI role: injecting WFP de-emphasis[/dim]")
-        ai_context_section = (
-            f"## Role Context\n\n"
-            f"This is NOT an AI-focused role. The World Food Programme experience "
-            f"(AI voice agent, humanitarian programs) is chronologically recent but "
-            f"NOT relevant to this position. In the <de_emphasize> section, you MUST "
-            f"explicitly instruct the resume writer to:\n\n"
-            f"1. Keep WFP bullets to a MINIMUM (1-2 bullets max if space allows, otherwise keep all 3 but do not expand)\n"
-            f"2. Do NOT use WFP bullets as keyword insertion points for this role's domain\n"
-            f"3. Do NOT reframe WFP work to match this role's requirements\n"
-            f"4. Foreground HELLA, Accenture/Natura, and C&A experience instead\n\n"
-            f"---\n\n"
-        )
+        # Non-AI role: Postscript is the primary/current role, no de-emphasis needed.
+        console.print("  [dim]Non-AI role: no Postscript de-emphasis[/dim]")
+        ai_context_section = ""
 
     analysis_user = (
         f"## Job Posting\n\n"
@@ -355,7 +343,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
                 patched, count=1,
             )
             ctx["tailored_latex"] = fix_markdown_lists(patched)
-            console.print(f"  Targeted edits applied: {len(edits.get('wfp_bullets', []))} WFP bullets, skills updated")
+            console.print(f"  Targeted edits applied: {len(edits.get('postscript_bullets', []))} Postscript bullets, skills updated")
         else:
             console.print("  [yellow]Targeted edits parse failed, falling back to full generation[/yellow]")
             targeted_mode = False  # fall through to full generation below
@@ -892,7 +880,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
             "Resume variant: **Growth PM**. "
             "Foreground growth and conversion experiences: Accenture (45% CVR, LatAm growth) "
             "and C&A Brasil (checkout optimisation, experimentation). "
-            "WFP for AI/research depth. HELLA as secondary."
+            "Postscript for AI/ML depth. HELLA as secondary."
         ),
         "generalist": (
             "Resume variant: **Generalist PM**. "
@@ -902,7 +890,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         ),
         "ai_pm": (
             "Resume variant: **AI PM**. "
-            "WFP is the primary story: AI voice agent (60% cost efficiency, activation strategy, "
+            "Postscript is the primary story: AI-powered message optimization (28% earnings-per-message lift, predictive analytics, generative AI), SMS compliance optimization (32% opt-in conversion increase), and analytics instrumentation across 18,000+ merchant accounts."
             "LLM evaluation and governance), AI validation platform (non-technical ML experiments "
             "at scale, use case prioritisation), and analytics for 20+ country programs. "
             "Foreground the agentic PM workflow (Cursor, Claude Code, MCP) as a differentiator. "
@@ -926,7 +914,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
                 f"The role has AI tool/workflow requirements. Draw from the context below "
                 f"when answering questions about AI tool usage, AI-augmented workflows, "
                 f"or how the candidate works with AI. Use specific examples grounded in "
-                f"the WFP period and the JobQuest pipeline where relevant.\n\n"
+                f"the Postscript period and the JobQuest pipeline where relevant.\n\n"
                 f"{ai_ctx}\n\n"
                 f"---\n\n"
             )

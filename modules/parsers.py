@@ -228,7 +228,7 @@ def _extract_pairs(pattern: re.Pattern, text: str) -> list[dict]:
 def parse_resume_edits(text: str) -> dict | None:
     """Extract targeted edits JSON from LLM response.
 
-    Returns dict with keys: tagline, summary_bullet, wfp_bullets, skills.
+    Returns dict with keys: tagline, summary_bullet, postscript_bullets, skills.
     Returns None if no valid JSON found.
     """
     # Strip think tokens
@@ -240,7 +240,7 @@ def parse_resume_edits(text: str) -> dict | None:
 
     try:
         data = json.loads(text)
-        if "wfp_bullets" in data or "summary_bullet" in data:
+        if "postscript_bullets" in data or "summary_bullet" in data:
             return data
     except (json.JSONDecodeError, ValueError):
         pass
@@ -250,7 +250,7 @@ def parse_resume_edits(text: str) -> dict | None:
     if match:
         try:
             data = json.loads(match.group(0))
-            if "wfp_bullets" in data or "summary_bullet" in data:
+            if "postscript_bullets" in data or "summary_bullet" in data:
                 return data
         except (json.JSONDecodeError, ValueError):
             pass
@@ -274,7 +274,7 @@ def _escape_latex(text: str) -> str:
 def apply_resume_edits(base_latex: str, edits: dict) -> str:
     """Apply targeted edits JSON to the base LaTeX template.
 
-    Only modifies: tagline, summary bullet, WFP bullets, skills section.
+    Only modifies: tagline, summary bullet, Postscript bullets, skills section.
     All other sections (HELLA, Accenture, C&A, Education, Languages) are
     left exactly as they appear in the base template.
     """
@@ -295,9 +295,9 @@ def apply_resume_edits(base_latex: str, edits: dict) -> str:
             [edits["summary_bullet"]],
         )
 
-    if edits.get("wfp_bullets"):
+    if edits.get("postscript_bullets"):
         result = _replace_company_bullets(
-            result, "World Food Programme", edits["wfp_bullets"]
+            result, "Postscript", edits["postscript_bullets"]
         )
 
     if edits.get("skills"):

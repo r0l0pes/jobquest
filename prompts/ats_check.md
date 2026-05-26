@@ -150,7 +150,7 @@ Output TWO blocks in this exact order:
       "type": "keyword_add",
       "current_text": "existing bullet text",
       "suggested_text": "modified bullet text with keyword",
-      "location": "WFP bullet 1",
+      "location": "Postscript bullet 1",
       "rationale": "Why this edit"
     }
   ]

@@ -1,4 +1,4 @@
 {
-  "signature": "modules/llm_client.py::Unresolved from this turn — modules/llm_client.py:\n🔴 STOP — 1 issue(s) must be fixed:\n  Expected class but received \"(obj: object, /) -> TypeIs[(...) -> object]\"",
-  "sessionId": "lens-mpcidnib-5ee97b6b"
+  "signature": "tests/test_smoke.py::Unresolved from this turn — tests/test_smoke.py:\n🔴 STOP — 1 issue(s) must be fixed:\n  Import \"pytest\" could not be resolved",
+  "sessionId": "lens-mpmhntzv-900b2f68"
 }

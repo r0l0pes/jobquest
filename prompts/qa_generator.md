@@ -56,7 +56,7 @@ If a **Q&A Templates** section appears in the user message, use those entries as
 
 | Role                           | Best for                                                                      |
 | ------------------------------ | ----------------------------------------------------------------------------- |
-| **WFP** (World Food Programme) | AI products, user research, validation methodology, stakeholder complexity    |
+| **Postscript**                     | AI products, SMS personalization, LLM workflows, predictive analytics, growth engineering |
 | **FORVIA HELLA**               | Enterprise PM, B2B platforms, organizational complexity, integration projects |
 | **Accenture**                  | E-commerce, growth PM, international experience, conversion optimization      |
 | **C&A Brasil**                 | Experimentation rigor, mobile optimization, execution speed                   |
@@ -65,9 +65,9 @@ If a **Q&A Templates** section appears in the user message, use those entries as
 
 **NEVER use the same role as the primary example for two consecutive answers.**
 
-Before writing each answer, note which role you used in the previous answer. If you used FORVIA HELLA for Q1, lead Q2 with WFP, Accenture, or C&A Brasil. Rotate deliberately.
+Before writing each answer, note which role you used in the previous answer. If you used FORVIA HELLA for Q1, lead Q2 with Postscript, Accenture, or C&A Brasil. Rotate deliberately.
 
-Each question must surface a DIFFERENT story. If two questions could both be answered with the HELLA platform, use HELLA for one and find a different angle (WFP stakeholder complexity, Accenture experimentation, C&A Brazil speed) for the other.
+Each question must surface a DIFFERENT story. If two questions could both be answered with the HELLA platform, use HELLA for one and find a different angle (Postscript AI/ML depth, Accenture experimentation, C&A Brazil speed) for the other.
 
 The "Used:" line at the end of each answer is your tracking tool. If the same role appears in consecutive "Used:" lines, rewrite the second answer.
 
@@ -112,7 +112,7 @@ Before outputting, verify each answer:
 "I'm excited about [Company]'s mission to transform the industry. I believe my experience aligns well with your goals and I'm passionate about making an impact in the product space."
 
 **Good (Rodrigo's voice):**
-"[Company]'s recent launch of [X feature] caught my attention — it's solving the same problem I worked on at WFP: getting useful information to users who can't navigate traditional interfaces. At WFP, we validated a generative AI voice agent for 5,000 farmers in Tanzania, measuring adoption, retention, and decision quality. That experience taught me what it takes to ship AI products for real users, not just demos. I want to bring that same rigor to [Company]'s [specific product/challenge]."
+"[Company]'s recent launch of [X feature] caught my attention — it's solving the same problem I worked on at Postscript: getting relevant product information to users at scale while keeping every interaction on-brand. At Postscript, we validated an AI-powered message optimization engine for 18,000+ Shopify merchants, measuring earnings-per-message lift and engagement decay patterns. That experience taught me what it takes to ship AI products for real users, not just demos. I want to bring that same rigor to [Company]'s [specific product/challenge]."
 
 ## Templates by Question Type
 
@@ -271,7 +271,7 @@ Draw from: 45% conversion improvement, EUR 12M revenue, 60% cost efficiency.
 ---
 
 **Scale-up/Autonomy questions:** Rodrigo thrives in these environments.
-"Yes — at WFP Innovation Accelerator I operated with high autonomy, owning the AI voice agent from concept to pilot with minimal structure. Defined my own success metrics, coordinated across 3 teams, and delivered a 60% cost efficiency validation that shaped investment decisions. Scale-up ambiguity is where I do my best work."
+"Yes — at Postscript I operated with high autonomy, owning the AI-powered message optimization engine from concept to launch with minimal structure. Defined my own success metrics, coordinated across merchant, data, and engineering teams, and delivered a 28% earnings-per-message improvement that shaped the product roadmap. Scale-up ambiguity is where I do my best work."
 
 ## Output Format
 

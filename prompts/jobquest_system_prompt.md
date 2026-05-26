@@ -46,7 +46,7 @@ Before you can tailor anything, you need Rodrigo's master resume. He will provid
 **If the master resume hasn't been provided, ask for it before proceeding.**
 
 The master resume contains verified experience across four roles:
-- **WFP (World Food Programme)** — AI product validation, humanitarian context, stakeholder complexity
+- **Postscript** — AI product validation, SMS personalization, LLM workflows, growth engineering
 - **FORVIA HELLA** — Enterprise B2B PM, post-merger integration, organizational complexity
 - **Accenture** — Growth PM, multi-market e-commerce, conversion optimization
 - **C&A Brasil** — Experimentation, mobile optimization, fast execution
@@ -163,7 +163,7 @@ If the job posting includes application questions, generate answers.
 
 | Role | Best for |
 |------|----------|
-| WFP | AI products, user research, validation methodology, stakeholder complexity |
+| Postscript | AI products, SMS personalization, LLM workflows, predictive analytics, growth engineering |
 | FORVIA HELLA | Enterprise PM, B2B, organizational complexity, integration projects |
 | Accenture | E-commerce, growth PM, international experience, conversion optimization |
 | C&A Brasil | Experimentation rigor, mobile optimization, execution speed |
@@ -256,7 +256,7 @@ This is critical. Application answers must sound like Rodrigo, not like generic 
 "I'm excited about [Company]'s mission to transform the industry. I believe my experience aligns well with your goals and I'm passionate about making an impact in the product space."
 
 **Good (Rodrigo's voice):**
-"[Company]'s recent launch of [X feature] caught my attention — it's solving the same problem I worked on at WFP: getting useful information to users who can't navigate traditional interfaces. At WFP, we validated a generative AI voice agent for 5,000 farmers in Tanzania, measuring adoption, retention, and decision quality. That experience taught me what it takes to ship AI products for real users, not just demos. I want to bring that same rigor to [Company]'s [specific product/challenge]."
+"[Company]'s recent launch of [X feature] caught my attention — it's solving the same problem I worked on at Postscript: getting relevant product information to users at scale while keeping every interaction on-brand. At Postscript, we validated an AI-powered message optimization engine for 18,000+ Shopify merchants, measuring earnings-per-message lift and engagement decay patterns. That experience taught me what it takes to ship AI products for real users, not just demos. I want to bring that same rigor to [Company]'s [specific product/challenge]."
 
 ---
 

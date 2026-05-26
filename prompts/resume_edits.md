@@ -6,7 +6,7 @@ You receive a tailoring brief and the master resume. Return a JSON object with t
 {
   "tagline": "short tagline, plain text, no LaTeX",
   "summary_bullet": "full summary text, plain text, no LaTeX commands",
-  "wfp_bullets": [
+  "postscript_bullets": [
     "bullet 1 full text",
     "bullet 2 full text",
     "bullet 3 full text"
@@ -26,7 +26,7 @@ You receive a tailoring brief and the master resume. Return a JSON object with t
 
 - Plain text only in all fields. No LaTeX commands, no backslashes, no \textbf, no \item.
 - For sections not mentioned in the brief as needing change: copy the existing text verbatim from the master resume.
-- wfp_bullets must have exactly 3 items unless the brief explicitly says to add a 4th bullet, in which case include 4.
+- postscript_bullets must have exactly 3 items unless the brief explicitly says to add a 4th bullet, in which case include 4.
 - Each bullet is the full text of one achievement. No truncation.
 - Skills: each category maps to a comma-separated list of skills. Add or reorder skills to match the brief. Do not invent skills not present in the master resume.
 - No em dashes (— or --). Use commas or colons instead.

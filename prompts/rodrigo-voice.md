@@ -244,7 +244,7 @@ The first sentence of any Q&A answer is never a personality claim, a trait state
 
 **Start with either:**
 - A specific observation about the company, product, or challenge (the same rule as cover letter openings)
-- A concrete factual from Rodrigo's experience: "At WFP, I...", "At HELLA, the problem was..."
+- A concrete factual from Rodrigo's experience: "At Postscript, I...", "At HELLA, the problem was..."
 
 If the question is about Rodrigo's personality or preferences (what matters to you, what kind of PM are you), start with the concrete thing that reveals the answer, not the abstract claim. "End-to-end ownership is the non-negotiable. Pennylane's product principles..." beats "Beyond compensation, three things matter most."
 

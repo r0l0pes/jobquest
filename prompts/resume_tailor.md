@@ -137,12 +137,12 @@ These examples show the boundary between good tailoring and keyword stuffing.
 
 - **Priority:** "Self-serve UX for non-technical users"
 - **JD phrase:** "user autonomy"
-- **Resume:** "Built the analytics instrumentation framework to track product adoption across WFP field programs, translating pilot data into scaling priorities for 20+ country programs"
+- **Resume:** "Built the analytics instrumentation framework to track product adoption across Postscript analytics, translating pilot data into scaling priorities for 20+ country programs"
 
 ✅ **Good:** "Built a self-serve analytics framework enabling 20+ country program teams to track product adoption independently, translating pilot data into scaling priorities without centralised technical overhead."
 → Reframe surfaces "self-serve" and "autonomy" naturally because the work _was_ a self-serve tool.
 
-❌ **Bad:** "Built the analytics instrumentation framework to track product adoption across WFP field programs, driving user autonomy and self-serve capabilities, translating pilot data..."
+❌ **Bad:** "Built the analytics instrumentation framework to track product adoption across Postscript analytics, driving user autonomy and self-serve capabilities, translating pilot data..."
 → Words added as dead weight — doesn't change meaning, just stuffs keywords.
 
 ### Example 2: Do NOT insert JD word when it reframes the work

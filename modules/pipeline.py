@@ -372,8 +372,8 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             f"\\hypersetup{{colorlinks=true, linkcolor=black, urlcolor=black, citecolor=black}}\n"
             f"\\begin{{center}}\n"
             f"  {{\\Huge\\bfseries Rodrigo Lopes,}} {{\\small {tagline}}}\\\\[6pt]\n"
-            f"  \\href{{https://rodrigolopes.eu/?utm_source=resume&utm_medium=pdf}}{{rodrigolopes.eu}} \\textbar{{}}\n"
-            f"  \\href{{mailto:contact@rodrigolopes.eu}}{{contact@rodrigolopes.eu}} \\textbar{{}}\n"
+            f"  \\href{{https://rodrigolopes.xyz/?utm_source=resume&utm_medium=pdf}}{{rodrigolopes.xyz}} \\textbar{{}}\n"
+            f"  \\href{{mailto:contact@rodrigolopes.xyz}}{{contact@rodrigolopes.xyz}} \\textbar{{}}\n"
             f"  \\href{{https://www.linkedin.com/in/rodecalo/}}{{linkedin.com/in/rodecalo}} \\textbar{{}}\n"
             f"  +4915203590361\n"
             f"\\end{{center}}\n\n"
@@ -476,7 +476,7 @@ def step_write_tex(ctx: dict, llm: LLMClient, console: Console) -> dict:
     console.print("\n[bold]Step 4/9:[/bold] Writing .tex file...")
 
     run_dir = Path(ctx["run_dir"])
-    filename = f"resume_tailored_{ctx['company_safe']}.tex"
+    filename = f"Resume_Rodrigo-Lopes.tex"
     tex_path = run_dir / filename
 
     tex_path.write_text(ctx["tailored_latex"])
@@ -1024,10 +1024,33 @@ def step_create_tracker_entry(
         existing = []
         if apps_file.exists():
             existing = json.loads(apps_file.read_text())
-        existing.append(entry)
+
+        # Dedup: check if URL already exists (normalized)
+        def normalize(u):
+            return (u or "").rstrip("/").split("#")[0]
+
+        norm_url = normalize(job_url)
+        dup_idx = None
+        for i, a in enumerate(existing):
+            if normalize(a.get("url", "")) == norm_url:
+                dup_idx = i
+                break
+
+        if dup_idx is not None:
+            # Update existing entry with new score/date
+            existing[dup_idx].update({
+                "score": score,
+                "score_label": score_label,
+                "date": date_str,
+                "status": "applied",
+            })
+            console.print(f"  [yellow]↻ Updated existing tracker entry (duplicate URL)[/yellow]")
+        else:
+            existing.append(entry)
+            console.print(f"  [green]✓ Added to tracker ({len(existing)} total)[/green]")
+
         apps_file.write_text(json.dumps(existing, indent=2))
         ctx["tracker_entry_created"] = True
-        console.print(f"  [green]✓ Added to tracker ({len(existing)} total)[/green]")
     except Exception as e:
         console.print(f"  [red]✗ Tracker write error: {type(e).__name__}: {e}[/red]")
         console.print("  Continuing without tracker entry.")

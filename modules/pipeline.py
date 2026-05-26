@@ -251,41 +251,17 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
     ai_context_section = ""
     ai_pm_variant = (ROLE_VARIANT == "ai_pm")
     if ai_pm_variant or _is_ai_heavy_jd(ctx['job']['description']):
-        ai_ctx = _load_ai_pm_context()
-        if ai_ctx:
-            if ai_pm_variant:
-                console.print("  [dim]AI-PM variant: injecting AI PM context[/dim]")
-                ai_context_section = (
-                    f"## Candidate AI PM Context\n\n"
-                    f"This is an AI-PM resume variant. The candidate's AI product management "
-                    f"experience is a primary selling point. Apply the following instructions:\n\n"
-                    f"1. Reframe ALL Postscript bullets through the AI PM lens: lead with the AI product "
-                    f"work (message optimization engine, SMS personalization, analytics) and ground each bullet in "
-                    f"measurable outcomes.\n"
-                    f"2. Surface the candidate's AI-augmented PM workflow "
-                    f"(Cursor, Claude Code, MCP, LLM evaluation — see context below for specifics). "
-                    f"3. In the Skills section, move AI-related skills to the top row and include: "
-                    f"Cursor, Claude Code, MCP (Model Context Protocol), LLM evaluation, Prompt Engineering, "
-                    f"Agentic Workflows.\n"
-                    f"4. Do not add AI workflow bullets to HELLA, Accenture, or C&A roles.\n\n"
-                    f"4. Do not add AI workflow bullets to HELLA, Accenture, or C&A roles.\n\n"
-                    f"{ai_ctx}\n\n"
-                    f"---\n\n"
-                )
-            else:
-                console.print("  [dim]AI-heavy JD detected: injecting AI PM context[/dim]")
-                ai_context_section = (
-                    f"## Candidate AI PM Context\n\n"
-                    f"The JD has AI tool/workflow requirements. The candidate has relevant "
-                    f"experience documented below. If the role asks for AI tool usage, "
-                    f"instruct the writing model to surface Postscript's AI work (message optimization engine, personalization) in the summary.\n"
-                    f"Do not add AI workflow bullets to other roles.\n\n"
-                    f"{ai_ctx}\n\n"
-                    f"---\n\n"
-                )
+        if ai_pm_variant:
+            console.print("  [dim]AI-PM variant: tagging as AI-heavy[/dim]")
+        ai_context_section = (
+            f"## Role Context\n\n"
+            f"This is an AI-heavy role. The candidate's Postscript AI work "
+            f"(message optimization engine, SMS personalization) is the primary story. "
+            f"Foreground this experience over HELLA/Accenture/C&A.\n\n"
+            f"---\n\n"
+        )
     else:
-        # Non-AI role: Postscript is the primary/current role, no de-emphasis needed.
-        console.print("  [dim]Non-AI role: no Postscript de-emphasis[/dim]")
+        console.print("  [dim]Non-AI role: no contextual emphasis[/dim]")
         ai_context_section = ""
 
     analysis_user = (

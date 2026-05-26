@@ -1025,6 +1025,18 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
     latex = latex.replace("{company}", company)
     latex = latex.replace("{place}", place)
     latex = latex.replace("{date}", date_str)
+
+    # Escape LaTeX special characters in body
+    import re
+    cover_body = re.sub(r"\n?_Used:.*", "", cover_body)  # Strip Q&A tracking line
+    cover_body = cover_body.replace("%", "\\%")
+    cover_body = cover_body.replace("_", "\\_")
+    cover_body = cover_body.replace("&", "\\&")
+    cover_body = cover_body.replace("$", "\\$")
+    cover_body = cover_body.replace("#", "\\#")
+    cover_body = cover_body.replace("~", "\\textasciitilde{}")
+    cover_body = cover_body.replace("^", "\\textasciicircum{}")
+
     latex = latex.replace("{body}", cover_body)
 
     # Write .tex file

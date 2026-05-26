@@ -227,15 +227,16 @@ class TestDryRun:
     """
 
     def test_build_steps_all_present(self):
-        """All pipeline steps should be registered (10 steps with scoring)."""
+        """All pipeline steps should be registered (11 steps with scoring + cover letter)."""
         from apply import build_steps
 
         steps = build_steps(fill_form=False)
         step_ids = [s[0] for s in steps]
-        assert len(steps) == 10, f"Expected 10 steps, got {len(steps)}"
+        assert len(steps) == 11, f"Expected 11 steps, got {len(steps)}"
         assert "scrape" in step_ids
         assert "resume" in step_ids
         assert "tailor" in step_ids
+        assert "cl" in step_ids
         assert "score" in step_ids
         assert "tracker" in step_ids
 
@@ -246,12 +247,12 @@ class TestDryRun:
         steps_default = build_steps(fill_form=False)
         step_ids = [s[0] for s in steps_default]
         assert "form" not in step_ids, "Form filler should be off by default"
-        assert len(steps_default) == 10
+        assert len(steps_default) == 11
 
         steps_enabled = build_steps(fill_form=True)
         step_ids_enabled = [s[0] for s in steps_enabled]
         assert "form" in step_ids_enabled, "Form filler should be included when requested"
-        assert len(steps_enabled) == 11
+        assert len(steps_enabled) == 12
 
     def test_dry_run_no_api_calls(self):
         """Dry run should not make any API calls."""
@@ -265,6 +266,8 @@ class TestDryRun:
             skip_notion=True,
             provider="gemini",
             dry_run=True,
+            cover_letter=False,
+            cover_letter_instructions=None,
         )
         result = run_pipeline_from_cli(args)
         assert result == 0, f"Dry run failed with exit code {result}"

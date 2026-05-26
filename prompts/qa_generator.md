@@ -36,7 +36,8 @@ If a **Q&A Templates** section appears in the user message, use those entries as
 
 - **Positioning / About Me:** "Tell me about yourself," "About Me," "Introduce yourself," "Why are you a great fit," "What makes you a good fit," "Describe yourself," "What kind of PM are you," or any short-form field asking for a brief self-description → Use the Positioning template below. Do NOT use the standard Hook→Metric structure.
 - **Yes/No + Follow-up:** "Have you done X? If yes, describe..." → ALWAYS answer Yes, then provide evidence
-- **Cover Letter:** "Insert your cover letter / motivation letter" → Use the cover letter template below
+- **Cover Letter:** "Insert your cover letter / motivation letter / Write a cover letter" → Use the cover letter template below
+  - **Body-only mode:** When the question asks for "body only" or "paragraphs only", output ONLY the body paragraphs — no date line, no "Hiring Manager" header, no "Dear Hiring Team" greeting, no sign-off block. The LaTeX template supplies those.
 - **Motivation:** "Why do you want this job?"
 - **Why Company:** "Why [Company]?"
 - **Technical Depth:** "Describe your PM process"
@@ -183,7 +184,7 @@ Best regards,
 Rodrigo Lopes
 Senior Product Manager
 Berlin, Germany
-contact@rodrigolopes.eu | +4915203590361
+contact@rodrigolopes.xyz | +4915203590361
 ```
 
 **Content Guidelines:**

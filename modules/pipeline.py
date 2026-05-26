@@ -837,6 +837,21 @@ def step_compile_pdf(ctx: dict, llm: LLMClient, console: Console) -> dict:
 
 
 def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
+    # Prepend cover letter question if requested
+    if ctx.get("generate_cover_letter"):
+        # Avoid duplication if user already typed "cover letter" in questions
+        all_q = ctx.get("all_questions", [])
+        already_has_cl = any(
+            "cover letter" in q.lower() for q in all_q
+        )
+        if not already_has_cl:
+            cl_instructions = ctx.get("cover_letter_instructions", "").strip()
+            cl_q = "Write a cover letter body for this application. Output ONLY the body paragraphs (2-4 paragraphs). Do NOT include a date line, greeting, sign-off, or any other metadata — only the paragraphs themselves. The LaTeX template supplies the greeting and sign-off."
+            if cl_instructions:
+                cl_q += f" Additional instructions: {cl_instructions}"
+            all_q.insert(0, cl_q)
+            ctx["all_questions"] = all_q
+
     questions = ctx.get("all_questions", [])
     if not questions:
         console.print("\n[bold]Step 8/9:[/bold] No questions — skipping.")
@@ -980,7 +995,71 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     return ctx
 
 
-# ─── Step 9: Notion Tracking ─────────────────────────────────────
+# ─── Step 9: Compile Cover Letter ──────────────────────────────────
+
+
+def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> dict:
+    """If cover letter was requested, extract body from Q&A and compile PDF."""
+    if not ctx.get("generate_cover_letter"):
+        return ctx
+
+    console.print("\n[bold]Step 9/10:[/bold] Compiling cover letter...")
+
+    qa_answers = ctx.get("qa_answers", [])
+    if not qa_answers:
+        console.print("  [yellow]No Q&A answers found — skipping.[/yellow]")
+        return ctx
+
+    # The first Q&A answer is the cover letter body (prepended question)
+    cover_body = qa_answers[0]["answer"].strip()
+    if not cover_body or len(cover_body) < 50:
+        console.print(f"  [yellow]Cover letter body too short ({len(cover_body)} chars) — skipping.[/yellow]")
+        return ctx
+
+    job_title = ctx["job"].get("title", "Unknown")
+    company = ctx["job"].get("company", "Unknown")
+    run_dir = Path(ctx["run_dir"])
+
+    # Read template
+    template_path = PROJECT_ROOT / "templates" / "cover_letter.tex"
+    if not template_path.exists():
+        console.print(f"  [red]Template not found: {template_path}[/red]")
+        return ctx
+
+    today = date.today()
+    date_str = today.strftime("%d.%m.%Y")
+    place = ctx.get("applicant_location", "Berlin")
+
+    # Fill template (use .replace to avoid LaTeX brace conflicts with .format)
+    latex = template_path.read_text()
+    latex = latex.replace("{role_title}", job_title)
+    latex = latex.replace("{company}", company)
+    latex = latex.replace("{place}", place)
+    latex = latex.replace("{date}", date_str)
+    latex = latex.replace("{body}", cover_body)
+
+    # Write .tex file
+    tex_filename = "Cover-Letter_RodrigoLopes.tex"
+    tex_path = run_dir / tex_filename
+    tex_path.write_text(latex)
+    console.print(f"  [green]Written: {tex_path}[/green]")
+
+    # Compile PDF (reuse render_pdf.py as subprocess)
+    output = _run_script("render_pdf.py", [str(tex_path)])
+    result = json.loads(output)
+    if result.get("success"):
+        ctx["cover_letter_pdf_path"] = result["pdf_path"]
+        console.print(f"  [green]PDF: {result['pdf_path']}[/green]")
+    else:
+        error = result.get("error", "Unknown error")
+        console.print(f"  [red]PDF compilation failed: {error}[/red]")
+        for line in result.get("details", [])[:3]:
+            console.print(f"  [red]{line}[/red]")
+
+    return ctx
+
+
+# ─── Step 10: Notion Tracking ────────────────────────────────────
 
 
 def step_create_tracker_entry(

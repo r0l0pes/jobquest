@@ -78,6 +78,15 @@ def parse_args(argv: list[str] | None = None):
         action="store_true",
         help="Skip form filler step (default behavior; use --fill-form to enable)",
     )
+    parser.add_argument(
+        "--cover-letter",
+        action="store_true",
+        help="Generate a cover letter in LaTeX + PDF from LLM-generated body",
+    )
+    parser.add_argument(
+        "--cover-letter-instructions",
+        help="Optional specific instructions for the cover letter (e.g., 'Emphasize AI experience')",
+    )
     return parser.parse_args(argv)
 
 
@@ -95,6 +104,7 @@ def build_steps(fill_form: bool = False):
         step_apply_ats_edits,
         step_compile_pdf,
         step_generate_qa,
+        step_compile_cover_letter,
         step_create_tracker_entry,
         step_run_form_filler,
         compute_pipeline_score,
@@ -115,6 +125,7 @@ def build_steps(fill_form: bool = False):
         ("ats_apply", "Review & apply ATS edits", step_apply_ats_edits),
         ("compile", "Compile PDF", step_compile_pdf),
         ("qa", "Generate Q&A answers", step_generate_qa),
+        ("cl", "Compile cover letter", step_compile_cover_letter),
         ("score", "Compute pipeline score", _step_score),
         ("tracker", "Create tracker entry", step_create_tracker_entry),
     ]
@@ -235,6 +246,8 @@ def run_pipeline_from_cli(args) -> int:
         "skip_notion": args.skip_notion,
         "skip_form": not fill_form,
         "provider": provider,
+        "generate_cover_letter": args.cover_letter,
+        "cover_letter_instructions": args.cover_letter_instructions or "",
     }
 
     # Dry run

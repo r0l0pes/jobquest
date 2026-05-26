@@ -276,7 +276,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"{ai_context_section}"
         f"Produce the tailoring brief."
     )
-    tailoring_brief = llm.generate(analysis_system, analysis_user, temperature=0.2)
+    tailoring_brief = writing_llm.generate(analysis_system, analysis_user, temperature=0.2)
     ctx["tailoring_brief"] = tailoring_brief
 
     # Save brief to run dir for debugging
@@ -412,7 +412,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"Review for compliance with the brief."
     )
     try:
-        review_raw = llm.generate(review_system, review_user, temperature=0.1)
+        review_raw = writing_llm.generate(review_system, review_user, temperature=0.1)
         ctx["tailor_review"] = review_raw
         (run_dir / f"tailor_review_{ctx['company_safe']}.md").write_text(review_raw)
 

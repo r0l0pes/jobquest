@@ -1131,19 +1131,26 @@ def step_run_form_filler(
         "  [yellow]Browser will open. Review all fields, then submit manually.[/yellow]"
     )
 
-    cmd = [VENV_PYTHON, str(SCRIPTS_DIR / "form_filler.py")]
-    cmd += ["--url", ctx["job_url"]]
-    if ctx.get("pdf_path"):
-        cmd += ["--resume-pdf", ctx["pdf_path"]]
-    if ctx.get("form_data_path"):
-        cmd += ["--data-file", ctx["form_data_path"]]
+    from modules.form_filler_cascade import run_cascade
 
-    try:
-        subprocess.run(cmd, timeout=300, cwd=str(PROJECT_ROOT))
-    except subprocess.TimeoutExpired:
-        console.print("  [yellow]Form filler timed out (5 min).[/yellow]")
-    except Exception as e:
-        console.print(f"  [red]Form filler error: {e}[/red]")
+    result = run_cascade(
+        job_url=ctx["job_url"],
+        resume_pdf=ctx.get("pdf_path"),
+        form_data_path=ctx.get("form_data_path"),
+        no_webwright=ctx.get("no_webwright", False),
+    )
+
+    if result.get("escalated"):
+        if result.get("fallback_used"):
+            console.print("  [green]Webwright fallback completed successfully.[/green]")
+        else:
+            console.print(
+                "  [yellow]Webwright fallback attempted but failed. "
+                f"{result.get('error', 'Unknown error')}[/yellow]"
+            )
+
+    if result.get("error") and not result.get("fallback_used"):
+        console.print(f"  [red]Form filler error: {result['error']}[/red]")
 
     console.print("  Form filler session complete.")
     return ctx

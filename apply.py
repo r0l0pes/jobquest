@@ -80,6 +80,11 @@ def parse_args(argv: list[str] | None = None):
         help="Skip form filler step (default behavior; use --fill-form to enable)",
     )
     parser.add_argument(
+        "--no-webwright",
+        action="store_true",
+        help="Disable Webwright fallback for form filling (deterministic only)",
+    )
+    parser.add_argument(
         "--cover-letter",
         action="store_true",
         help="Generate a cover letter in LaTeX + PDF from LLM-generated body",
@@ -94,7 +99,7 @@ def parse_args(argv: list[str] | None = None):
 
 
 
-def build_steps(fill_form: bool = False):
+def build_steps(fill_form: bool = False, no_webwright: bool = False):
     """Build the pipeline steps list with lazy imports."""
     from modules.pipeline import (
         step_scrape_job,
@@ -218,7 +223,8 @@ def run_pipeline_from_cli(args) -> int:
     console = Console()
     
     fill_form = getattr(args, 'fill_form', False) and not getattr(args, 'skip_form', False)
-    STEPS = build_steps(fill_form=fill_form)
+    no_webwright = getattr(args, 'no_webwright', False)
+    STEPS = build_steps(fill_form=fill_form, no_webwright=no_webwright)
     
     # Resolve provider: CLI arg > env var > default
     provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")
@@ -245,6 +251,7 @@ def run_pipeline_from_cli(args) -> int:
         "questions": [q.strip() for q in args.questions if q.strip()],
         "skip_notion": args.skip_notion,
         "skip_form": not fill_form,
+        "no_webwright": no_webwright,
         "provider": provider,
         "generate_cover_letter": args.cover_letter,
         "cover_letter_instructions": args.cover_letter_instructions or "",

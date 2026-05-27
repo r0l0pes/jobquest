@@ -1,4 +1,6 @@
 {
-  "signature": "tests/test_smoke.py::Unresolved from this turn — tests/test_smoke.py:\n🔴 STOP — 1 issue(s) must be fixed:\n  Import \"pytest\" could not be resolved",
-  "sessionId": "lens-mpmhntzv-900b2f68"
+  "signature": "SESSION_HANDOFF.md::ℹ️ Advisory — no action required this turn:\nCode-quality warnings introduced/touched this turn: 1 across 1 file(s).\nTop rules: pi-lens×1\nDetails written to .pi-lens/cache/code-quality-warnings.json\nNo action required unless you are already refactoring these areas.",
+  "sessionId": "lens-mpnwzc55-61d3bb3c",
+  "projectSeqStart": 7,
+  "projectSeqEnd": 8
 }

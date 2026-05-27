@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-05-27T11:11:43.943Z",
+  "scope": "turn_delta",
+  "sessionId": "lens-mpnwzc55-61d3bb3c",
+  "turnIndex": 60,
+  "projectSeqStart": 7,
+  "projectSeqEnd": 8,
+  "deltaOnly": true,
+  "files": [
+    {
+      "filePath": "/Users/carvalho/Documents/VibeCoding/JobSearch/SESSION_HANDOFF.md",
+      "displayPath": "SESSION_HANDOFF.md",
+      "fileSeq": 1,
+      "warnings": [
+        {
+          "id": "cq:635dbcf9e7",
+          "filePath": "/Users/carvalho/Documents/VibeCoding/JobSearch/SESSION_HANDOFF.md",
+          "displayPath": "SESSION_HANDOFF.md",
+          "severity": "warning",
+          "tool": "pi-lens",
+          "message": "Pi-lens analysis unavailable. Tools for markdown not installed.",
+          "category": "other",
+          "origin": "dispatch"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "warnings": 1,
+    "files": 1,
+    "topRules": [
+      {
+        "rule": "pi-lens",
+        "count": 1
+      }
+    ]
+  }
+}

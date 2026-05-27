@@ -787,21 +787,81 @@ def create_client(
 # ── Writing pipeline: user-selectable model with free-first fallback ──
 
 # Complete writing model chain (free-first, then paid).
-# Each tuple: (provider, model_alias, user_label)
+# Each tuple: (provider, model_alias, user_label, max_input_chars)
+# max_input_chars: rough character limit for system + user prompt combined.
+#   - Large-context models (Gemini, OpenRouter Qwen): send full prompt
+#   - Medium-context (SambaNova): condense if >24K chars
+#   - Small-context (Groq 8K): condense if >12K chars
 # The chain orders models by writing quality vs cost:
-#   Free Gemini → Paid Kimi → Paid OpenRouter → Free Groq/SambaNova
-WRITING_CHAIN: list[tuple[str, str, str]] = [
-    ("gemini",     "gemini-2.5-pro",       "Gemini 2.5 Pro"),       # 64K output, best free writing
-    ("opencode",   "kimi-k2.6",             "Kimi K2.6"),             # Best overall writing, paid
-    ("deepseek",   "deepseek-v4-flash",     "DeepSeek V4 Flash"),     # Fast, direct API key
+#   Free Gemini → Free Groq/SambaNova/OpenRouter → Paid Kimi/DeepSeek
+WRITING_CHAIN: list[tuple[str, str, str, int]] = [
+    ("gemini",     "gemini-2.5-pro",       "Gemini 2.5 Pro",        0),   # 1M ctx — no limit
+    ("gemini",     "gemini-3.1-flash-lite", "Gemini 3.1 Flash Lite", 0),   # 1M ctx — no limit
+    ("groq",       "llama-3.3-70b",         "Groq Llama 3.3 70B",    12000),  # ~8K tokens ≈ 32K chars input, be conservative
+    ("sambanova",  "llama-3.1-405b",        "SambaNova Llama 3.1",   24000),  # ~16K tokens ≈ 64K chars
+    ("openrouter", "qwen/qwen3.5-397b-a17b","OpenRouter Qwen 3.5",   0),   # Large ctx
+    ("opencode",   "kimi-k2.6",             "Kimi K2.6",             0),   # Paid fallback
+    ("deepseek",   "deepseek-chat",         "DeepSeek V3.2",         0),   # Paid fallback
 ]
 
 
-class _WritingFallbackClient(LLMClient):
-    """Internal: tries a pre-built list of clients in order on rate-limit errors."""
+def _condense_prompt(user_prompt: str, max_chars: int) -> str:
+    """Condense a user prompt to fit within max_chars.
 
-    def __init__(self, clients: list[LLMClient]):
-        self._clients = clients
+    Strategy: keep the tailoring brief and instructions intact (usually at
+    the top), truncate the master resume and job description sections.
+    """
+    if len(user_prompt) <= max_chars:
+        return user_prompt
+
+    # Find the master resume section — it's marked with ## Master Resume
+    resume_start = user_prompt.find("## Master Resume")
+    jd_start = user_prompt.find("## Job Posting")
+    brief_end = user_prompt.find("## Tailoring Brief")
+
+    if resume_start == -1 or jd_start == -1:
+        # Fallback: simple truncation with ellipsis
+        return user_prompt[:max_chars - 3] + "..."
+
+    # Keep everything before master resume (brief, instructions)
+    prefix = user_prompt[:resume_start]
+
+    # Truncate master resume to ~40% of remaining budget
+    remaining = max_chars - len(prefix) - 500  # 500 for suffix/instructions
+    resume_section = user_prompt[resume_start:jd_start]
+    if len(resume_section) > remaining * 0.4:
+        # Keep first 2 roles, truncate the rest
+        lines = resume_section.split("\n")
+        truncated = []
+        role_count = 0
+        for line in lines:
+            if line.startswith("### ") or line.startswith("## "):
+                role_count += 1
+            if role_count > 2 and line.startswith("---"):
+                truncated.append("\n*[Earlier experience condensed for brevity]*\n")
+                break
+            truncated.append(line)
+        resume_section = "\n".join(truncated)
+
+    # Job description section
+    jd_section = user_prompt[jd_start:]
+    if len(jd_section) > remaining * 0.5:
+        jd_section = jd_section[:int(remaining * 0.5)] + "\n\n*[Job description truncated for brevity]*\n"
+
+    condensed = prefix + resume_section + jd_section
+    if len(condensed) > max_chars:
+        return condensed[:max_chars - 3] + "..."
+    return condensed
+
+
+class _WritingFallbackClient(LLMClient):
+    """Internal: tries a pre-built list of clients in order on rate-limit errors.
+
+    Each entry is a tuple of (client, max_input_chars). 0 means no limit.
+    """
+
+    def __init__(self, clients: list[tuple[LLMClient, int]]):
+        self._entries = clients
 
     def generate(
         self,
@@ -817,13 +877,21 @@ class _WritingFallbackClient(LLMClient):
         output. If it returns False, the output is treated as a failure and
         the next provider in the chain is tried.
         """
-        import sys
         last_error = None
-        for i, client in enumerate(self._clients):
+        for i, (client, max_input_chars) in enumerate(self._entries):
             try:
                 if i > 0:
                     print(f"  ↳ Falling back to {client.model_name()}...", flush=True)
-                result = client.generate(system_prompt, user_prompt, temperature)
+
+                # Condense prompt if provider has a context limit
+                prompt_to_send = user_prompt
+                if max_input_chars > 0:
+                    total_len = len(system_prompt) + len(user_prompt)
+                    if total_len > max_input_chars:
+                        print(f"  Condensing prompt for {client.model_name()} ({total_len} → ~{max_input_chars} chars)", flush=True)
+                        prompt_to_send = _condense_prompt(user_prompt, max_input_chars - len(system_prompt))
+
+                result = client.generate(system_prompt, prompt_to_send, temperature)
                 # If a content validator is provided, check output completeness
                 if content_validator is not None and not content_validator(result):
                     print(f"  ⚠️  {client.model_name()} output failed validation, trying next writing provider...", flush=True)
@@ -841,7 +909,7 @@ class _WritingFallbackClient(LLMClient):
         )
 
     def model_name(self) -> str:
-        return f"writing/{self._clients[0].model_name()}"
+        return f"writing/{self._entries[0][0].model_name()}"
 
 
 def create_writing_client() -> LLMClient:
@@ -854,14 +922,17 @@ def create_writing_client() -> LLMClient:
     user_provider = os.getenv("WRITING_PROVIDER", "")
     user_model = os.getenv("GEMINI_WRITING_MODEL", "")  # Legacy env name, kept for backward compat
 
-    available: list[LLMClient] = []
+    # List of (client, max_input_chars) tuples for fallback
+    available: list[tuple[LLMClient, int]] = []
     primary_label = "unknown"
 
     # If user specified a provider/model, try it first
     if user_provider and user_model:
         primary_label = f"{user_provider}/{user_model}"
         try:
-            available.append(_create_single_client(user_provider, model=user_model))
+            user_client = _create_single_client(user_provider, model=user_model)
+            # User's choice has no limit (trust user knows their model)
+            available.append((user_client, 0))
         except ValueError:
             pass  # API key missing, fall through to chain
 
@@ -870,12 +941,12 @@ def create_writing_client() -> LLMClient:
     if available:
         tried_models.add(user_model)
 
-    for provider, model, label in WRITING_CHAIN:
+    for provider, model, label, max_input_chars in WRITING_CHAIN:
         if model in tried_models:
             continue
         try:
             client = _create_single_client(provider, model=model)
-            available.append(client)
+            available.append((client, max_input_chars))
             tried_models.add(model)
         except ValueError:
             pass  # API key not configured for this provider
@@ -891,9 +962,9 @@ def create_writing_client() -> LLMClient:
         )
 
     print(
-        f"  Writing: {available[0].model_name()}"
+        f"  Writing: {available[0][0].model_name()}"
         + (f" (+{len(available) - 1} fallback(s))" if len(available) > 1 else ""),
         flush=True,
     )
 
-    return available[0] if len(available) == 1 else _WritingFallbackClient(available)
+    return available[0][0] if len(available) == 1 else _WritingFallbackClient(available)

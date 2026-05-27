@@ -57,9 +57,10 @@ def parse_args(argv: list[str] | None = None):
     parser.add_argument(
         "--writing-model",
         choices=[
-            "gemini-2.5-pro", "kimi-k2.6", "deepseek-v4-flash",
-            "kimi-k2.6", "deepseek-v4-flash", "qwen3.5-397b-a17b",
+            "gemini-2.5-pro", "gemini-3.1-flash-lite",
             "llama-3.3-70b", "llama-3.1-405b",
+            "qwen3.5-397b-a17b",
+            "kimi-k2.6", "deepseek-chat",
         ],
         help="Writing model for steps 3, 6, 8 (default: gemini-2.5-pro)",
     )
@@ -225,8 +226,12 @@ def run_pipeline_from_cli(args) -> int:
     # Resolve writing model: CLI arg > env var > default
     _WRITING_MODEL_TO_PROVIDER = {
         "gemini-2.5-pro": "gemini",
+        "gemini-3.1-flash-lite": "gemini",
+        "llama-3.3-70b": "groq",
+        "llama-3.1-405b": "sambanova",
+        "qwen3.5-397b-a17b": "openrouter",
         "kimi-k2.6": "opencode",
-        "deepseek-v4-flash": "openrouter",
+        "deepseek-chat": "deepseek",
     }
     writing_model = getattr(args, 'writing_model', None)
     if writing_model:

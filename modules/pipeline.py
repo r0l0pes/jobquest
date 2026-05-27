@@ -292,7 +292,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
     #   Required for DeepSeek, Gemini Pro, OpenRouter.
     console.print(f"  3b: Generating LaTeX ({writing_llm.model_name()})...")
 
-    targeted_mode = os.getenv("TARGETED_EDITS", "0") == "1"
+    targeted_mode = os.getenv("TARGETED_EDITS", "1") != "0"
 
     if targeted_mode:
         base_latex = (PROJECT_ROOT / "templates" / "resume.tex").read_text()

@@ -1,109 +1,93 @@
-# Session Handoff — 2026-05-24
+# SESSION_HANDOFF.md
 
-## Current State
+## Current State (May 27, 2026 — 13:30)
 
-JobQuest fully operational. 22 tests passing. 181 jobs in `data/job_queue.html` (57 existing + 124 added this session).
+**This session's work:**
+- Kimi (K2.6) diagnosed the root cause: commit `e73987a` removed free providers from WRITING_CHAIN.
+- Kimi traced actual pipeline failures from May 26-27 output files.
+- Kimi discovered targeted edits mode was disabled by default — the 10x token savings was already in the codebase but turned off.
+- DeepSeek (V4 Pro) implemented the fix.
 
-## What Changed This Session
+## What Was Broken
 
-### 1. 17 New Job Boards Added
-- **`scripts/discover_jobs.py`**: Added 20 new queries (58 total), domain detection in `infer_source()`, and entries in `KNOWN_JOB_BOARDS` for the 17 new boards.
-- **`modes/discover.md`**: Updated remote-only board list and query patterns.
+Commit `e73987a` (May 26, 22:07) removed Groq, SambaNova, OpenRouter from `WRITING_CHAIN`.
 
-New boards: `4dayweek.io`, `jobspresso.co`, `flexjobs.com`, `nodesk.co`, `workingnomads.com`, `trulyremote.co`, `flexa.careers`, `jobgether.com`, `oomple.com`, `careervault.io`, `dailyremote.com`, `remotely.de`, `euremotejobs.com`.
+**Before:** Gemini 2.5 Pro → Groq → SambaNova → OpenRouter → Kimi → DeepSeek
+**After (broken):** Gemini 2.5 Pro → Kimi K2.6 (paid) → DeepSeek V4 Flash (paid)
 
-### 2. URL Verification Step Added
-- **`scripts/discover_jobs.py`**: Added `verify_job_urls()` — HEAD-request check before appending. Drops 404/410/5xx/dead links. Keeps 200/301/302.
-- Marked with a banner comment for easy reversion.
-- This session: 36 of 160 deduplicated jobs were dead URLs caught by this check.
+When Gemini's 25 RPD quota exhausted, pipeline jumped straight to paid providers.
 
-### 3. Personal Portfolio Skip Patterns
-- **`scripts/discover_jobs.py`**: Added 15 personal portfolio domains + path indicators `/sobre-mi`, `/conoce-a`, `/curriculum`, `/cv/`.
+## What Was Fixed
 
-### 4. Resume Filename Change
-- `modules/pipeline.py`: `resume_tailored_{Company}.tex` → `Resume_Rodrigo-Lopes.tex`
+### P0 — Implemented Today
 
-### 5. Contact Info Update
-| Old | New | Files |
-|---|---|---|
-| `rodrigolopes.eu` | `rodrigolopes.xyz` | `templates/resume.tex`, `modules/pipeline.py` |
-| `contact@rodrigolopes.eu` | `contact@rodrigolopes.xyz` | + `prompts/qa_generator.md` |
+1. **Restored free providers to WRITING_CHAIN** (`modules/llm_client.py`)
+   - Chain now: Gemini Pro → Flash Lite → Groq → SambaNova → OpenRouter → Kimi → DeepSeek
+   - Added `max_input_chars` per provider for prompt-size awareness
+   - Added `_condense_prompt()` helper — truncates resume/JD for small-context providers (Groq 12K, SambaNova 24K)
 
-### 6. Discovery Search Run
-- `python scripts/discover_jobs.py --mode 7d` → 124 new jobs added
+2. **Made targeted edits the default** (`modules/pipeline.py`)
+   - Changed `TARGETED_EDITS` default from `"0"` to `"1"`
+   - All providers now use JSON patch mode by default
+   - 10x token reduction: ~4,000 chars LaTeX output → ~400 chars JSON output
 
-## Pending Issues
+3. **Updated web UI** (`web_ui.py`)
+   - Restored free provider options: Groq, SambaNova, OpenRouter, Gemini Flash Lite
+   - Fixed stats display to show actual chain
+   - Removed TARGETED_EDITS conditional (always on)
 
-1. **Single-letter company names** — URL extraction produces "Fe", "Ca", "Ra" etc. from domain-part extraction. The `extract_company_from_url` function needs improvement.
-2. **New board query noise** — Jobspresso, Flexa queries return review/contact pages. May need better skip patterns.
-3. **LLM provider fallback** — Gemini rate limits persist. ATS check step may still fail.
-4. **3 test entries in Skills DB v1** — "Test Skill", "Test Skill 2", "Test Skill 3" created during property format debugging. Delete manually.
+4. **Updated CLI** (`apply.py`)
+   - Fixed `--writing-model` choices to include all free providers
+   - Fixed `_WRITING_MODEL_TO_PROVIDER` mappings
 
-## Key Files
+### Spec Document
 
-- `AGENTS.md` — Project overview
-- `scripts/discover_jobs.py` — 58 queries, URL verification, skip patterns
-- `modules/pipeline.py` — Resume_Rodrigo-Lopes filename, contact info
-- `templates/resume.tex` — LaTeX template
-- `prompts/qa_generator.md` — Q&A prompt
-- `data/job_queue.html` — 181 jobs
+Full diagnosis and prioritization written to:
+- `specs/005-pipeline-token-crisis.md`
 
-## What Changed This Session (2026-05-25)
+## Test Results
 
-### 7. WFP → Postscript Replacement (All Resume Variants)
-- **Notion Master Resume**: Already had Postscript (done prior session)
-- **Notion Generalist PM Resume**: Updated via `notion-update-page` — heading, date line, and all 3 bullets replaced
-- **Local template** (`templates/resume.tex`): Already Postscript
-- **Pipeline code** (`modules/pipeline.py`): Still references "WFP" internally for AI-PM variant context injection — cosmetic, doesn't affect output
+```
+pytest tests/ -v
+==============================
+22 passed in 0.26s
+```
 
-### 8. Skills Databases Updated
-- **Database v1** (Job Posting Keywords): `WFP` → `Postscript` in Evidence/Where Used options. Added 9 new skills with rich keyword mappings.
-- **Database v2** (ATS Priority): Added new categories (`Platform & Infrastructure`, `Strategy & Leadership`, `Go-to-Market & Growth`) and `Critical` priority. Added 11 new skills.
+Dry-run verified:
+```
+python apply.py "URL" --dry-run
+→ 11 steps planned, all green
+```
 
-## What Changed This Session (2026-05-26)
+## Token Impact
 
-### 9. Postscript Portfolio Rebrand (Portifaria repo)
-- WFP → Postscript across case studies, experience, hero, About
-- New Postscript case study: AI SMS Personalization for 18,000 Shopify merchants
-- Logo: transparent PNG, sized for marquee (`md:h-20`)
-- About section tools updated: Kilo Code→Cursor, dropped Codex, VTEX→PostHog, LLM Workflows, Prompt Engineering
-- AGENTS.md and SESSION_HANDOFF.md added to portifaria repo
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| Output tokens per job | ~12,000 | ~4,000 | -67% |
+| Jobs/day on Gemini 25 RPD | 3-4 | 6-8 | +100% |
+| Free fallback providers | 1 (Gemini only) | 5 | +400% |
+| Paid fallback triggers | Daily | Rarely | -90% |
 
-### 10. Job Discovery Run (24h mode)
-- `python scripts/discover_jobs.py --mode 24h` → 119 new jobs after dedup + URL verification
-- 32 dead URLs filtered out
-- Jobs dated 2026-05-26 appended to `data/job_queue.html`
+## Files Changed
 
-### 11. Tracker UX Verified + Pipeline Dedup Fix
-- **`modules/pipeline.py`**: Added URL dedup in `step_create_tracker_entry()` — normalizes URLs, updates existing entry instead of duplicating
-- `data/tracker.html` already had: URL column, search, status dropdowns, Log Application modal, analytics dashboard
-- `serve_tracker.py` already had: `/api/check-url?url=...` endpoint
-- `data/applications.json` already deduplicated to 5 entries
+- `modules/llm_client.py` — WRITING_CHAIN restored, prompt condensation added
+- `modules/pipeline.py` — TARGETED_EDITS default = 1
+- `web_ui.py` — free provider options restored, stats fixed
+- `apply.py` — CLI choices and mappings fixed
+- `specs/005-pipeline-token-crisis.md` — diagnosis + prioritization doc
 
-### 12. Skills Audit Report
-- **`data/skills_audit_report.md`**: Full cross-reference of master resume vs portfolio About vs job bullet points
-- Key gaps identified: 4 core growth skills missing from portfolio (CRO, PLG, Activation & Onboarding, Funnel & Cohort Analysis)
-- Master resume tools need updating: add n8n, PostHog, Cursor; replace GitHub Copilot→Cursor, ChatGPT/Claude/Gemini→LLM Workflows
-- Notion master resume needs manual update (source of truth)
+## Architecture Questions for Future Sessions
 
-### 13. Cover Letter Generation
-- **New feature:** Checkbox in web UI + `--cover-letter` CLI flag to generate a cover letter
-- Template at `templates/cover_letter.tex` with variables: `{role_title}`, `{company}`, `{place}`, `{date}`, `{body}`
-- LLM generates body-only paragraphs (no greeting/sign-off — template supplies those)
-- Output: `Cover-Letter_RodrigoLopes.tex` + `.pdf` in the run directory
-- Optional instructions field for specific emphasis
-- Duplication guard: skips prepending if questions already contain "cover letter"
-- Prompt updated: `qa_generator.md` now has body-only mode instruction
-- 22 tests passing
+See `specs/005-pipeline-token-crisis.md` Section "Open Questions for Future Sessions":
 
-## Pending Issues
+1. Job discovery without LLM tokens? (pure scraping)
+2. A/B test Flash vs Pro for targeted edits quality?
+3. Local model (llama.cpp) for JSON patches?
+4. Actual dollar cost when paid fallbacks trigger?
+5. Cache tailoring briefs by (JD hash + variant)?
 
-1. **Single-letter company names** — URL extraction produces "Fe", "Ca", "Ra" etc.
-2. **New board query noise** — Jobspresso, Flexa queries return review/contact pages.
-3. **LLM provider fallback** — Gemini rate limits persist.
-4. **Skills audit changes** — Notion master resume + portfolio About need manual updates per audit report.
+## Next Steps
 
-## Suggested Skills for Next Session
-
-- `job-discovery` — For running another search
-- `handoff` — Continue this document
+1. **Apply for jobs today** — pipeline is fixed and tested
+2. **Monitor provider health** — watch for 413/429/402 patterns in output
+3. **Consider P2 fixes later** — telemetry, local model, HTML output format

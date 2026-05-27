@@ -1,0 +1,1 @@
+/Users/carvalho/Documents/VibeCoding/PI_SCREENSHOT_ISSUE_FIX.md

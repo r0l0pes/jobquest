@@ -79,7 +79,7 @@ def get_stats_display():
         status = "🟢" if pct < 80 else "🟡" if pct < 100 else "🔴"
         ats_parts.append(f"{status} {info['label']}: {calls}/{info['calls']} ({apps} apps)")
 
-    return "**ATS step (5):** " + " | ".join(ats_parts) + " — **Writing steps (3,6,8):** DeepSeek → OpenRouter → Haiku"
+    return "**ATS step (5):** " + " | ".join(ats_parts) + " — **Writing steps (3,6,8):** Gemini Pro → Flash Lite → Groq → SambaNova → OpenRouter → Kimi → DeepSeek"
 
 
 def get_recent_outputs():
@@ -145,19 +145,27 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
     # Writing model selector (free-first, user-selectable)
     writing_provider_map = {
         "Gemini 2.5 Pro (free)": "gemini",
+        "Gemini 3.1 Flash Lite (free)": "gemini",
+        "Groq Llama 3.3 70B (free)": "groq",
+        "SambaNova Llama 3.1 405B (free)": "sambanova",
+        "OpenRouter Qwen 3.5 (free)": "openrouter",
         "Kimi K2.6 (OpenCode · paid)": "opencode",
-        "DeepSeek V4 Flash (OpenRouter · paid)": "openrouter",
+        "DeepSeek V3.2 (paid)": "deepseek",
     }
     writing_model_map = {
         "Gemini 2.5 Pro (free)": "gemini-2.5-pro",
+        "Gemini 3.1 Flash Lite (free)": "gemini-3.1-flash-lite",
+        "Groq Llama 3.3 70B (free)": "llama-3.3-70b",
+        "SambaNova Llama 3.1 405B (free)": "llama-3.1-405b",
+        "OpenRouter Qwen 3.5 (free)": "qwen/qwen3.5-397b-a17b",
         "Kimi K2.6 (OpenCode · paid)": "kimi-k2.6",
-        "DeepSeek V4 Flash (OpenRouter · paid)": "deepseek-v4-flash",
+        "DeepSeek V3.2 (paid)": "deepseek-chat",
     }
     wm = writing_model or "Gemini 2.5 Pro (free)"
     full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "gemini")
     full_env["GEMINI_WRITING_MODEL"] = writing_model_map.get(wm, "gemini-2.5-pro")
-    # Targeted edit mode: faster JSON patch for Flash models (works best with Gemini Flash variants)
-    full_env["TARGETED_EDITS"] = "1" if ("Flash" in wm and "Gemini" in wm) else "0"
+    # Targeted edits (JSON patches) are now the default for all providers — much lower token usage
+    full_env["TARGETED_EDITS"] = "1"
 
     # Override master resume ID and set role variant for the subprocess
     variant_label = resume_variant or "Growth PM"
@@ -284,8 +292,12 @@ def create_app_form(slot_num):
             writing_model = gr.Radio(
                 choices=[
                     "Gemini 2.5 Pro (free)",
+                    "Gemini 3.1 Flash Lite (free)",
+                    "Groq Llama 3.3 70B (free)",
+                    "SambaNova Llama 3.1 405B (free)",
+                    "OpenRouter Qwen 3.5 (free)",
                     "Kimi K2.6 (OpenCode · paid)",
-                    "DeepSeek V4 Flash (OpenRouter · paid)",
+                    "DeepSeek V3.2 (paid)",
                 ],
                 value="Gemini 2.5 Pro (free)",
                 label="Writing model (steps 3, 6, 8)",

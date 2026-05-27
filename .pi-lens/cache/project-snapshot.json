@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "projectRoot": "/Users/carvalho/Documents/VibeCoding/JobSearch",
+  "generatedAt": "2026-05-27T11:07:14.850Z",
+  "seq": 0,
+  "files": {
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/apply.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/apply.py",
+      "mtimeMs": 1779826043915.5552,
+      "size": 11708,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/batch_job_search.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/batch_job_search.py",
+      "mtimeMs": 1779051341570.5576,
+      "size": 5129,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/config.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/config.py",
+      "mtimeMs": 1772635355561.44,
+      "size": 1814,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/__init__.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/__init__.py",
+      "mtimeMs": 1769638075912.9504,
+      "size": 0,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/job_scraper.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/job_scraper.py",
+      "mtimeMs": 1778258473442.9333,
+      "size": 605,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/llm_client.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/llm_client.py",
+      "mtimeMs": 1779880033443.3162,
+      "size": 40091,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/parsers.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/parsers.py",
+      "mtimeMs": 1779822174383.6445,
+      "size": 12423,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/pipeline.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/pipeline.py",
+      "mtimeMs": 1779825147490.51,
+      "size": 44995,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/__init__.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/__init__.py",
+      "mtimeMs": 1778258454080.0823,
+      "size": 249,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/company_research.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/company_research.py",
+      "mtimeMs": 1778258445687.2285,
+      "size": 15635,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/job_postings.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/job_postings.py",
+      "mtimeMs": 1778258413026.2036,
+      "size": 25401,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/__init__.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/__init__.py",
+      "mtimeMs": 1772033793057.2808,
+      "size": 0,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/discover_jobs.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/discover_jobs.py",
+      "mtimeMs": 1779640956806.6404,
+      "size": 26279,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/form_filler.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/form_filler.py",
+      "mtimeMs": 1769696582390.4148,
+      "size": 14517,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_db_setup.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_db_setup.py",
+      "mtimeMs": 1771523432552.6467,
+      "size": 5347,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_reader.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_reader.py",
+      "mtimeMs": 1771526574839.7832,
+      "size": 7618,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_tracker.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_tracker.py",
+      "mtimeMs": 1772033793351.392,
+      "size": 6333,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_update_resume.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_update_resume.py",
+      "mtimeMs": 1779742992685.0176,
+      "size": 6046,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/render_pdf.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/render_pdf.py",
+      "mtimeMs": 1769638303648.7778,
+      "size": 2078,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/smoke_check.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/smoke_check.py",
+      "mtimeMs": 1772033793039.3252,
+      "size": 3478,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/serve_tracker.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/serve_tracker.py",
+      "mtimeMs": 1779817941884.4238,
+      "size": 5120,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_smoke.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_smoke.py",
+      "mtimeMs": 1779821031294.5796,
+      "size": 10469,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/web_ui.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/web_ui.py",
+      "mtimeMs": 1779826035224.8604,
+      "size": 13934,
+      "imports": [],
+      "lastSeq": 0
+    }
+  },
+  "symbols": {},
+  "reverseDeps": {
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/apply.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/batch_job_search.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/config.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/__init__.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/job_scraper.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/llm_client.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/parsers.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/pipeline.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/__init__.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/company_research.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/job_postings.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/__init__.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/discover_jobs.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/form_filler.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_db_setup.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_reader.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_tracker.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_update_resume.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/render_pdf.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/smoke_check.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/serve_tracker.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_smoke.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/web_ui.py": []
+  },
+  "cachedExports": [],
+  "projectRulesScan": {
+    "rules": [
+      {
+        "source": "root",
+        "name": "AGENTS.md",
+        "filePath": "/Users/carvalho/Documents/VibeCoding/JobSearch/AGENTS.md",
+        "relativePath": "AGENTS.md"
+      }
+    ],
+    "hasCustomRules": true
+  },
+  "startupScan": {
+    "cwd": "/Users/carvalho/Documents/VibeCoding/JobSearch",
+    "scanRoot": "/Users/carvalho/Documents/VibeCoding/JobSearch",
+    "projectRoot": "/Users/carvalho/Documents/VibeCoding/JobSearch",
+    "canWarmCaches": true,
+    "sourceFileCount": 23
+  },
+  "languageProfile": {
+    "present": {
+      "jsts": false,
+      "python": true,
+      "go": false,
+      "rust": false,
+      "cxx": false,
+      "cmake": false,
+      "fish": false,
+      "shell": false,
+      "json": false,
+      "markdown": false,
+      "css": false,
+      "yaml": false,
+      "sql": false,
+      "ruby": false,
+      "html": false,
+      "docker": false,
+      "php": false,
+      "powershell": false,
+      "prisma": false,
+      "csharp": false,
+      "fsharp": false,
+      "java": false,
+      "kotlin": false,
+      "swift": false,
+      "dart": false,
+      "lua": false,
+      "zig": false,
+      "haskell": false,
+      "elixir": false,
+      "gleam": false,
+      "ocaml": false,
+      "clojure": false,
+      "terraform": false,
+      "nix": false,
+      "toml": false
+    },
+    "configured": {
+      "python": true
+    },
+    "counts": {
+      "python": 23
+    },
+    "detectedKinds": [
+      "python"
+    ]
+  }
+}

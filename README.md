@@ -1,28 +1,32 @@
 # JobQuest
 
-Automated job application pipeline. Discovery, tailoring, scoring, and tracking — all from a single URL.
+Automated job application pipeline. Discovery, tailoring, scoring, tracking, and editing — all from a single URL or one-click launcher.
 
 ## What It Does
 
-1. **Discover** — Agent finds jobs across LinkedIn, StepStone, Wellfound, We Work Remotely,
-   Remote OK, Himalayas, Remotive, and more (via `modes/discover.md`)
-2. **Tailor** — 3-stage LLM resume tailoring with ATS keyword coverage check
-3. **Score** — 0-100 pipeline score from ATS match, compliance, company research, and AI signals
-4. **Track** — Sortable HTML tracker with editable status, notes, and analytics
+1. **Discover** — Exa API searches for PM jobs across the web. Pop-up modal on the Discovery tab asks time range (7d/24h) and whether to keep or clear existing positions.
+2. **Tailor** — 3-stage LLM resume tailoring with ATS keyword coverage check, Q&A generation, and optional cover letter compilation.
+3. **Score** — 0-100 pipeline score from ATS match, compliance, company research, and AI signals.
+4. **Track** — Sortable HTML tracker with editable Q&A, cover letter, and resume modals. Each modal has Save, Recompile PDF, and Remove. Dedup by URL on save.
 
 Manual apply only. No auto-submission.
 
-## Quick Launch
+## One-Click Launch
+
+Double-click **`JobQuest.command`** — it starts both servers and opens 3 browser tabs:
+
+| Tab | URL | What it shows |
+|-----|-----|---------------|
+| **Pipeline** | `http://127.0.0.1:7860` | 3 parallel application slots with Gradio UI |
+| **Tracker** | `http://127.0.0.1:7880` | Application list with editable Q&A, Cover Letter, Resume |
+| **Discovery** | `http://127.0.0.1:7880/queue` | Job queue with automatic pop-up to run discovery |
+
+## Quick Launch (Manual)
 
 ```bash
-# Web UI (3 parallel application slots)
-python web_ui.py                    → http://127.0.0.1:7860
-
-# CLI
-python apply.py "JOB_URL"
-
-# Tracker
-python serve_tracker.py             → http://127.0.0.1:7878
+source venv/bin/activate
+python serve_tracker.py --port 7880   # Tracker + Discovery + API
+python web_ui.py                       # Pipeline UI
 ```
 
 ## Pipeline
@@ -31,19 +35,25 @@ python serve_tracker.py             → http://127.0.0.1:7878
 Job URL
   │
   ├─  1. Scrape job posting (6 ATS platforms + HTML fallback)
-  ├─  2. Read master resume from Notion (cached per variant)
-  ├─  3. Tailor resume via LLM (3-stage: analysis → LaTeX → compliance)
+  ├─  2. Read master resume from Notion (cached per 3 variants)
+  ├─  3. Tailor resume via LLM (analysis → LaTeX → compliance)
   ├─  4. Write .tex file
   ├─  5. Run ATS keyword coverage check
   ├─  6. Review & apply ATS edits
   ├─  7. Compile PDF via pdflatex
-  ├─  8. Generate Q&A answers (with company research)
+  ├─  8. Generate Q&A answers (saved as qa_*.md)
   ├─  9. Compute pipeline score (0-100)
-  ├─ 10. Create Notion tracker entry
-  └─ 11. (Optional) Open form filler
+  ├─ 10. (Optional) Compile cover letter PDF
+  └─ 11. Save to tracker (data/applications.json, dedup by URL)
           │
           ▼
-     Output: PDF + Q&A + score
+     Output/Company_YYYY-MM-DD/
+       ├── Resume_Rodrigo-Lopes.tex + .pdf
+       ├── Cover-Letter_RodrigoLopes.tex + .pdf (optional)
+       ├── qa_Company.md
+       ├── ats_report_Company.md
+       ├── tailoring_brief_Company.md
+       └── pipeline_context.json
 ```
 
 ## Agent Modes
@@ -106,42 +116,46 @@ rate-limit errors.
 **ATS check (step 5):** User-selectable provider with cross-provider fallback.
 Primary (Gemini / Groq / SambaNova / OpenRouter) → rate-limit → next in chain.
 
-## Output
+## Tracker Editing
 
-```
-output/CompanyName_YYYY-MM-DD/
-  ├── tailoring_brief_*.md     # JD analysis
-  ├── tailor_review_*.md       # Compliance check
-  ├── resume_tailored_*.tex    # LaTeX source
-  ├── resume_tailored_*.pdf    # Ready to upload
-  ├── ats_report_*.md          # Keyword coverage
-  ├── qa_*.md                  # Application answers
-  └── pipeline_context.json    # Full context + score
-```
+The tracker supports in-place editing of all application artifacts:
+
+| Column | Click | Modal offers |
+|--------|-------|--------------|
+| **Q&A** | Q&A button | Editable textarea + Save |
+| **Cover** | Cover button | Editable .tex content + Save + Recompile PDF + Remove |
+| **Resume** | Resume button | Editable .tex content + Save + Recompile PDF + Remove |
+
+Clicking **Recompile PDF** sends the edited content to the server, which writes the updated `.tex` to disk and runs `render_pdf.py` to regenerate the PDF. Changes persist when you click "Save Changes" in the toolbar.
 
 ## Project Structure
 
 ```
 JobQuest/
 ├── AGENTS.md                  ← Pi reads this first
-├── apply.py                   ← CLI pipeline
-├── web_ui.py                  ← Gradio UI (3 slots)
-├── serve_tracker.py           ← Tracker server
+├── JobQuest.command           ← One-click launcher (3 browser tabs)
+├── apply.py                   ← CLI pipeline orchestrator
+├── web_ui.py                  ← Gradio UI (3 parallel slots)
+├── serve_tracker.py           ← Tracker + Discovery + API server
 ├── config.py
-├── modules/                   ← Core logic
+├── modules/                   ← Core pipeline logic
 ├── scripts/                   ← Subprocess utilities
 ├── prompts/                   ← LLM prompt templates
 ├── modes/                     ← Pi agent instructions
-├── data/                      ← Tracker + job queue
-├── specs/                     ← Feature specifications
-├── tests/                     ← pytest (22 tests)
-└── templates/                 ← LaTeX resume template
+├── data/
+│   ├── applications.json      ← 21 entries, auto-saved by pipeline
+│   ├── tracker.html           ← Editable tracker UI
+│   └── job_queue.html         ← Discovery queue with pop-up modal
+├── output/                    ← Per-application output dirs
+├── specs/                     ← 7 feature specifications
+├── tests/                     ← pytest (32 tests)
+└── templates/                 ← LaTeX resume + cover letter templates
 ```
 
 ## Testing
 
 ```bash
-pytest tests/ -v               # 22 tests in ~0.2s
+pytest tests/ -v               # 32 tests in ~0.6s
 ```
 
 ## Supported Platforms

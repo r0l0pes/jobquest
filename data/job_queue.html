@@ -185,6 +185,9 @@
       <button id="move-btn" onclick="moveToTracker()">
         📋 Move Selected to Tracker
       </button>
+      <button id="discover-btn" onclick="showDiscoveryModal()" style="background:#238636;border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
+        🔍 Run Discovery
+      </button>
       <span class="stats" id="stats"></span>
     </div>
 
@@ -218,6 +221,30 @@
     </table>
     <div class="empty" id="empty" style="display: none">
       No jobs discovered yet.
+    </div>
+
+    <div id="discovery-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:24px;width:420px;max-width:90vw;">
+        <h3 style="color:#58a6ff;margin-bottom:16px;">🔍 Start Job Discovery</h3>
+        <p style="color:#8b949e;font-size:13px;margin-bottom:16px;">
+          Search for new PM job postings across the web.
+        </p>
+        <div style="margin-bottom:16px;">
+          <label style="color:#c9d1d9;font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Time range</label>
+          <label style="color:#8b949e;font-size:13px;margin-right:16px;"><input type="radio" name="discover-mode" value="7d" checked> Last 7 days</label>
+          <label style="color:#8b949e;font-size:13px;"><input type="radio" name="discover-mode" value="24h"> Last 24 hours</label>
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="color:#c9d1d9;font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Existing positions</label>
+          <label style="color:#8b949e;font-size:13px;margin-right:16px;"><input type="radio" name="discover-clear" value="keep" checked> Keep</label>
+          <label style="color:#8b949e;font-size:13px;"><input type="radio" name="discover-clear" value="remove"> Remove</label>
+        </div>
+        <div id="discover-status" style="color:#8b949e;font-size:12px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="startDiscovery()" style="background:#238636;border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;flex:1;">Start Discovery</button>
+          <button onclick="hideDiscoveryModal()" style="background:#30363d;border:none;color:#8b949e;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -1376,6 +1403,59 @@
           alert("Could not reach tracker server. Start it with: python serve_tracker.py");
         }
       }
+
+      // ── Discovery Modal ──
+      function showDiscoveryModal() {
+        document.getElementById('discovery-modal').style.display = 'flex';
+        document.getElementById('discover-status').textContent = '';
+      }
+      function hideDiscoveryModal() {
+        document.getElementById('discovery-modal').style.display = 'none';
+      }
+      async function startDiscovery() {
+        const mode = document.querySelector('input[name="discover-mode"]:checked').value;
+        const clear = document.querySelector('input[name="discover-clear"]:checked').value === 'remove';
+        const status = document.getElementById('discover-status');
+
+        status.textContent = '⏳ Running discovery... This may take a minute.';
+        status.style.color = '#8b949e';
+
+        try {
+          const resp = await fetch('/api/discover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode, clear }),
+          });
+          const result = await resp.json();
+
+          if (result.ok) {
+            status.textContent = `✅ Found ${result.jobs_found} jobs! Reloading...`;
+            status.style.color = '#238636';
+            setTimeout(() => {
+              hideDiscoveryModal();
+              location.reload();
+            }, 1500);
+          } else {
+            status.textContent = `❌ ${result.error || 'Discovery failed'}`;
+            status.style.color = '#da3633';
+          }
+        } catch (e) {
+          status.textContent = `❌ Error: ${e.message}. Is the tracker server running?`;
+          status.style.color = '#da3633';
+        }
+      }
+
+      // Auto-open modal on page load if query param ?discover is present, or just show the button
+      // Show modal automatically on first load
+      if (!sessionStorage.getItem('discovery-dismissed')) {
+        showDiscoveryModal();
+      }
+      // Hide modal on Cancel also sets the flag
+      const origHide = hideDiscoveryModal;
+      hideDiscoveryModal = function() {
+        sessionStorage.setItem('discovery-dismissed', 'true');
+        origHide();
+      };
 
       render();
     </script>

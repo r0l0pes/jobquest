@@ -42,6 +42,9 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         elif self.path == "/" or self.path == "":
             self.path = "/data/tracker.html"
             super().do_GET()
+        elif self.path == "/queue" or self.path == "/queue/":
+            self.path = "/data/job_queue.html"
+            super().do_GET()
         else:
             super().do_GET()
 
@@ -50,6 +53,8 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             self._save_json()
         elif self.path == "/api/recompile":
             self._recompile_pdf()
+        elif self.path == "/api/discover":
+            self._discover_jobs()
         else:
             self.send_response(404)
             self.end_headers()
@@ -225,10 +230,100 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
+    def _discover_jobs(self):
+        """
+        POST /api/discover
+        Body: { "mode": "7d"|"24h", "clear": true|false }
+
+        Runs scripts/discover_jobs.py with the given mode.
+        If clear is true, resets the queue file before running.
+        """
+        import subprocess
+        from io import StringIO
+
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length)
+        try:
+            data = json.loads(body)
+            mode = data.get("mode", "7d")
+            clear = data.get("clear", False)
+
+            if mode not in ("7d", "24h"):
+                raise ValueError(f"Invalid mode: {mode}. Use '7d' or '24h'.")
+
+            # Optionally clear the queue
+            if clear:
+                _reset_queue_file()
+
+            # Run the discovery script
+            script = PROJECT_ROOT / "scripts" / "discover_jobs.py"
+            if not script.exists():
+                raise FileNotFoundError(f"Discovery script not found: {script}")
+
+            result = subprocess.run(
+                [sys.executable, str(script), "--mode", mode],
+                capture_output=True, text=True, timeout=180,
+                cwd=str(PROJECT_ROOT),
+            )
+
+            if result.returncode != 0:
+                error_msg = result.stderr[:500] or result.stdout[:500] or f"Exit code {result.returncode}"
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "ok": False,
+                    "error": error_msg,
+                }).encode())
+                return
+
+            # Count jobs by parsing the updated queue file
+            queue_file = DATA_DIR / "job_queue.html"
+            jobs_found = 0
+            if queue_file.exists():
+                import re
+                content = queue_file.read_text()
+                jobs_found = content.count('"company":')
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "ok": True,
+                "jobs_found": jobs_found,
+            }).encode())
+
+        except Exception as e:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
     def log_message(self, format, *args):
         """Suppress default logging noise."""
         if "/api/" in str(args[0]):
             print(f"  {args[0]}", flush=True)
+
+
+# ── Module-level helpers (used by handlers and tests) ──
+
+QUEUE_TEMPLATE = """<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobQuest — Discovery Queue</title>
+  </head>
+  <body>
+    <p>Queue cleared. Run discovery again.</p>
+  </body>
+</html>"""
+
+
+def _reset_queue_file():
+    """Reset the job queue to an empty template."""
+    queue_file = DATA_DIR / "job_queue.html"
+    queue_file.write_text(QUEUE_TEMPLATE)
 
 
 def main():

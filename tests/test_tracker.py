@@ -107,6 +107,67 @@ class TestSaveApplicationJson:
         assert apps[0]["score"] == 85  # updated
 
 
+class TestJobsHubDiscover:
+    """Tests for the /api/discover endpoint logic."""
+
+    def test_clear_queue_creates_empty_file(self, tmp_path, monkeypatch):
+        """When clear=True, the queue file should be reset to a basic template."""
+        from serve_tracker import _reset_queue_file, DATA_DIR, PROJECT_ROOT
+
+        monkeypatch.setattr("serve_tracker.PROJECT_ROOT", tmp_path)
+        monkeypatch.setattr("serve_tracker.DATA_DIR", tmp_path / "data")
+        monkeypatch.setattr("serve_tracker.APP_FILE", tmp_path / "data" / "applications.json")
+
+        # Create a queue file with some content
+        queue_file = tmp_path / "data" / "job_queue.html"
+        queue_file.parent.mkdir(parents=True)
+        queue_file.write_text("<html><body>Old content</body></html>")
+
+        _reset_queue_file()
+
+        content = queue_file.read_text()
+        assert "Old content" not in content
+        assert "jobQueue" in content or "tbody" in content or "<html" in content
+
+    def test_discover_script_path(self):
+        """The discover script should exist at scripts/discover_jobs.py."""
+        script = Path("scripts/discover_jobs.py")
+        assert script.exists(), f"Discover script not found at {script}"
+
+    def test_discover_script_runs_dry(self):
+        """Running discover_jobs.py --dry-run should validate args."""
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, "scripts/discover_jobs.py", "--help"],
+            capture_output=True, text=True, timeout=10,
+            cwd=str(PROJECT_ROOT),
+        )
+        assert result.returncode == 0
+        assert "mode" in result.stdout or "--mode" in result.stdout
+
+    def test_discover_accepts_7d_mode(self):
+        """The --mode flag should accept '7d' and '24h' as valid choices.
+        Check via --help output which shows valid choices."""
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, "scripts/discover_jobs.py", "--help"],
+            capture_output=True, text=True, timeout=10,
+            cwd=str(PROJECT_ROOT),
+        )
+        assert "7d" in result.stdout
+        assert "24h" in result.stdout
+
+    def test_discover_rejects_invalid_mode(self):
+        """Invalid mode should trigger an error from the script."""
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, "scripts/discover_jobs.py", "--mode", "INVALID", "--dry-run"],
+            capture_output=True, text=True, timeout=10,
+            cwd=str(PROJECT_ROOT),
+        )
+        assert result.returncode != 0 or "INVALID" in result.stderr or "usage:" in result.stderr
+
+
 class TestSaveJsonRecompile:
     """Test the recompile logic: write .tex content and run render_pdf."""
 

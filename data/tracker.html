@@ -120,6 +120,71 @@
         border-bottom: 1px solid #21262d;
         vertical-align: middle;
       }
+      .file-link {
+        color: #58a6ff;
+        font-size: 12px;
+        text-decoration: none;
+      }
+      .file-link:hover {
+        text-decoration: underline;
+      }
+      .qa-btn {
+        background: none;
+        border: 1px solid #30363d;
+        color: #8b949e;
+        padding: 2px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+      }
+      .qa-btn:hover {
+        border-color: #58a6ff;
+        color: #58a6ff;
+      }
+      .qa-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+      }
+      .qa-modal.open {
+        display: flex;
+      }
+      .qa-modal-content {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 24px;
+        width: 640px;
+        max-width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #c9d1d9;
+      }
+      .qa-modal-content h3 {
+        color: #58a6ff;
+        margin-bottom: 12px;
+      }
+      .qa-modal-content .close-btn {
+        float: right;
+        background: none;
+        border: none;
+        color: #8b949e;
+        font-size: 20px;
+        cursor: pointer;
+      }
+      .qa-modal-content .close-btn:hover {
+        color: #c9d1d9;
+      }
       tr:hover {
         background: #161b22;
       }
@@ -397,6 +462,9 @@
           </th>
           <th>Days</th>
           <th>Status</th>
+          <th>Q&A</th>
+          <th>Cover</th>
+          <th>Resume</th>
           <th>Notes</th>
         </tr>
       </thead>
@@ -547,6 +615,11 @@
             const shortUrl = (a.url || "")
               .replace(/^https?:\/\/(www\.)?/, "")
               .substring(0, 38);
+            const hasQa = a.qa && a.qa.length > 0;
+            const clFile = a.cover_letter || "";
+            const resFile = a.resume || a.pdf_path || "";
+            const clLabel = clFile ? clFile.split('/').pop() : "";
+            const resLabel = resFile ? resFile.split('/').pop() : "";
             return `<tr>
           <td><strong>${a.company || "?"}</strong></td>
           <td>${a.role || "?"}</td>
@@ -555,6 +628,9 @@
           <td>${a.date || ""}</td>
           <td class="days">${days !== "" ? days + "d" : ""}</td>
           <td><select class="status-select" data-idx="${idx}" onchange="markDirty()">${STATUS_OPTIONS.map((s) => `<option value="${s}" ${a.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></td>
+          <td>${hasQa ? `<button class="qa-btn" onclick="showQa(${idx})">Q&A</button>` : `<span style="color:#484f58;font-size:11px;">—</span>`}</td>
+          <td>${clFile ? `<a href="#" class="file-link" onclick="openFile('${clFile}');return false;">${clLabel}</a>` : `<span style="color:#484f58;font-size:11px;">—</span>`}</td>
+          <td>${resFile ? `<a href="#" class="file-link" onclick="openFile('${resFile}');return false;">${resLabel}</a>` : `<span style="color:#484f58;font-size:11px;">—</span>`}</td>
           <td><input class="notes-input" data-idx="${idx}" value="${(a.notes || "").replace(/"/g, "&quot;")}" oninput="markDirty()" placeholder="Add note…"></td>
         </tr>`;
           })
@@ -663,7 +739,36 @@
         }
       }
 
+      // Q&A modal
+      function showQa(idx) {
+        const a = apps[idx];
+        if (!a || !a.qa) return;
+        const modal = document.getElementById('qa-modal');
+        const title = document.getElementById('qa-modal-title');
+        const body = document.getElementById('qa-modal-body');
+        title.textContent = `${a.company} — ${a.role}`;
+        body.textContent = a.qa;
+        modal.classList.add('open');
+      }
+      function hideQa() {
+        document.getElementById('qa-modal').classList.remove('open');
+      }
+      function openFile(path) {
+        // Convert absolute path to file:// URL, fall back to just opening
+        const fileUrl = 'file://' + path;
+        window.open(fileUrl, '_blank');
+      }
+
       load();
     </script>
+
+    <!-- Q&A Modal -->
+    <div id="qa-modal" class="qa-modal" onclick="hideQa()">
+      <div class="qa-modal-content" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="hideQa()">&times;</button>
+        <h3 id="qa-modal-title"></h3>
+        <div id="qa-modal-body"></div>
+      </div>
+    </div>
   </body>
 </html>

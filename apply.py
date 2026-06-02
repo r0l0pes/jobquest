@@ -328,7 +328,8 @@ def _save_context(ctx: dict, console: Console):
 
 
 def _save_application_json(ctx: dict, console: Console):
-    """Append application to data/applications.json for the tracker."""
+    """Save or update application in data/applications.json for the tracker.
+    Replaces existing entry by URL to avoid duplicates."""
     try:
         data_dir = PROJECT_ROOT / "data"
         data_dir.mkdir(exist_ok=True)
@@ -339,6 +340,40 @@ def _save_application_json(ctx: dict, console: Console):
             apps = json.loads(app_file.read_text())
 
         from datetime import datetime
+        from pathlib import Path
+
+        run_dir = ctx.get("run_dir", "")
+        company_safe = ctx.get("company_safe", "")
+
+        # Load Q&A from output file if it exists
+        qa = ""
+        if run_dir and company_safe:
+            qa_path = Path(run_dir) / f"qa_{company_safe}.md"
+            if qa_path.exists():
+                qa = qa_path.read_text()
+
+        # Find cover letter file (.tex preferred, .pdf fallback)
+        cover_letter = ""
+        if run_dir:
+            cl_dir = Path(run_dir)
+            cl_tex = list(cl_dir.glob("Cover-Letter*.tex"))
+            cl_pdf = list(cl_dir.glob("Cover-Letter*.pdf"))
+            if cl_tex:
+                cover_letter = str(cl_tex[0])
+            elif cl_pdf:
+                cover_letter = str(cl_pdf[0])
+
+        # Find resume file (.tex preferred, .pdf fallback)
+        resume = ""
+        if run_dir:
+            res_dir = Path(run_dir)
+            res_tex = list(res_dir.glob("Resume_*.tex"))
+            res_pdf = list(res_dir.glob("Resume_*.pdf"))
+            if res_tex:
+                resume = str(res_tex[0])
+            elif res_pdf:
+                resume = str(res_pdf[0])
+
         app = {
             "company": ctx.get("job", {}).get("company", "?"),
             "role": ctx.get("job", {}).get("title", "?"),
@@ -349,13 +384,29 @@ def _save_application_json(ctx: dict, console: Console):
             "status": "applied",
             "notes": "",
             "pdf_path": ctx.get("pdf_path", ""),
-            "run_dir": ctx.get("run_dir", ""),
+            "run_dir": run_dir,
+            "qa": qa,
+            "cover_letter": cover_letter,
+            "resume": resume,
         }
-        apps.append(app)
+
+        # Replace existing entry by URL (dedup on save)
+        url = app["url"]
+        replaced = False
+        for i, existing in enumerate(apps):
+            if existing.get("url", "") == url:
+                apps[i] = app
+                replaced = True
+                console.print(f"  [dim]Updated existing tracker entry for {app['company']}[/dim]")
+                break
+
+        if not replaced:
+            apps.append(app)
+
         app_file.write_text(json.dumps(apps, indent=2))
         console.print(f"  [dim]Tracker updated: {app_file} ({len(apps)} entries)[/dim]")
-    except Exception:
-        pass
+    except Exception as e:
+        console.print(f"  [red]Tracker save error: {e}[/red]")
 
 
 if __name__ == "__main__":

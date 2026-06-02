@@ -45,38 +45,6 @@
     "company": "Aignostics",
     "role": "Senior Product Manager - AI Products (d/f/m)",
     "url": "https://aignostics.teamtailor.com/jobs/7687827-senior-product-manager-ai-products-d-f-m",
-    "score": 61,
-    "score_label": "GOOD",
-    "date": "2026-05-26",
-    "status": "applied",
-    "notes": ""
-  },
-  {
-    "company": "Aignostics",
-    "role": "Senior Product Manager - AI Products (d/f/m)",
-    "url": "https://aignostics.teamtailor.com/jobs/7687827-senior-product-manager-ai-products-d-f-m",
-    "score": 73,
-    "score_label": "GOOD",
-    "date": "2026-05-26",
-    "status": "applied",
-    "notes": ""
-  },
-  {
-    "company": "Aignostics",
-    "role": "Senior Product Manager - AI Products (d/f/m)",
-    "url": "https://aignostics.teamtailor.com/jobs/7687827-senior-product-manager-ai-products-d-f-m",
-    "date": "2026-05-26",
-    "score": 73,
-    "score_label": "GOOD",
-    "status": "applied",
-    "notes": "",
-    "pdf_path": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/Aignostics_2026-05-26/Resume_Rodrigo-Lopes.pdf",
-    "run_dir": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/Aignostics_2026-05-26"
-  },
-  {
-    "company": "Aignostics",
-    "role": "Senior Product Manager - AI Products (d/f/m)",
-    "url": "https://aignostics.teamtailor.com/jobs/7687827-senior-product-manager-ai-products-d-f-m",
     "date": "2026-05-26",
     "score": 61,
     "score_label": "GOOD",
@@ -84,5 +52,33 @@
     "notes": "",
     "pdf_path": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/Aignostics_2026-05-26/Resume_Rodrigo-Lopes.pdf",
     "run_dir": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/Aignostics_2026-05-26"
+  },
+  {
+    "company": "JustPlay GmbH",
+    "role": "Senior Product Manager - Engagement (all genders)",
+    "url": "https://jobs.ashbyhq.com/justplay-gmbh/605d92d6-efe9-45e2-8207-d1b36705211d",
+    "date": "2026-06-02",
+    "score": 65,
+    "score_label": "GOOD",
+    "status": "applied",
+    "notes": "",
+    "pdf_path": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/JustPlay_GmbH_2026-06-02/Resume_Rodrigo-Lopes.pdf",
+    "run_dir": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/JustPlay_GmbH_2026-06-02",
+    "qa": "### Q: 1. What motivates you to apply for this role?\n\n### A: JustPlay\u2019s assertion that the current rewarded gaming system is broken resonates with my experience at C&A Brasil. In Brazil, we had to solve for a similar friction: credit card penetration was below 50% and customers were stuck in high-friction payment loops. We solved this by integrating local payment methods like Boleto and repositioning installment pricing as the default display, which recovered abandoned traffic that standard flow redesigns missed. JustPlay is now navigating that same transition from generic ad-monetization to a loyalty-driven ecosystem that actually rewards the player. I want to build the engagement mechanics that turn casual gaming sessions into a sustainable, long-term loyalty loop, moving beyond simple ad-revenue models toward true value-exchange.\n\n_Used: C&A Brasil | 28% conversion increase | JustPlay's \"Rewarded Gaming System is Broke\" positioning_\n\n---\n\n### Q: 2. Do you have experience working in mobile gaming? If yes, please briefly share examples of the games & companies.\n\n### A: Yes \u2014 at Accenture, I led the growth and checkout strategy for Natura\u2019s mobile-first social commerce platform, which operated with the same high-frequency, event-driven engagement cycles common in mobile gaming. We managed a platform where consultant-shared links drove the primary acquisition path, requiring me to optimize for rapid, mobile-first conversion funnels across four Latin American markets. I also worked with C&A Brasil to launch one of the market's first enterprise WhatsApp Business API deployments, integrating order notifications and lifecycle messaging to keep users returning to the app. These roles required balancing high-volume, performance-based marketing with the need for a seamless, habit-forming mobile user experience.\n\n_Used: Accenture Brasil | 45% conversion improvement | Mobile-first social commerce context_\n\n---\n\n### Q: 3. Do you have experience building and optimizing engagement mechanics or systems within a product? If yes, please share examples of features you worked on and the impact they had on engagement, retention, or revenue.\n\n### A: Yes \u2014 at Postscript, I led the development of an AI-powered message optimization engine for 18,000+ Shopify merchants. The core challenge was increasing SMS engagement without causing user fatigue or brand dilution. I built a system that tested hundreds of message variants per automation, leveraging predictive analytics to identify engagement decay patterns. This work drove a 28% increase in earnings-per-message and allowed us to tailor re-engagement triggers to specific user behaviors. By treating every notification as a data point in a larger retention loop, I moved merchant programs from \"batch and blast\" to personalized, high-frequency engagement that maximized lifetime value.\n\n_Used: Postscript | 28% earnings-per-message lift | AI-powered engagement optimization_",
+    "resume": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/JustPlay_GmbH_2026-06-02/Resume_Rodrigo-Lopes.tex"
+  },
+  {
+    "company": "Conceptboard",
+    "role": "Product Analytics Manager - Customer Retention & Expansion (m/w/d)",
+    "url": "https://conceptboard.jobs.personio.de/job/2591208?utm_source=www.schwaben.jobs",
+    "score": null,
+    "score_label": null,
+    "date": "2026-05-27",
+    "status": "applied",
+    "notes": "",
+    "run_dir": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/Conceptboard_2026-05-27",
+    "qa": "### Q: Write a cover letter body for this application. Output ONLY the body paragraphs (2-4 paragraphs). Do NOT include a date line, greeting, sign-off, or any other metadata \u2014 only the paragraphs themselves. The LaTeX template supplies the greeting and sign-off.\n\n### A: \nConceptboard solves a fundamental friction in digital work: the moment collaboration ends and execution begins. Most teams treat the whiteboard as a temporary space for brainstorming, forcing them to migrate ideas into a separate task management tool where context evaporates. By enabling teams to turn board content into assigned, tracked tasks without leaving the workspace, Conceptboard is building the bridge between creative ideation and project delivery. Scaling this model requires shifting from feature adoption to deep integration, where the whiteboard becomes the primary operating system for a team's workflow.\n\nAt FORVIA HELLA, I managed the B2B e-commerce platform for 60,000+ workshop users, where the core challenge was similar: users were comfortable with legacy ordering habits and needed a tangible reason to shift their daily workflow to our digital platform. I redesigned the onboarding experience to anchor retention to repeat digital order rates, implementing in-product guidance that reduced order completion time by 35% and improved self-service adoption by 40%. By mapping the drop-off points in our onboarding funnel, I translated behavioral signals into specific triggers for our commercial teams, which directly contributed to \u20ac12M+ in Year 1 revenue.\n\nI have spent my career building systems that convert intermittent usage into habitual integration. Whether redesigning checkout funnels to eliminate friction or architecting predictive models to identify engagement decay before it manifests as churn, I focus on the data that predicts long-term value. I am interested in bringing this experience to Conceptboard to help build the early-warning systems and expansion mechanics that turn your active users into long-term organizational partners.\n\n_Used: FORVIA HELLA | 40% adoption improvement | Digital task management integration_",
+    "cover_letter": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/Conceptboard_2026-05-27/Cover-Letter_RodrigoLopes.tex",
+    "resume": "/Users/carvalho/Documents/VibeCoding/JobSearch/output/Conceptboard_2026-05-27/Resume_Rodrigo-Lopes.tex"
   }
 ]

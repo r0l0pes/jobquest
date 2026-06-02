@@ -141,49 +141,125 @@
         border-color: #58a6ff;
         color: #58a6ff;
       }
-      .qa-modal {
+      .editor-modal {
         display: none;
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.7);
+        background: rgba(0, 0, 0, 0.7);
         z-index: 200;
         align-items: center;
         justify-content: center;
       }
-      .qa-modal.open {
+      .editor-modal.open {
         display: flex;
       }
-      .qa-modal-content {
+      .editor-modal-content {
         background: #161b22;
         border: 1px solid #30363d;
         border-radius: 8px;
         padding: 24px;
-        width: 640px;
-        max-width: 90vw;
-        max-height: 80vh;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        font-size: 13px;
-        line-height: 1.5;
-        color: #c9d1d9;
+        width: 700px;
+        max-width: 92vw;
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
       }
-      .qa-modal-content h3 {
-        color: #58a6ff;
+      .editor-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 12px;
       }
-      .qa-modal-content .close-btn {
-        float: right;
+      .editor-modal-header h3 {
+        color: #58a6ff;
+        font-size: 1.1em;
+        margin: 0;
+      }
+      .editor-modal-header .close-btn {
         background: none;
         border: none;
         color: #8b949e;
-        font-size: 20px;
+        font-size: 22px;
         cursor: pointer;
+        line-height: 1;
       }
-      .qa-modal-content .close-btn:hover {
+      .editor-modal-header .close-btn:hover {
         color: #c9d1d9;
+      }
+      .editor-modal textarea {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        line-height: 1.5;
+        resize: vertical;
+        width: 100%;
+        flex: 1;
+        min-height: 300px;
+        box-sizing: border-box;
+      }
+      .editor-modal textarea:focus {
+        outline: none;
+        border-color: #58a6ff;
+      }
+      .editor-modal-footer {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        justify-content: flex-end;
+      }
+      .editor-modal-footer button {
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .btn-save-modal {
+        background: #238636;
+        color: white;
+      }
+      .btn-save-modal:hover {
+        background: #2ea043;
+      }
+      .btn-recompile {
+        background: #1f6feb;
+        color: white;
+      }
+      .btn-recompile:hover {
+        background: #388bfd;
+      }
+      .btn-remove {
+        background: #da3633;
+        color: white;
+      }
+      .btn-remove:hover {
+        background: #f85149;
+      }
+      .btn-cancel-modal {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .btn-cancel-modal:hover {
+        color: #c9d1d9;
+      }
+      .editor-modal-status {
+        font-size: 12px;
+        color: #8b949e;
+        margin-top: 8px;
+        text-align: right;
+      }
+      .editor-modal-status.error {
+        color: #da3633;
+      }
+      .editor-modal-status.success {
+        color: #238636;
       }
       tr:hover {
         background: #161b22;
@@ -616,10 +692,8 @@
               .replace(/^https?:\/\/(www\.)?/, "")
               .substring(0, 38);
             const hasQa = a.qa && a.qa.length > 0;
-            const clFile = a.cover_letter || "";
-            const resFile = a.resume || a.pdf_path || "";
-            const clLabel = clFile ? clFile.split('/').pop() : "";
-            const resLabel = resFile ? resFile.split('/').pop() : "";
+            const hasCl = (a.cover_letter_content && a.cover_letter_content.length > 0) || (a.cover_letter && a.cover_letter.length > 0);
+            const hasResume = (a.resume_content && a.resume_content.length > 0) || (a.resume && a.resume.length > 0) || (a.pdf_path && a.pdf_path.length > 0);
             return `<tr>
           <td><strong>${a.company || "?"}</strong></td>
           <td>${a.role || "?"}</td>
@@ -628,9 +702,9 @@
           <td>${a.date || ""}</td>
           <td class="days">${days !== "" ? days + "d" : ""}</td>
           <td><select class="status-select" data-idx="${idx}" onchange="markDirty()">${STATUS_OPTIONS.map((s) => `<option value="${s}" ${a.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></td>
-          <td>${hasQa ? `<button class="qa-btn" onclick="showQa(${idx})">Q&A</button>` : `<span style="color:#484f58;font-size:11px;">—</span>`}</td>
-          <td>${clFile ? `<a href="#" class="file-link" onclick="openFile('${clFile}');return false;">${clLabel}</a>` : `<span style="color:#484f58;font-size:11px;">—</span>`}</td>
-          <td>${resFile ? `<a href="#" class="file-link" onclick="openFile('${resFile}');return false;">${resLabel}</a>` : `<span style="color:#484f58;font-size:11px;">—</span>`}</td>
+          <td>${hasQa ? `<button class="qa-btn" onclick="openEditor(${idx}, 'qa')">Q&A</button>` : `<button class="qa-btn" onclick="openEditor(${idx}, 'qa')" style="opacity:0.5;">+Q&A</button>`}</td>
+          <td>${hasCl ? `<button class="qa-btn" onclick="openEditor(${idx}, 'cover_letter')">Cover</button>` : `<button class="qa-btn" onclick="openEditor(${idx}, 'cover_letter')" style="opacity:0.5;">+CL</button>`}</td>
+          <td>${hasResume ? `<button class="qa-btn" onclick="openEditor(${idx}, 'resume')">Resume</button>` : `<button class="qa-btn" onclick="openEditor(${idx}, 'resume')" style="opacity:0.5;">+Res</button>`}</td>
           <td><input class="notes-input" data-idx="${idx}" value="${(a.notes || "").replace(/"/g, "&quot;")}" oninput="markDirty()" placeholder="Add note…"></td>
         </tr>`;
           })
@@ -740,34 +814,158 @@
       }
 
       // Q&A modal
-      function showQa(idx) {
+      // ── Editor Modal (Q&A, Cover Letter, Resume) ──
+      let editorIdx = -1;
+      let editorField = '';
+
+      function openEditor(idx, field) {
         const a = apps[idx];
-        if (!a || !a.qa) return;
-        const modal = document.getElementById('qa-modal');
-        const title = document.getElementById('qa-modal-title');
-        const body = document.getElementById('qa-modal-body');
-        title.textContent = `${a.company} — ${a.role}`;
-        body.textContent = a.qa;
+        if (!a) return;
+        editorIdx = idx;
+        editorField = field;
+
+        const modal = document.getElementById('editor-modal');
+        const title = document.getElementById('editor-modal-title');
+        const textarea = document.getElementById('editor-modal-textarea');
+        const status = document.getElementById('editor-modal-status');
+        const recompileBtn = document.getElementById('editor-btn-recompile');
+        const removeBtn = document.getElementById('editor-btn-remove');
+
+        const fieldLabels = { qa: 'Q&A', cover_letter: 'Cover Letter', resume: 'Resume' };
+        title.textContent = `${fieldLabels[field] || field} — ${a.company} — ${a.role}`;
+        status.textContent = '';
+        status.className = 'editor-modal-status';
+
+        // Show/hide recompile and remove buttons (only for cover_letter and resume)
+        if (field === 'qa') {
+          recompileBtn.style.display = 'none';
+          removeBtn.style.display = 'none';
+        } else {
+          recompileBtn.style.display = 'inline-block';
+          removeBtn.style.display = 'inline-block';
+        }
+
+        // Fill textarea with content
+        if (field === 'qa') {
+          textarea.value = a.qa || '';
+        } else if (field === 'cover_letter') {
+          textarea.value = a.cover_letter_content || '';
+        } else if (field === 'resume') {
+          textarea.value = a.resume_content || '';
+        }
+
         modal.classList.add('open');
+        textarea.focus();
       }
-      function hideQa() {
-        document.getElementById('qa-modal').classList.remove('open');
+
+      function closeEditor() {
+        document.getElementById('editor-modal').classList.remove('open');
+        editorIdx = -1;
+        editorField = '';
       }
-      function openFile(path) {
-        // Convert absolute path to file:// URL, fall back to just opening
-        const fileUrl = 'file://' + path;
-        window.open(fileUrl, '_blank');
+
+      function saveEditorContent() {
+        const a = apps[editorIdx];
+        if (!a) return;
+        const textarea = document.getElementById('editor-modal-textarea');
+        const status = document.getElementById('editor-modal-status');
+
+        if (editorField === 'qa') {
+          a.qa = textarea.value;
+        } else if (editorField === 'cover_letter') {
+          a.cover_letter_content = textarea.value;
+        } else if (editorField === 'resume') {
+          a.resume_content = textarea.value;
+        }
+
+        markDirty();
+        status.textContent = '✓ Saved to session. Click "Save Changes" above to persist.';
+        status.className = 'editor-modal-status success';
+        render();
+      }
+
+      async function recompilePdf() {
+        const a = apps[editorIdx];
+        if (!a) return;
+        const textarea = document.getElementById('editor-modal-textarea');
+        const status = document.getElementById('editor-modal-status');
+
+        // First save the content to the app
+        if (editorField === 'cover_letter') {
+          a.cover_letter_content = textarea.value;
+        } else if (editorField === 'resume') {
+          a.resume_content = textarea.value;
+        }
+
+        status.textContent = '⏳ Recompiling PDF...';
+        status.className = 'editor-modal-status';
+
+        try {
+          const resp = await fetch('/api/recompile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              app_idx: editorIdx,
+              field: editorField,
+              content: textarea.value,
+            }),
+          });
+          const result = await resp.json();
+          if (result.ok) {
+            status.textContent = `✅ PDF recompiled: ${result.pdf_path || 'done'}`;
+            status.className = 'editor-modal-status success';
+            markDirty();
+            render();
+          } else {
+            status.textContent = `❌ ${result.error || 'Recompilation failed'}`;
+            status.className = 'editor-modal-status error';
+          }
+        } catch (e) {
+          status.textContent = `❌ Error: ${e.message}`;
+          status.className = 'editor-modal-status error';
+        }
+      }
+
+      function removeEditorFile() {
+        const a = apps[editorIdx];
+        if (!a) return;
+        if (!confirm(`Remove ${editorField} for ${a.company}?`)) return;
+
+        if (editorField === 'cover_letter') {
+          a.cover_letter = '';
+          a.cover_letter_content = '';
+        } else if (editorField === 'resume') {
+          a.resume = '';
+          a.resume_content = '';
+        }
+
+        const status = document.getElementById('editor-modal-status');
+        status.textContent = '✓ Removed. Click "Save Changes" to persist.';
+        status.className = 'editor-modal-status success';
+        document.getElementById('editor-modal-textarea').value = '';
+        markDirty();
+        closeEditor();
+        render();
       }
 
       load();
     </script>
 
-    <!-- Q&A Modal -->
-    <div id="qa-modal" class="qa-modal" onclick="hideQa()">
-      <div class="qa-modal-content" onclick="event.stopPropagation()">
-        <button class="close-btn" onclick="hideQa()">&times;</button>
-        <h3 id="qa-modal-title"></h3>
-        <div id="qa-modal-body"></div>
+    <!-- Editor Modal (Q&A, Cover Letter, Resume) -->
+    <div id="editor-modal" class="editor-modal" onclick="closeEditor()">
+      <div class="editor-modal-content" onclick="event.stopPropagation()">
+        <div class="editor-modal-header">
+          <h3 id="editor-modal-title"></h3>
+          <button class="close-btn" onclick="closeEditor()">&times;</button>
+        </div>
+        <textarea id="editor-modal-textarea" placeholder="Enter content here..."></textarea>
+        <div class="editor-modal-footer">
+          <button class="btn-remove" id="editor-btn-remove" onclick="removeEditorFile()">Remove</button>
+          <button class="btn-recompile" id="editor-btn-recompile" onclick="recompilePdf()">Recompile PDF</button>
+          <button class="btn-cancel-modal" onclick="closeEditor()">Cancel</button>
+          <button class="btn-save-modal" onclick="saveEditorContent()">Save</button>
+        </div>
+        <div id="editor-modal-status" class="editor-modal-status"></div>
       </div>
     </div>
   </body>

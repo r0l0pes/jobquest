@@ -354,23 +354,27 @@ def _save_application_json(ctx: dict, console: Console):
 
         # Find cover letter file (.tex preferred, .pdf fallback)
         cover_letter = ""
+        cover_letter_content = ""
         if run_dir:
             cl_dir = Path(run_dir)
             cl_tex = list(cl_dir.glob("Cover-Letter*.tex"))
             cl_pdf = list(cl_dir.glob("Cover-Letter*.pdf"))
             if cl_tex:
                 cover_letter = str(cl_tex[0])
+                cover_letter_content = cl_tex[0].read_text()
             elif cl_pdf:
                 cover_letter = str(cl_pdf[0])
 
         # Find resume file (.tex preferred, .pdf fallback)
         resume = ""
+        resume_content = ""
         if run_dir:
             res_dir = Path(run_dir)
             res_tex = list(res_dir.glob("Resume_*.tex"))
             res_pdf = list(res_dir.glob("Resume_*.pdf"))
             if res_tex:
                 resume = str(res_tex[0])
+                resume_content = res_tex[0].read_text()
             elif res_pdf:
                 resume = str(res_pdf[0])
 
@@ -387,7 +391,9 @@ def _save_application_json(ctx: dict, console: Console):
             "run_dir": run_dir,
             "qa": qa,
             "cover_letter": cover_letter,
+            "cover_letter_content": cover_letter_content,
             "resume": resume,
+            "resume_content": resume_content,
         }
 
         # Replace existing entry by URL (dedup on save)

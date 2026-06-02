@@ -105,6 +105,12 @@ QUERY_CATALOG = [
     ("Senior Growth PM dailyremote", "growth", "remote", "dailyremote"),
     ("Senior PM remotely de Germany", "generalist", "de", "remotely.de"),
     ("Product Manager eu remote jobs Europe", "generalist", "remote", "euremotejobs"),
+    # ── New boards added 2026-06-02 ──
+    ("Senior Product Manager remocate remote Europe", "generalist", "remote", "remocate"),
+    ("Senior Product Management jobs productjobsanywhere", "generalist", "remote", "productjobsanywhere"),
+    ("Senior PM remoterocketship Europe", "generalist", "remote", "remoterocketship"),
+    ("Experimentation Product Manager jobs Europe", "growth", "remote", "experimentationjobs"),
+    ("Growth PM experimentationjobs remote", "growth", "remote", "experimentationjobs"),
 ]
 
 
@@ -218,6 +224,14 @@ def infer_source(url: str, expected: str) -> str:
         return "careervault"
     if "dailyremote" in domain:
         return "dailyremote"
+    if "remocate" in domain:
+        return "remocate"
+    if "productjobsanywhere" in domain:
+        return "productjobsanywhere"
+    if "remoterocketship" in domain:
+        return "remoterocketship"
+    if "experimentationjobs" in domain:
+        return "experimentationjobs"
     return expected
 
 
@@ -274,6 +288,7 @@ KNOWN_JOB_BOARDS = {
     "4dayweek", "jobspresso", "flexjobs", "nodesk",
     "workingnomads", "trulyremote", "flexa", "jobgether",
     "oomple", "careervault", "dailyremote",
+    "remocate", "productjobsanywhere", "remoterocketship", "experimentationjobs",
 }
 
 

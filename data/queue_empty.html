@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobQuest — Discovery Queue</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 16px;
+        color: #58a6ff;
+      }
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .toolbar input,
+      .toolbar select {
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .toolbar input {
+        width: 240px;
+      }
+      .stats {
+        color: #8b949e;
+        font-size: 13px;
+        margin-left: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid #30363d;
+        color: #8b949e;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      th:hover {
+        color: #c9d1d9;
+      }
+      th .arrow {
+        font-size: 10px;
+        margin-left: 4px;
+      }
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #21262d;
+      }
+      tr:hover {
+        background: #161b22;
+      }
+      a {
+        color: #58a6ff;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-size: 11px;
+        margin-left: 4px;
+      }
+      .tag-growth {
+        background: #23863633;
+        color: #3fb950;
+        border: 1px solid #23863655;
+      }
+      .tag-ai {
+        background: #6e40c933;
+        color: #a371f7;
+        border: 1px solid #6e40c955;
+      }
+      .tag-generalist {
+        background: #9e6a0333;
+        color: #d29922;
+        border: 1px solid #9e6a0355;
+      }
+      .tag-de {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-es {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-remote {
+        background: #1f6feb33;
+        color: #79c0ff;
+        border: 1px solid #1f6feb55;
+      }
+      .empty {
+        text-align: center;
+        padding: 40px;
+        color: #484f58;
+      }
+      #move-btn {
+        background: #1f6feb;
+        border: none;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        display: none;
+      }
+      #move-btn:hover {
+        background: #388bfd;
+      }
+      #move-btn.visible {
+        display: inline-block;
+      }
+      .row-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #1f6feb;
+      }
+      .select-all-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #1f6feb;
+      }
+      .company-url-link {
+        color: #79c0ff;
+        font-size: 11px;
+        margin-left: 6px;
+        text-decoration: none;
+      }
+      .company-url-link:hover {
+        text-decoration: underline;
+      }
+
+      /* Discovery log */
+      #discovery-log {
+        margin: 12px 0;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        background: #0d1117;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 10px;
+        color: #e0e0e0;
+        display: none;
+      }
+      #discovery-log div {
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      #close-btn, #reload-btn {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔍 Job Discovery Queue</h1>
+
+    <div class="toolbar">
+      <input
+        type="text"
+        id="search"
+        placeholder="Search..."
+        oninput="render()"
+      />
+      <select id="role-filter" onchange="render()">
+        <option value="">All roles</option>
+        <option value="growth">Growth PM</option>
+        <option value="ai">AI PM</option>
+        <option value="generalist">Generalist PM</option>
+      </select>
+      <select id="country-filter" onchange="render()">
+        <option value="">All countries</option>
+        <option value="de">🇩🇪 Germany</option>
+        <option value="es">🇪🇸 Spain</option>
+      </select>
+      <button id="move-btn" onclick="moveToTracker()">
+        📋 Move Selected to Tracker
+      </button>
+      <button id="discover-btn" onclick="showDiscoveryModal()" style="background:#238636;border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
+        🔍 Run Discovery
+      </button>
+      <span class="stats" id="stats"></span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30px">
+            <input
+              type="checkbox"
+              class="select-all-checkbox"
+              id="select-all"
+              onchange="toggleSelectAll()"
+              title="Select all visible"
+            />
+          </th>
+          <th onclick="sortBy('company')">
+            Company <span class="arrow" id="arrow-company"></span>
+          </th>
+          <th onclick="sortBy('title')">
+            Role <span class="arrow" id="arrow-title"></span>
+          </th>
+          <th onclick="sortBy('location')">
+            Location <span class="arrow" id="arrow-location"></span>
+          </th>
+          <th onclick="sortBy('date')">
+            Date <span class="arrow" id="arrow-date"></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display: none">
+      No jobs discovered yet.
+    </div>
+
+    <div id="discovery-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:24px;width:560px;max-width:90vw;">
+        <h3 style="color:#58a6ff;margin-bottom:16px;">🔍 Start Job Discovery</h3>
+        <p style="color:#8b949e;font-size:13px;margin-bottom:16px;">
+          Search for new PM job postings across the web.
+        </p>
+        <div style="margin-bottom:16px;">
+          <label style="color:#c9d1d9;font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Time range</label>
+          <label style="color:#8b949e;font-size:13px;margin-right:16px;"><input type="radio" name="discover-mode" value="7d" checked> Last 7 days</label>
+          <label style="color:#8b949e;font-size:13px;"><input type="radio" name="discover-mode" value="24h"> Last 24 hours</label>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="color:#c9d1d9;font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Existing positions</label>
+          <label style="color:#8b949e;font-size:13px;margin-right:16px;"><input type="radio" name="discover-clear" value="keep" checked> Keep</label>
+          <label style="color:#8b949e;font-size:13px;"><input type="radio" name="discover-clear" value="remove"> Remove</label>
+        </div>
+        <div id="discovery-log">
+          <div id="discovery-log-content"></div>
+        </div>
+        <div id="discover-status" style="color:#8b949e;font-size:12px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="start-btn" onclick="startDiscovery()" style="background:#238636;border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;flex:1;">Start Discovery</button>
+          <button id="cancel-btn" onclick="dismissModal()" style="background:#30363d;border:none;color:#c9d1d9;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;">Cancel</button>
+          <button id="close-btn" onclick="dismissModal()" style="background:#30363d;border:none;color:#8b949e;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;">Close</button>
+          <button id="reload-btn" onclick="location.reload()" style="background:#1f6feb;border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;">Reload Queue</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // JOBS DATA — populated by discovery, manually edited, or via agent
+      const JOBS = [];
+
+      let sortCol = "date";
+      let sortDir = -1;
+
+      function roleTag(type) {
+        const map = {
+          growth: "tag-growth",
+          ai: "tag-ai",
+          generalist: "tag-generalist",
+        };
+        return `<span class="tag ${map[type] || ""}">${type}</span>`;
+      }
+
+      function render() {
+        const search = document.getElementById("search").value.toLowerCase();
+        const roleFilter = document.getElementById("role-filter").value;
+        const countryFilter = document.getElementById("country-filter").value;
+
+        let filtered = JOBS;
+        if (search) {
+          filtered = filtered.filter(
+            (j) =>
+              (j.company || "").toLowerCase().includes(search) ||
+              (j.title || "").toLowerCase().includes(search) ||
+              (j.location || "").toLowerCase().includes(search),
+          );
+        }
+        if (roleFilter)
+          filtered = filtered.filter((j) => j.roleType === roleFilter);
+        if (countryFilter)
+          filtered = filtered.filter((j) => j.country === countryFilter);
+
+        filtered.sort((a, b) => {
+          let va = a[sortCol] || "",
+            vb = b[sortCol] || "";
+          if (sortCol === "date") {
+            va = va.toString();
+            vb = vb.toString();
+          }
+          return va < vb ? -1 * sortDir : va > vb ? 1 * sortDir : 0;
+        });
+
+        document
+          .querySelectorAll(".arrow")
+          .forEach((el) => (el.textContent = ""));
+        const arrow = document.getElementById("arrow-" + sortCol);
+        if (arrow) arrow.textContent = sortDir === 1 ? "▲" : "▼";
+
+        document.getElementById("stats").textContent =
+          `${filtered.length} jobs`;
+
+        const tbody = document.getElementById("tbody");
+        if (filtered.length === 0) {
+          tbody.innerHTML = "";
+          document.getElementById("empty").style.display = "block";
+          return;
+        }
+        document.getElementById("empty").style.display = "none";
+
+        tbody.innerHTML = filtered
+          .map(
+            (j) => `
+    <tr>
+      <td><input type="checkbox" class="row-checkbox" data-idx="${JOBS.indexOf(j)}" onchange="updateMoveButton()"></td>
+      <td><a href="${j.companyUrl || j.url}" target="_blank">${j.company || "?"}</a>${j.companyUrl ? `<a href="${j.url}" class="company-url-link" title="Board listing">🔗</a>` : ""} ${roleTag(j.roleType)}</td>
+      <td>${j.title || "?"}</td>
+      <td>${j.location || ""} ${j.country === "de" ? '<span class="tag tag-de">DE</span>' : ""}${j.country === "es" ? '<span class="tag tag-es">ES</span>' : ""}${(j.location || "").toLowerCase().includes("remote") ? '<span class="tag tag-remote">remote</span>' : ""}</td>
+      <td>${j.date || ""}</td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      function sortBy(col) {
+        if (sortCol === col) {
+          sortDir = -sortDir;
+        } else {
+          sortCol = col;
+          sortDir = col === "date" ? -1 : 1;
+        }
+        render();
+      }
+
+      function toggleSelectAll() {
+        const checked = document.getElementById("select-all").checked;
+        document.querySelectorAll(".row-checkbox").forEach((cb) => {
+          cb.checked = checked;
+        });
+        updateMoveButton();
+      }
+
+      function updateMoveButton() {
+        const anyChecked =
+          document.querySelectorAll(".row-checkbox:checked").length > 0;
+        const btn = document.getElementById("move-btn");
+        if (anyChecked) {
+          btn.classList.add("visible");
+          btn.textContent = `📋 Move Selected to Tracker (${document.querySelectorAll(".row-checkbox:checked").length})`;
+        } else {
+          btn.classList.remove("visible");
+        }
+      }
+
+      // Normalize URL for dedup (strip hash, trailing slash)
+      function normUrl(u) {
+        try { const p = new URL(u); p.hash = ""; if (p.pathname.endsWith("/") && p.pathname !== "/") p.pathname = p.pathname.slice(0,-1); return p.toString(); }
+        catch { return (u||"").replace(/#.*$/,"").replace(/\/+$/,"") || u; }
+      }
+
+      async function moveToTracker() {
+        const checked = document.querySelectorAll(".row-checkbox:checked");
+        if (checked.length === 0) return;
+
+        const toMove = [];
+        const indicesToRemove = [];
+        checked.forEach((cb) => {
+          const idx = parseInt(cb.dataset.idx);
+          if (idx >= 0 && idx < JOBS.length) {
+            const job = JOBS[idx];
+            toMove.push({
+              company: job.company,
+              role: job.title,
+              url: job.companyUrl || job.url,
+              date: job.date,
+              status: "applied",
+              notes: `Source: ${job.source} | Location: ${job.location}`,
+            });
+            indicesToRemove.push(idx);
+          }
+        });
+        if (toMove.length === 0) return;
+
+        try {
+          const resp = await fetch("http://127.0.0.1:7878/api/applications");
+          let existing = [];
+          if (resp.ok) existing = await resp.json();
+
+          // Check for URL duplicates
+          const existingUrls = new Set(existing.map(a => normUrl(a.url || "")));
+          const dupes = toMove.filter(j => existingUrls.has(normUrl(j.url)));
+          if (dupes.length > 0) {
+            const names = dupes.map(j => `${j.company} — ${j.role}`).join("\n  • ");
+            const skip = !confirm(`⚠ ${dupes.length} job(s) already in tracker:\n  • ${names}\n\nSkip duplicates and save the rest?`);
+            if (skip) return;
+          }
+
+          const newEntries = toMove.filter(j => !existingUrls.has(normUrl(j.url)));
+          const merged = [...existing, ...newEntries];
+
+          if (newEntries.length === 0) {
+            alert("All selected jobs already exist in the tracker.");
+            return;
+          }
+
+          const saveResp = await fetch("http://127.0.0.1:7878/api/applications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(merged),
+          });
+
+          if (saveResp.ok) {
+            indicesToRemove.sort((a, b) => b - a);
+            indicesToRemove.forEach((idx) => JOBS.splice(idx, 1));
+            document.getElementById("select-all").checked = false;
+            updateMoveButton();
+            render();
+          } else {
+            alert("Failed to save to tracker. Is the tracker server running? (python serve_tracker.py)");
+          }
+        } catch (e) {
+          alert("Could not reach tracker server. Start it with: python serve_tracker.py");
+        }
+      }
+
+      // ── Discovery Modal ──
+      // ── Discovery Modal — Live Log ──
+      let currentJobId = null;
+      let pollInterval = null;
+
+      function showDiscoveryModal() {
+        document.getElementById("discovery-modal").style.display = "flex";
+        document.getElementById("discover-status").textContent = "";
+        document.getElementById("discovery-log").style.display = "none";
+        document.getElementById("discovery-log-content").innerHTML = "";
+        document.getElementById("start-btn").disabled = false;
+        document.getElementById("cancel-btn").disabled = false;
+        document.getElementById("close-btn").style.display = "none";
+        document.getElementById("reload-btn").style.display = "none";
+      }
+
+      function appendLogLine(text) {
+        const logArea = document.getElementById("discovery-log-content");
+        const line = document.createElement("div");
+        line.textContent = text;
+        logArea.appendChild(line);
+        const container = document.getElementById("discovery-log");
+        container.scrollTop = container.scrollHeight;
+      }
+
+      /** Dismiss the modal. Kills any running discovery first. */
+      function dismissModal() {
+        if (currentJobId) {
+          fetch("/api/discover/" + currentJobId, { method: "DELETE" }).catch(() => {});
+        }
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+        currentJobId = null;
+        sessionStorage.setItem("discovery-dismissed", "true");
+        document.getElementById("discovery-modal").style.display = "none";
+      }
+
+      async function startDiscovery() {
+        const mode = document.querySelector('input[name="discover-mode"]:checked').value;
+        const clear = document.querySelector('input[name="discover-clear"]:checked').value === 'remove';
+
+        document.getElementById("discovery-log").style.display = "block";
+        document.getElementById("discovery-log-content").innerHTML = "";
+        document.getElementById("start-btn").disabled = true;
+        document.getElementById("cancel-btn").disabled = false;
+        document.getElementById("close-btn").style.display = "none";
+        document.getElementById("reload-btn").style.display = "none";
+        appendLogLine("⏳ Starting discovery...");
+
+        try {
+          const resp = await fetch("/api/discover", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode, clear }),
+          });
+          const result = await resp.json();
+
+          if (!result.ok) {
+            appendLogLine("❌ " + (result.error || "Failed to start discovery"));
+            document.getElementById("start-btn").disabled = false;
+            document.getElementById("cancel-btn").disabled = false;
+            return;
+          }
+
+          currentJobId = result.job_id;
+          appendLogLine("🔍 Discovery started (id: " + currentJobId + ")");
+
+          const seen = new Set();
+          pollInterval = setInterval(async () => {
+            try {
+              const logResp = await fetch("/api/discover-log?job_id=" + currentJobId);
+              const data = await logResp.json();
+
+              if (data.lines && data.lines.length > 0) {
+                for (const line of data.lines) {
+                  if (!seen.has(line)) {
+                    seen.add(line);
+                    appendLogLine(line);
+                  }
+                }
+              }
+
+              if (data.done) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+                if (data.error) {
+                  appendLogLine("❌ " + data.error);
+                } else {
+                  appendLogLine("✅ Found " + data.jobs_found + " new jobs!");
+                }
+                document.getElementById("cancel-btn").style.display = "none";
+                document.getElementById("start-btn").disabled = false;
+                document.getElementById("close-btn").style.display = "inline";
+                document.getElementById("reload-btn").style.display = "inline";
+              }
+            } catch (e) {}
+          }, 2000);
+        } catch (e) {
+          appendLogLine("❌ Error: " + e.message + ". Is the tracker server running?");
+          document.getElementById("start-btn").disabled = false;
+          document.getElementById("cancel-btn").disabled = false;
+        }
+      }
+
+      // Auto-open modal on first load
+      if (!sessionStorage.getItem("discovery-dismissed")) {
+        showDiscoveryModal();
+      }
+
+      render();
+    </script>
+  </body>
+</html>

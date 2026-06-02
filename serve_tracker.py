@@ -12,12 +12,20 @@ Usage:
 import argparse
 import json
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+import threading
+import uuid
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "data"
 APP_FILE = DATA_DIR / "applications.json"
+
+# Live discovery store
+# Each entry: { "proc": Popen, "stderr": [], "started_at": float, "done": bool, "error": str, "jobs_found": int }
+_discovery_store: dict[str, dict] = {}
+_discovery_lock = threading.Lock()
+_DISCOVERY_TIMEOUT = 180
 
 
 class TrackerHandler(SimpleHTTPRequestHandler):
@@ -26,7 +34,7 @@ class TrackerHandler(SimpleHTTPRequestHandler):
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         super().end_headers()
 
@@ -39,6 +47,8 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             self._serve_json()
         elif self.path.startswith("/api/check-url"):
             self._check_url()
+        elif self.path.startswith("/api/discover-log"):
+            self._get_discover_log()
         elif self.path == "/" or self.path == "":
             self.path = "/data/tracker.html"
             super().do_GET()
@@ -55,6 +65,15 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             self._recompile_pdf()
         elif self.path == "/api/discover":
             self._discover_jobs()
+        elif self.path.startswith("/api/discover/"):
+            self._cancel_discover()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def do_DELETE(self):
+        if self.path.startswith("/api/discover/"):
+            self._cancel_discover()
         else:
             self.send_response(404)
             self.end_headers()
@@ -235,11 +254,10 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         POST /api/discover
         Body: { "mode": "7d"|"24h", "clear": true|false }
 
-        Runs scripts/discover_jobs.py with the given mode.
-        If clear is true, resets the queue file before running.
+        Starts scripts/discover_jobs.py in background and returns job ID.
+        The client polls GET /api/discover-log?job_id=<id> for progress.
         """
         import subprocess
-        from io import StringIO
 
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length)
@@ -260,37 +278,41 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             if not script.exists():
                 raise FileNotFoundError(f"Discovery script not found: {script}")
 
-            result = subprocess.run(
+            job_id = uuid.uuid4().hex[:8]
+            proc = subprocess.Popen(
                 [sys.executable, str(script), "--mode", mode],
-                capture_output=True, text=True, timeout=180,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
                 cwd=str(PROJECT_ROOT),
             )
 
-            if result.returncode != 0:
-                error_msg = result.stderr[:500] or result.stdout[:500] or f"Exit code {result.returncode}"
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    "ok": False,
-                    "error": error_msg,
-                }).encode())
-                return
+            entry = {
+                "proc": proc,
+                "stderr_lines": [],
+                "started_at": __import__("time").time(),
+                "done": False,
+                "error": "",
+                "jobs_found": 0,
+            }
 
-            # Count jobs by parsing the updated queue file
-            queue_file = DATA_DIR / "job_queue.html"
-            jobs_found = 0
-            if queue_file.exists():
-                import re
-                content = queue_file.read_text()
-                jobs_found = content.count('"company":')
+            with _discovery_lock:
+                _discovery_store[job_id] = entry
+
+            # Start reader daemon thread
+            reader = threading.Thread(
+                target=_discover_reader,
+                args=(job_id, entry, proc, mode),
+                daemon=True,
+            )
+            reader.start()
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({
                 "ok": True,
-                "jobs_found": jobs_found,
+                "job_id": job_id,
             }).encode())
 
         except Exception as e:
@@ -298,6 +320,91 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    def _get_discover_log(self):
+        """
+        GET /api/discover-log?job_id=<id>
+
+        Returns accumulated stderr lines and completion status.
+        """
+        from urllib.parse import urlparse, parse_qs
+
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        job_ids = params.get("job_id", [])
+        if not job_ids:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error": "missing job_id parameter"}')
+            return
+
+        job_id = job_ids[0]
+        with _discovery_lock:
+            entry = _discovery_store.get(job_id)
+
+        if entry is None:
+            self.send_response(404)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "job_id not found"}).encode())
+            return
+
+        with _discovery_lock:
+            lines = list(entry["stderr_lines"])
+            done = entry["done"]
+            error = entry["error"]
+            jobs_found = entry["jobs_found"]
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "lines": lines,
+            "done": done,
+            "error": error,
+            "jobs_found": jobs_found,
+        }).encode())
+
+    def _cancel_discover(self):
+        """
+        DELETE /api/discover/<job_id>
+        POST /api/discover/<job_id> (fallback)
+
+        Cancels a running discovery.
+        """
+        # Extract job_id from path: /api/discover/<job_id>
+        parts = self.path.strip("/").split("/")
+        if len(parts) < 3:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error": "missing job_id in path"}')
+            return
+
+        job_id = parts[2]
+        with _discovery_lock:
+            entry = _discovery_store.get(job_id)
+
+        if entry is None:
+            self.send_response(404)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "job_id not found"}).encode())
+            return
+
+        proc = entry["proc"]
+        if proc.poll() is None:
+            proc.kill()
+            with _discovery_lock:
+                entry["done"] = True
+                entry["error"] = "Cancelled by user"
+                _discovery_store[job_id] = entry
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"ok": True}).encode())
 
     def log_message(self, format, *args):
         """Suppress default logging noise."""
@@ -321,9 +428,73 @@ QUEUE_TEMPLATE = """<!doctype html>
 
 
 def _reset_queue_file():
-    """Reset the job queue to an empty template."""
+    """Reset the job queue to an empty template.
+
+    Uses data/queue_empty.html (full structure with empty JOBS array) if available,
+    falls back to the minimal QUEUE_TEMPLATE.
+    """
     queue_file = DATA_DIR / "job_queue.html"
-    queue_file.write_text(QUEUE_TEMPLATE)
+    empty_template = DATA_DIR / "queue_empty.html"
+    if empty_template.exists():
+        queue_file.write_text(empty_template.read_text())
+    else:
+        queue_file.write_text(QUEUE_TEMPLATE)
+
+
+def _discover_reader(job_id: str, entry: dict, proc, mode: str):
+    """Daemon thread that reads stderr from a discovery subprocess.
+
+    Appends lines to entry["stderr_lines"], monitors timeout, and
+    sets done/error/jobs_found when the process exits or times out.
+    """
+    import re
+    import time
+
+    start = time.time()
+    try:
+        for line in iter(proc.stderr.readline, ""):
+            line_clean = line.rstrip("\n").rstrip("\r")
+            if line_clean:
+                with _discovery_lock:
+                    entry["stderr_lines"].append(line_clean)
+
+            # Check timeout
+            if time.time() - start > _DISCOVERY_TIMEOUT:
+                proc.kill()
+                with _discovery_lock:
+                    entry["done"] = True
+                    entry["error"] = f"Timed out after {_DISCOVERY_TIMEOUT} seconds"
+                return
+
+        # Process finished — drain any remaining stderr
+        remaining = proc.stderr.read()
+        if remaining:
+            for line in remaining.split("\n"):
+                line_clean = line.strip()
+                if line_clean:
+                    with _discovery_lock:
+                        entry["stderr_lines"].append(line_clean)
+
+        proc.wait()
+        returncode = proc.returncode
+
+        with _discovery_lock:
+            entry["done"] = True
+            if returncode != 0:
+                entry["error"] = f"Exit code {returncode}"
+
+        # Count jobs even on partial failure
+        queue_file = DATA_DIR / "job_queue.html"
+        if queue_file.exists():
+            content = queue_file.read_text()
+            jobs_found = content.count('"company":')
+            with _discovery_lock:
+                entry["jobs_found"] = jobs_found
+
+    except Exception as e:
+        with _discovery_lock:
+            entry["done"] = True
+            entry["error"] = str(e)
 
 
 def main():
@@ -335,7 +506,18 @@ def main():
         print(f"  Creating empty {APP_FILE}", flush=True)
         APP_FILE.write_text("[]")
 
-    server = HTTPServer(("127.0.0.1", args.port), TrackerHandler)
+    # Ensure job_queue.html has the full structure (modal, CSS, JS, JOBS array)
+    queue_file = DATA_DIR / "job_queue.html"
+    empty_template = DATA_DIR / "queue_empty.html"
+    if not queue_file.exists() or "const JOBS" not in queue_file.read_text():
+        if empty_template.exists():
+            print(f"  Initializing {queue_file} from {empty_template}", flush=True)
+            queue_file.write_text(empty_template.read_text())
+        else:
+            print(f"  Creating minimal {queue_file}", flush=True)
+            queue_file.write_text(QUEUE_TEMPLATE)
+
+    server = ThreadingHTTPServer(("127.0.0.1", args.port), TrackerHandler)
     print(f"\n  📋 JobQuest Tracker → http://127.0.0.1:{args.port}\n", flush=True)
     try:
         server.serve_forever()

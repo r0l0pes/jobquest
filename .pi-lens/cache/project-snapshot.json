@@ -1,8 +1,8 @@
 {
   "version": 1,
   "projectRoot": "/Users/carvalho/Documents/VibeCoding/JobSearch",
-  "generatedAt": "2026-05-27T11:07:14.850Z",
-  "seq": 0,
+  "generatedAt": "2026-06-02T16:21:23.105Z",
+  "seq": 48,
   "files": {
     "/Users/carvalho/Documents/VibeCoding/JobSearch/apply.py": {
       "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/apply.py",
@@ -164,6 +164,48 @@
       "size": 13934,
       "imports": [],
       "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/form_filler_cascade.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/form_filler_cascade.py",
+      "mtimeMs": 1779900002024.2996,
+      "size": 4844,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_form_filler_cascade.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_form_filler_cascade.py",
+      "mtimeMs": 1779899965427.6892,
+      "size": 9475,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_form_filler.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_form_filler.py",
+      "mtimeMs": 1779900213693.6877,
+      "size": 6464,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/webwright_client.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/webwright_client.py",
+      "mtimeMs": 1779900308652.1846,
+      "size": 7619,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_webwright_client.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_webwright_client.py",
+      "mtimeMs": 1779900374209.0193,
+      "size": 8788,
+      "imports": [],
+      "lastSeq": 0
+    },
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/update_certs.py": {
+      "path": "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/update_certs.py",
+      "mtimeMs": 1780417182610.7617,
+      "size": 5029,
+      "imports": [],
+      "lastSeq": 0
     }
   },
   "symbols": {},
@@ -172,6 +214,7 @@
     "/Users/carvalho/Documents/VibeCoding/JobSearch/batch_job_search.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/config.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/__init__.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/form_filler_cascade.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/job_scraper.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/llm_client.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/parsers.py": [],
@@ -179,6 +222,7 @@
     "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/__init__.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/company_research.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/scrapers/job_postings.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/modules/webwright_client.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/__init__.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/discover_jobs.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/form_filler.py": [],
@@ -188,8 +232,12 @@
     "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/notion_update_resume.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/render_pdf.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/smoke_check.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/scripts/update_certs.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/serve_tracker.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_form_filler_cascade.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_form_filler.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_smoke.py": [],
+    "/Users/carvalho/Documents/VibeCoding/JobSearch/tests/test_webwright_client.py": [],
     "/Users/carvalho/Documents/VibeCoding/JobSearch/web_ui.py": []
   },
   "cachedExports": [],
@@ -209,7 +257,7 @@
     "scanRoot": "/Users/carvalho/Documents/VibeCoding/JobSearch",
     "projectRoot": "/Users/carvalho/Documents/VibeCoding/JobSearch",
     "canWarmCaches": true,
-    "sourceFileCount": 23
+    "sourceFileCount": 28
   },
   "languageProfile": {
     "present": {
@@ -253,10 +301,21 @@
       "python": true
     },
     "counts": {
-      "python": 23
+      "python": 28
     },
     "detectedKinds": [
       "python"
+    ]
+  },
+  "conventions": {
+    "frameworks": [],
+    "testRunners": [],
+    "buildTools": [],
+    "agentDocs": [
+      {
+        "filePath": "AGENTS.md",
+        "lineCount": 187
+      }
     ]
   }
 }

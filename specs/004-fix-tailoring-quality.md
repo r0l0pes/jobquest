@@ -1,5 +1,26 @@
 # PRD: Fix Resume Tailoring Quality Regression
 
+**Priority:** P0
+**Status:** Not Implemented
+**Date:** 2026-05-19
+**Last Updated:** 2026-05-27
+
+## Implementation Status
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Rewrite `prompts/jd_analysis.md` with concrete instructions | ❌ Not Started | Blocked: needs dry-run validation time |
+| Rewrite `prompts/resume_tailor.md` (keep good parts, remove anti-patterns) | ❌ Not Started | Depends on `jd_analysis.md` rewrite |
+| Add WFP de-emphasis logic for non-AI roles | ❌ Not Started | Extend existing `_is_ai_heavy_jd()` in `pipeline.py` |
+| Add `STRICT_COMPLIANCE` env flag (optional) | ❌ Not Started | Nice-to-have, not blocking |
+| Dry-run validation on Every JD | ❌ Not Started | Needs manual review of brief output |
+| Dry-run validation on non-AI role | ❌ Not Started | Verify WFP de-emphasis works |
+| Dry-run validation on AI role | ❌ Not Started | Verify WFP still foregrounded |
+
+**Blocked by:** `005-pipeline-token-crisis.md` consumed May 27 session. Next available slot.
+
+---
+
 ## Problem Statement
 
 The resume tailoring pipeline produces low-quality output for non-AI roles. The generated resumes:

@@ -379,6 +379,66 @@
       </div>
     </div>
 
+    <!-- QA Preview Modal -->
+    <div
+      id="qa-modal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="
+          background: #161b22;
+          border: 1px solid #30363d;
+          border-radius: 8px;
+          padding: 24px;
+          width: 680px;
+          max-width: 90vw;
+          max-height: 80vh;
+          overflow-y: auto;
+        "
+      >
+        <h3
+          id="qa-modal-title"
+          style="margin-bottom: 12px; color: #58a6ff; font-size: 1em"
+        ></h3>
+        <div
+          id="qa-modal-body"
+          style="
+            color: #c9d1d9;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+          "
+        ></div>
+        <div style="margin-top: 16px; text-align: right">
+          <button
+            onclick="document.getElementById('qa-modal').style.display = 'none'"
+            style="
+              background: #30363d;
+              border: none;
+              color: #c9d1d9;
+              padding: 8px 16px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+            "
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <table>
       <thead>
         <tr>
@@ -388,7 +448,12 @@
           <th onclick="sortBy('role')">
             Role <span class="arrow" id="arrow-role"></span>
           </th>
-          <th>URL</th>
+          <th onclick="sortBy('variant')">
+            Variant <span class="arrow" id="arrow-variant"></span>
+          </th>
+          <th>Resume</th>
+          <th>Cover Letter</th>
+          <th>QA</th>
           <th onclick="sortBy('score')">
             Score <span class="arrow" id="arrow-score"></span>
           </th>
@@ -421,6 +486,43 @@
         "rejected",
         "skipped",
       ];
+
+      function absToRel(fsPath) {
+        if (!fsPath) return null;
+        const idx = fsPath.indexOf("/output/");
+        if (idx !== -1) return fsPath.slice(idx);
+        return null;
+      }
+
+      function variantBadge(v) {
+        if (!v) return '<span class="badge badge-na">—</span>';
+        const labels = {
+          growth_pm: "Growth PM",
+          generalist: "Generalist",
+          ai_pm: "AI PM",
+        };
+        const cls =
+          v === "ai_pm"
+            ? "badge-strong"
+            : v === "generalist"
+              ? "badge-good"
+              : "badge-weak";
+        return `<span class="badge ${cls}">${labels[v] || v}</span>`;
+      }
+
+      function showQA(company, text) {
+        document.getElementById("qa-modal-title").textContent =
+          "Q&A for " + company;
+        document.getElementById("qa-modal-body").textContent = text;
+        document.getElementById("qa-modal").style.display = "flex";
+      }
+
+      document.addEventListener("click", function (e) {
+        var target = e.target.closest(".qa-preview");
+        if (target) {
+          showQA(target.dataset.company, target.dataset.qa);
+        }
+      });
 
       async function load() {
         try {
@@ -546,11 +648,19 @@
             const days = daysAgo(a.date);
             const shortUrl = (a.url || "")
               .replace(/^https?:\/\/(www\.)?/, "")
-              .substring(0, 38);
+              .substring(0, 28);
+            const pdfRel = absToRel(a.pdf_path);
+            const clRel = absToRel(a.cover_letter_path);
+            const qaText = a.qa || "";
+            const qaShort =
+              qaText.length > 80 ? qaText.substring(0, 80) + "…" : qaText;
             return `<tr>
           <td><strong>${a.company || "?"}</strong></td>
           <td>${a.role || "?"}</td>
-          <td><a href="${a.url || "#"}" target="_blank" class="url-link" title="${a.url || ""}">${shortUrl}…</a></td>
+          <td>${variantBadge(a.variant)}</td>
+          <td>${pdfRel ? `<a href="${pdfRel}" target="_blank" title="Open resume PDF" style="color:#58a6ff;font-size:13px;">📄 PDF</a>` : '<span style="color:#484f58;font-size:13px;">—</span>'}</td>
+          <td>${clRel ? `<a href="${clRel}" target="_blank" title="Open cover letter PDF" style="color:#58a6ff;font-size:13px;">📄 PDF</a>` : '<span style="color:#484f58;font-size:13px;">—</span>'}</td>
+          <td style="max-width:220px;overflow:hidden;">${qaText ? `<span class="qa-preview" data-company="${(a.company || "?").replace(/"/g, "&quot;")}" data-qa="${qaText.replace(/"/g, "&quot;")}" style="cursor:pointer;color:#8b949e;font-size:13px;" title="Click to expand Q&A">${qaShort}</span>` : '<span style="color:#484f58;font-size:13px;">—</span>'}</td>
           <td>${scoreBadge(a.score, a.score_label)}</td>
           <td>${a.date || ""}</td>
           <td class="days">${days !== "" ? days + "d" : ""}</td>

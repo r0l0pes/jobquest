@@ -93,7 +93,7 @@ SQL, A/B Testing, GA4, Mixpanel, Power BI, Tableau, LLM Workflows, Voice AI, Pro
 |-------|-------------|-------|
 | **Salesforce Marketing Cloud** | C&A role | "integrated with Salesforce Marketing Cloud for order notifications" |
 | **Userlane** | HELLA role | "implemented in-product onboarding (Userlane)" |
-| **A/B Testing** (in bullet text) | Accenture/Natura | "37+ A/B tests" — listed in skills ✅ |
+| **A/B Testing** (in bullet text) | Accenture/Natura | "structured A/B experiments" — listed in skills ✅ |
 | **Google Maps API** (in bullet text) | Accenture/Natura | "address autocomplete (Google Maps)" — listed in resume ✅ |
 | **WhatsApp Business API** (in bullet text) | C&A role | "earliest enterprise WhatsApp Business API deployments" — listed in resume ✅ |
 

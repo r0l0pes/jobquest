@@ -38,7 +38,8 @@ each step. 4 Latin American markets with different payment methods and regulatio
 **T (Task):** Redesign the end-to-end checkout flow to increase conversion across
 all 4 markets.
 **A (Action):** Mapped the complete funnel across cart, payment, and confirmation
-steps. Ran 37+ A/B tests. Adapted payment methods per market (Boleto in Brazil,
+steps. Ran iterative A/B experiments across checkout flows, payment methods,
+and address autocomplete. Adapted payment methods per market (Boleto in Brazil,
 installments in Argentina). Worked with local teams in each country.
 **R (Result):** 45% conversion rate improvement. Successful rollout across 4 markets.
 **Reflection:** The key was not assuming one solution fits all markets. Payment

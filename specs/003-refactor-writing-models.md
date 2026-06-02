@@ -1,5 +1,24 @@
 # PRD: Refactor Writing Pipeline LLM Selection
 
+**Priority:** P1
+**Status:** Partially Implemented
+**Date:** 2026-05-18
+**Last Updated:** 2026-05-27
+
+## Implementation Status
+
+| Item | Status | Commit | Notes |
+|------|--------|--------|-------|
+| Restore free providers to WRITING_CHAIN | ✅ Done | `86ddfb4` | Groq, SambaNova, OpenRouter restored before paid fallbacks |
+| Fix web UI provider options/mappings | ✅ Done | `86ddfb4` | Dropdown shows all free+paid models, stats fixed |
+| Fix CLI `--writing-model` choices | ✅ Done | `86ddfb4` | `_WRITING_MODEL_TO_PROVIDER` mappings corrected |
+| Enable targeted edits by default | ✅ Done | `86ddfb4` | `TARGETED_EDITS=1` default for all providers |
+| Add prompt condensation for small-context providers | ✅ Done | `86ddfb4` | `_condense_prompt()` added for Groq/SambaNova |
+| **Prompt architecture overhaul** (XML brief, few-shot boundaries, summary rule) | ❌ Not Done | — | Moved to `004-fix-tailoring-quality.md` |
+| **Voice rules update** ("grit" banned) | ❌ Not Done | — | Moved to `004-fix-tailoring-quality.md` |
+
+---
+
 ## Problem Statement
 
 The writing pipeline (steps 3, 6, 8 — resume tailoring, ATS edits, Q&A generation) currently ignores the user's writing model selection from the web UI. It always falls back to OpenCode Go models regardless of what the user picked. This eats OpenCode credits unnecessarily and bypasses the free-tier providers the user configured.

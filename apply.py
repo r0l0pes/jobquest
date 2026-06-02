@@ -30,7 +30,6 @@ def parse_args(argv: list[str] | None = None):
             "Examples:\n"
             "  python apply.py https://boards.greenhouse.io/company/jobs/123\n"
             '  python apply.py https://jobs.lever.co/company/abc --questions "Why us?"\n'
-            "  python apply.py https://example.com/jobs/pm --skip-notion\n"
         ),
     )
     parser.add_argument("job_url", help="URL of the job posting")
@@ -43,11 +42,6 @@ def parse_args(argv: list[str] | None = None):
         action="append",
         default=[],
         help="Application question (use multiple times for multiple questions)",
-    )
-    parser.add_argument(
-        "--skip-notion",
-        action="store_true",
-        help="Skip Notion tracking step",
     )
     parser.add_argument(
         "--provider",
@@ -154,13 +148,9 @@ def show_dry_run(ctx: dict, console: Console, steps):
     table.add_column("Status")
 
     for i, (step_id, desc, _) in enumerate(steps, 1):
-        skip = ""
-        if step_id == "notion" and ctx.get("skip_notion"):
+        skip = "[green]RUN[/green]"
+        if step_id == "form" and ctx.get("skip_form"):
             skip = "[yellow]SKIP[/yellow]"
-        elif step_id == "form" and ctx.get("skip_form"):
-            skip = "[yellow]SKIP[/yellow]"
-        else:
-            skip = "[green]RUN[/green]"
         table.add_row(f"{i}", desc, skip)
 
     console.print(table)
@@ -249,7 +239,7 @@ def run_pipeline_from_cli(args) -> int:
         "job_url": args.job_url,
         "company_url": args.company_url,
         "questions": [q.strip() for q in args.questions if q.strip()],
-        "skip_notion": args.skip_notion,
+        "skip_notion": False,
         "skip_form": not fill_form,
         "no_webwright": no_webwright,
         "provider": provider,
@@ -337,6 +327,7 @@ def _save_context(ctx: dict, console: Console):
 def _save_application_json(ctx: dict, console: Console):
     """Append application to data/applications.json for the tracker."""
     try:
+        from config import ROLE_VARIANT
         data_dir = PROJECT_ROOT / "data"
         data_dir.mkdir(exist_ok=True)
         app_file = data_dir / "applications.json"
@@ -346,10 +337,22 @@ def _save_application_json(ctx: dict, console: Console):
             apps = json.loads(app_file.read_text())
 
         from datetime import datetime
+        app_url = ctx.get("job_url", "")
+
+        # Dedup: check if URL already exists (normalized)
+        def normalize(u):
+            return (u or "").rstrip("/").split("#")[0]
+        norm_url = normalize(app_url)
+        dup_idx = None
+        for i, a in enumerate(apps):
+            if normalize(a.get("url", "")) == norm_url:
+                dup_idx = i
+                break
+
         app = {
             "company": ctx.get("job", {}).get("company", "?"),
             "role": ctx.get("job", {}).get("title", "?"),
-            "url": ctx.get("job_url", ""),
+            "url": app_url,
             "date": datetime.now().strftime("%Y-%m-%d"),
             "score": ctx.get("pipeline_score"),
             "score_label": ctx.get("pipeline_score_label"),
@@ -357,8 +360,16 @@ def _save_application_json(ctx: dict, console: Console):
             "notes": "",
             "pdf_path": ctx.get("pdf_path", ""),
             "run_dir": ctx.get("run_dir", ""),
+            "qa": ctx.get("qa_raw", ""),
+            "cover_letter_path": ctx.get("cover_letter_pdf_path", ""),
+            "variant": ROLE_VARIANT,
         }
-        apps.append(app)
+
+        if dup_idx is not None:
+            apps[dup_idx].update(app)
+        else:
+            apps.append(app)
+
         app_file.write_text(json.dumps(apps, indent=2))
         console.print(f"  [dim]Tracker updated: {app_file} ({len(apps)} entries)[/dim]")
     except Exception:

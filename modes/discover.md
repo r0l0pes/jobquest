@@ -142,6 +142,11 @@ site:remotepmjobs.com "Senior Product Manager"
 site:productjobsanywhere.com "Product Manager" EMEA
 site:arc.dev "Product Manager" remote
 
+# Experimentation-specific (niche board, high-signal for CRO/Experiment roles)
+site:experimentationjobs.com "Product Manager"
+site:experimentationjobs.com "Growth" Europe
+site:experimentationjobs.com "Conversion" Europe
+
 # German language (catch companies that post only in German)
 "Senior Produktmanager" Wachstum Deutschland
 "Produktmanager" Berlin Startup site:stepstone.de
@@ -178,7 +183,7 @@ Fields:
 - `date`: date the job was posted or discovered
 - `source`: platform where found (linkedin, stepstone, infojobs, wellfound,
   weworkremotely, remoteok, himalayas, remotive, remoterocketship, weloveproduct,
-  remoteornothing, remotepmjobs, productjobsanywhere, arc, etc.)
+  remoteornothing, remotepmjobs, productjobsanywhere, arc, experimentationjobs, etc.)
 
 Group entries by country, then by role type, separated by comments.
 

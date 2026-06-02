@@ -105,6 +105,11 @@ QUERY_CATALOG = [
     ("Senior Growth PM dailyremote", "growth", "remote", "dailyremote"),
     ("Senior PM remotely de Germany", "generalist", "de", "remotely.de"),
     ("Product Manager eu remote jobs Europe", "generalist", "remote", "euremotejobs"),
+    # Google Jobs — converts at 2.4x LinkedIn rate per Huntr Q1 2026
+    ("Senior Product Manager Germany site:google.com/search", "generalist", "de", "google"),
+    ("Growth Product Manager Germany site:google.com/search", "growth", "de", "google"),
+    ("AI Product Manager Germany site:google.com/search", "ai", "de", "google"),
+    ("Senior Product Manager Spain site:google.com/search", "generalist", "es", "google"),
 ]
 
 
@@ -218,6 +223,8 @@ def infer_source(url: str, expected: str) -> str:
         return "careervault"
     if "dailyremote" in domain:
         return "dailyremote"
+    if "google.com/search" in domain or "google" in domain and "jobs" in url.lower():
+        return "google"
     return expected
 
 
@@ -416,6 +423,7 @@ def result_to_job(result: dict, role_type: str, country_hint: str, expected_sour
         r"arrabal\.vinegla\.com", r"carloslopezcebollero\.com", r"mrmoises\.es",
         r"evaplutopamal\.com", r"sara-fernandez\.com", r"thenomadicpm\.com",
         r"anamariazamfirache\.com", r"danielleduijst\.com", r"ilias\.pm",
+        r"franzheinfling\.com",
         # Low-quality aggregators / freelancer platforms
         r"jaabz\.com", r"habooz\.com", r"jobleads\.com", r"mypivot\.work",
         r"sercanto\.com", r"simplyhired\.", r"freelancermap\.de",
@@ -501,7 +509,7 @@ def deduplicate_jobs(jobs: list[dict], existing: list[dict]) -> list[dict]:
             continue
         if key in existing_keys:
             continue
-        if company_counts.get(company, 0) >= 2:
+        if company_counts.get(company, 0) >= 1:
             continue
         new_jobs.append(job)
         existing_urls.add(url)

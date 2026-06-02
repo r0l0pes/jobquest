@@ -997,8 +997,26 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
 
     # Fill template (use .replace to avoid LaTeX brace conflicts with .format)
     latex = template_path.read_text()
-    latex = latex.replace("{role_title}", job_title)
-    latex = latex.replace("{company}", company)
+
+    # Escape LaTeX special characters in job_title and company
+    # (cover_body is escaped separately below)
+    import re as _re
+    def _escape_latex(text: str) -> str:
+        """Escape LaTeX special characters so they render literally."""
+        text = text.replace('\\', '\\textbackslash{}')
+        text = text.replace('{', '\\{')
+        text = text.replace('}', '\\}')
+        text = text.replace('%', '\\%')
+        text = text.replace('#', '\\#')
+        text = text.replace('$', '\\$')
+        text = text.replace('&', '\\&')
+        text = text.replace('_', '\\_')
+        text = text.replace('~', '\\textasciitilde{}')
+        text = text.replace('^', '\\textasciicircum{}')
+        return text
+
+    latex = latex.replace("{role_title}", _escape_latex(job_title))
+    latex = latex.replace("{company}", _escape_latex(company))
     latex = latex.replace("{place}", place)
     latex = latex.replace("{date}", date_str)
 
@@ -1012,6 +1030,10 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
     cover_body = cover_body.replace("#", "\\#")
     cover_body = cover_body.replace("~", "\\textasciitilde{}")
     cover_body = cover_body.replace("^", "\\textasciicircum{}")
+
+    # Insert \vspace{10pt} between paragraphs — replaces double newlines
+    # with \vspace{10pt} followed by a new paragraph break
+    cover_body = re.sub(r"\n\n+", r"\\vspace{10pt}\n\n", cover_body)
 
     latex = latex.replace("{body}", cover_body)
 
@@ -1036,7 +1058,7 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
     return ctx
 
 
-# ─── Step 10: Notion Tracking ────────────────────────────────────
+# ─── Step 9: Local Tracker Entry ─────────────────────────────────
 
 
 def step_create_tracker_entry(
@@ -1044,10 +1066,7 @@ def step_create_tracker_entry(
 ) -> dict:
     import sys
     from pathlib import Path
-
-    if ctx.get("skip_notion"):
-        console.print("\n[bold]Step 9/9:[/bold] Skipping tracker entry (--skip-notion).")
-        return ctx
+    from config import ROLE_VARIANT, RESUME_VARIANT
 
     console.print("\n[bold]Step 9/9:[/bold] Creating tracker entry...")
     sys.stdout.flush()
@@ -1072,6 +1091,11 @@ def step_create_tracker_entry(
         "date": date_str,
         "status": "applied",
         "notes": "",
+        "pdf_path": ctx.get("pdf_path", ""),
+        "run_dir": ctx.get("run_dir", ""),
+        "qa": ctx.get("qa_raw", ""),
+        "cover_letter_path": ctx.get("cover_letter_pdf_path", ""),
+        "variant": ROLE_VARIANT,
     }
 
     apps_file = Path(__file__).parent.parent / "data" / "applications.json"
@@ -1099,6 +1123,11 @@ def step_create_tracker_entry(
                 "score_label": score_label,
                 "date": date_str,
                 "status": "applied",
+                "pdf_path": ctx.get("pdf_path", ""),
+                "run_dir": ctx.get("run_dir", ""),
+                "qa": ctx.get("qa_raw", ""),
+                "cover_letter_path": ctx.get("cover_letter_pdf_path", ""),
+                "variant": ROLE_VARIANT,
             })
             console.print(f"  [yellow]↻ Updated existing tracker entry (duplicate URL)[/yellow]")
         else:

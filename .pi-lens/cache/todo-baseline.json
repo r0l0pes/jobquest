@@ -1,3 +1,18 @@
 {
-  "items": []
+  "items": [
+    {
+      "type": "TODO",
+      "message": "Implement Webwright integration in U2",
+      "file": "modules/form_filler_cascade.py",
+      "line": 153,
+      "column": 6
+    },
+    {
+      "type": "TODO",
+      "message": "Integrate with Webwright's programmatic API once installed.",
+      "file": "modules/webwright_client.py",
+      "line": 132,
+      "column": 6
+    }
+  ]
 }

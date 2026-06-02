@@ -263,7 +263,6 @@ class TestDryRun:
             job_url="https://boards.greenhouse.io/example/jobs/99999",
             company_url=None,
             questions=[],
-            skip_notion=True,
             provider="gemini",
             dry_run=True,
             cover_letter=False,

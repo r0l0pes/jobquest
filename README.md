@@ -4,7 +4,7 @@ Automated job application pipeline. Discovery, tailoring, scoring, tracking, and
 
 ## What It Does
 
-1. **Discover** — Exa API searches for PM jobs across the web. Pop-up modal on the Discovery tab asks time range (7d/24h) and whether to keep or clear existing positions.
+1. **Discover** — Exa API searches for PM jobs across 23+ boards. Pop-up modal on the Discovery tab asks time range (7d/24h) and whether to keep or clear existing positions. **Live log streaming** shows query progress, raw results, dead URL skips, and verification in real-time inside the modal. Cancel any time, or close and reload when done.
 2. **Tailor** — 3-stage LLM resume tailoring with ATS keyword coverage check, Q&A generation, and optional cover letter compilation.
 3. **Score** — 0-100 pipeline score from ATS match, compliance, company research, and AI signals.
 4. **Track** — Sortable HTML tracker with editable Q&A, cover letter, and resume modals. Each modal has Save, Recompile PDF, and Remove. Dedup by URL on save.
@@ -19,7 +19,7 @@ Double-click **`JobQuest.command`** — it starts both servers and opens 3 brows
 |-----|-----|---------------|
 | **Pipeline** | `http://127.0.0.1:7860` | 3 parallel application slots with Gradio UI |
 | **Tracker** | `http://127.0.0.1:7880` | Application list with editable Q&A, Cover Letter, Resume |
-| **Discovery** | `http://127.0.0.1:7880/queue` | Job queue with automatic pop-up to run discovery |
+| **Discovery** | `http://127.0.0.1:7880/queue` | Job queue with live-log discovery pop-up. Cancel, Close, or Reload when done |
 
 ## Quick Launch (Manual)
 
@@ -62,7 +62,7 @@ Pi reads mode files from `modes/`:
 
 | Mode           | File                      | What it does                                                                   |
 | -------------- | ------------------------- | ------------------------------------------------------------------------------ |
-| Discover       | `modes/discover.md`       | Search 20+ platforms (12 remote-only + local), output to `data/job_queue.html` |
+| Discover       | `modes/discover.md`       | Search 23+ platforms (16 remote-only + local), output to `data/job_queue.html` |
 | Interview Prep | `modes/prep_interview.md` | Company-specific research + STAR story bank                                    |
 | Batch          | `modes/batch.md`          | Process job queue sequentially or via web UI                                   |
 
@@ -145,9 +145,10 @@ JobQuest/
 ├── data/
 │   ├── applications.json      ← 21 entries, auto-saved by pipeline
 │   ├── tracker.html           ← Editable tracker UI
-│   └── job_queue.html         ← Discovery queue with pop-up modal
+│   ├── job_queue.html         ← Discovery queue with live-log modal
+│   └── queue_empty.html       ← Reset template for job queue (full structure, empty JOBS)
 ├── output/                    ← Per-application output dirs
-├── specs/                     ← 7 feature specifications
+├── specs/                     ← 8 feature specifications
 ├── tests/                     ← pytest (32 tests)
 └── templates/                 ← LaTeX resume + cover letter templates
 ```
@@ -155,10 +156,12 @@ JobQuest/
 ## Testing
 
 ```bash
-pytest tests/ -v               # 32 tests in ~0.6s
+pytest tests/ -v               # 37 tests in ~0.7s
 ```
 
 ## Supported Platforms
+
+### ATS Systems
 
 | Platform   | URL Pattern                                           |
 | ---------- | ----------------------------------------------------- |
@@ -169,3 +172,15 @@ pytest tests/ -v               # 32 tests in ~0.6s
 | Personio   | `*.jobs.personio.de`, `*.jobs.personio.com`           |
 | Screenloop | `app.screenloop.com`                                  |
 | Others     | HTML scraping fallback                                |
+
+### Job Boards (Discovery — 23+)
+
+| Board | Domain |
+|-------|--------|
+| **Major boards** | LinkedIn, Stepstone, Indeed, Infojobs |
+| **Remote-first** | 4dayweek, jobspresso, flexjobs, nodesk, workingnomads, trulyremote, flexa, jobgether, oomple, careervault, dailyremote, remotely.de, euremotejobs, remocate.app, productjobsanywhere.com, remoterocketship.com, experimentationjobs.com |
+| **Startup** | wellfound (AngelList), weworkremotely, remoteok, himalayas, remotive |
+| **Other aggregators** | arbeitnow, workwise, join.com, bebee, personio, marketingmonk, startup-insider, talents.studysmarter, remoteitjobs |
+
+### Company Career Pages
+Greenhouse, Lever, Ashby, Workable, Personio subdomains — captured automatically.

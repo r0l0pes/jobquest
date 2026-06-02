@@ -10,7 +10,7 @@ JobQuest is Rodrigo Lopes' automated job application pipeline. Paste a job URL â
 
 **Stack:** Python 3.14, Gradio 6, Playwright, Notion API, multi-provider LLM
 
-**Test count:** 32 tests (pytest tests/ -v)
+**Test count:** 37 tests (pytest tests/ -v)
 
 ---
 
@@ -122,7 +122,10 @@ Pipeline auto-saves: `qa`, `cover_letter_content`, `resume_content` from output 
 | -------------------------- | ------------------------------- | ------------------------------------------------------------------- |
 | **Jobs Hub**               | `JobQuest.command`              | One-click launcher â€” Pipeline + Tracker + Discovery in 3 tabs       |
 | **Job Discovery**          | `scripts/discover_jobs.py`      | Exa API search, served at `/queue` on tracker server                |
-| **Discovery Pop-Up**       | `data/job_queue.html`           | Modal on load: time range (7d/24h) + keep/remove existing           |
+| **Discovery Pop-Up**       | `data/job_queue.html`           | Modal on load: time range (7d/24h) + keep/remove + live streaming log |
+| **Live Discovery Log**     | `data/job_queue.html`, `serve_tracker.py` | Streaming stderr from discover_jobs.py shown live in modal via polling |
+| **Non-blocking API**       | `serve_tracker.py`              | POST /api/discover returns job_id immediately; GET /api/discover-log for progress |
+| **Cancel Discovery**       | `data/job_queue.html`           | Cancel button kills running discovery, or dismisses modal without running |
 | **Fit Scoring**            | `modules/pipeline.py`           | 0-100 score from ATS, compliance, research, AI signals              |
 | **Application Tracker**    | `data/tracker.html`             | Sortable HTML table, editable modals for Q&A/Cover/Resume           |
 | **Tracker Fields**         | `data/applications.json`        | qa, cover_letter_content, resume_content, recompile PDF from modal  |

@@ -88,6 +88,24 @@ def parse_args(argv: list[str] | None = None):
         "--cover-letter-instructions",
         help="Optional specific instructions for the cover letter (e.g., 'Emphasize AI experience')",
     )
+    parser.add_argument(
+        "--lang-resume",
+        choices=["EN", "DE"],
+        default=None,
+        help="Output language for resume (default: EN)",
+    )
+    parser.add_argument(
+        "--lang-cover",
+        choices=["EN", "DE"],
+        default=None,
+        help="Output language for cover letter (default: EN)",
+    )
+    parser.add_argument(
+        "--lang-qa",
+        choices=["EN", "DE"],
+        default=None,
+        help="Output language for Q&A answers (default: EN)",
+    )
     return parser.parse_args(argv)
 
 
@@ -239,6 +257,17 @@ def run_pipeline_from_cli(args) -> int:
         os.environ["WRITING_PROVIDER"] = _WRITING_MODEL_TO_PROVIDER.get(writing_model, "gemini")
 
     # Build initial context
+    # Read language flags from env vars (Web UI sets them) or CLI args
+    from modules.pipeline import _lang_from_env
+    lang_flags = {
+        "resume": getattr(args, "lang_resume", None) or os.getenv("JOBQUEST_LANG_RESUME", "EN"),
+        "cover": getattr(args, "lang_cover", None) or os.getenv("JOBQUEST_LANG_COVER", "EN"),
+        "qa": getattr(args, "lang_qa", None) or os.getenv("JOBQUEST_LANG_QA", "EN"),
+    }
+    # Push into env so subprocesses (render_pdf) can pick them up
+    for k, v in lang_flags.items():
+        os.environ[f"JOBQUEST_LANG_{k.upper()}"] = v
+
     ctx = {
         "job_url": args.job_url,
         "company_url": args.company_url,
@@ -248,6 +277,7 @@ def run_pipeline_from_cli(args) -> int:
         "provider": provider,
         "generate_cover_letter": args.cover_letter,
         "cover_letter_instructions": args.cover_letter_instructions or "",
+        "lang": lang_flags,
     }
 
     # Dry run

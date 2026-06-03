@@ -309,3 +309,119 @@ class TestDryRun:
         score = compute_pipeline_score(ctx, Console())
         assert score < 60, f"Should be WEAK or SKIP, got {score}"
         assert ctx["pipeline_score_label"] in ("WEAK", "SKIP")
+
+
+class TestGermanLanguage:
+    """Verify German-language support helpers and pipeline integration."""
+
+    def test_use_du_detection_positive(self):
+        """JD using 'Du' should return True."""
+        from modules.pipeline import _use_du
+        jd = "Wir suchen Dich! Deine Aufgaben: Du bringst mit..."
+        assert _use_du(jd) is True
+
+    def test_use_du_detection_negative(self):
+        """JD using 'Sie' should return False."""
+        from modules.pipeline import _use_du
+        jd = "Wir suchen Sie! Ihre Aufgaben: Sie bringen mit..."
+        assert _use_du(jd) is False
+
+    def test_use_du_detection_empty(self):
+        """Empty JD should return False."""
+        from modules.pipeline import _use_du
+        assert _use_du("") is False
+
+    def test_german_section_title_replacement(self):
+        """English LaTeX section titles replaced with German equivalents."""
+        from modules.pipeline import _germanize_section_titles
+        latex = (
+            "\\section*{Summary}\n"
+            "\\section*{Experience}\n"
+            "\\section*{Skills & Tools}\n"
+            "\\section*{Languages}\n"
+            "\\section*{Education}\n"
+            "\\section*{Certifications}\n"
+        )
+        result = _germanize_section_titles(latex)
+        assert "\\section*{Zusammenfassung}" in result
+        assert "\\section*{Berufserfahrung}" in result
+        assert "\\section*{Fähigkeiten & Tools}" in result
+        assert "\\section*{Sprachen}" in result
+        assert "\\section*{Ausbildung}" in result
+        assert "\\section*{Zertifizierungen}" in result
+
+    def test_german_section_title_noop_english(self):
+        """Already-German titles should not be double-translated."""
+        from modules.pipeline import _germanize_section_titles
+        latex = (
+            "\\section*{Zusammenfassung}\n"
+            "\\section*{Berufserfahrung}\n"
+        )
+        result = _germanize_section_titles(latex)
+        assert result == latex  # No change
+
+    def test_t1_fontenc_insertion(self):
+        """Add T1 fontenc for German hyphenation."""
+        from modules.pipeline import _add_t1_fontenc
+        latex = "\\usepackage[utf8]{inputenc}\n\\usepackage[margin=0.75in]{geometry}"
+        result = _add_t1_fontenc(latex)
+        assert "\\usepackage[T1]{fontenc}" in result
+
+    def test_t1_fontenc_no_double_insert(self):
+        """Don't add T1 if already present."""
+        from modules.pipeline import _add_t1_fontenc
+        latex = (
+            "\\usepackage[utf8]{inputenc}\n"
+            "\\usepackage[T1]{fontenc}\n"
+        )
+        result = _add_t1_fontenc(latex)
+        assert result.count("\\usepackage[T1]{fontenc}") == 1
+
+    def test_german_cover_letter_title(self):
+        """German cover letter uses 'Bewerbung als' format."""
+        from modules.pipeline import _german_cover_letter_replacements
+        result = _german_cover_letter_replacements(
+            company="Knuddels GmbH \\& Co. KG",
+            role="Senior Growth Product Manager:in (w/m/d)",
+            use_du=True,
+        )
+        assert "Bewerbung als" in result["title"]
+        assert "Liebes Knuddels" in result["greeting"]
+        assert result["closing"] == "Mit freundlichen Grüßen,"
+
+    def test_german_cover_letter_formal_greeting(self):
+        """Formal company gets 'Sehr geehrtes'."""
+        from modules.pipeline import _german_cover_letter_replacements
+        result = _german_cover_letter_replacements(
+            company="Siemens AG",
+            role="Product Manager",
+            use_du=False,
+        )
+        assert "Sehr geehrtes Siemens" in result["greeting"]
+
+    def test_pipeline_context_saves_lang_flags(self):
+        """Language flags should be saved to pipeline_context.json."""
+        from modules.pipeline import _lang_from_env
+        import os
+        os.environ["JOBQUEST_LANG_RESUME"] = "DE"
+        os.environ["JOBQUEST_LANG_COVER"] = "DE"
+        os.environ["JOBQUEST_LANG_QA"] = "EN"
+        try:
+            lang = _lang_from_env()
+            assert lang["resume"] == "DE"
+            assert lang["cover"] == "DE"
+            assert lang["qa"] == "EN"
+        finally:
+            for k in ("JOBQUEST_LANG_RESUME", "JOBQUEST_LANG_COVER", "JOBQUEST_LANG_QA"):
+                os.environ.pop(k, None)
+
+    def test_lang_flags_default_to_en(self):
+        """Without env vars, all flags default to EN."""
+        from modules.pipeline import _lang_from_env
+        import os
+        for k in ("JOBQUEST_LANG_RESUME", "JOBQUEST_LANG_COVER", "JOBQUEST_LANG_QA"):
+            os.environ.pop(k, None)
+        lang = _lang_from_env()
+        assert lang["resume"] == "EN"
+        assert lang["cover"] == "EN"
+        assert lang["qa"] == "EN"

@@ -720,8 +720,8 @@ class FallbackClient(LLMClient):
 
                 # Check if it's a rate limit / quota error
                 is_exhausted = any(x in error_str for x in [
-                    "429", "rate", "quota", "exhausted", "limit",
-                    "too many requests", "resource_exhausted"
+                    "429", "413", "rate", "quota", "exhausted", "limit",
+                    "too many requests", "resource_exhausted", "payload"
                 ])
 
                 if is_exhausted:

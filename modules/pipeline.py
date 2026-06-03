@@ -55,18 +55,46 @@ def _get_writing_client() -> LLMClient:
     return _writing_client_cache[cache_key]
 
 
-def _load_voice_prefix() -> str:
+def _load_voice_prefix(lang_flags: dict[str, str] | None = None) -> str:
     """Load rodrigo-voice-lite.md as a system prompt prefix for writing steps.
 
     Default: lite version (~60 lines, ~500 tokens) for cost efficiency.
     Set USE_FULL_VOICE=1 in .env to use the full 322-line version when
     output quality drops and you need tighter enforcement.
+
+    When lang_flags is provided and any flag is 'DE', appends a German-language
+    instruction block with tone guidance and AI-tell avoidance.
     """
     voice_name = "rodrigo-voice" if os.getenv("USE_FULL_VOICE") == "1" else "rodrigo-voice-lite"
     voice_path = PROMPTS_DIR / f"{voice_name}.md"
+    prefix = ""
     if voice_path.exists():
-        return voice_path.read_text() + "\n\n---\n\n"
-    return ""
+        prefix = voice_path.read_text() + "\n\n---\n\n"
+
+    if lang_flags and any(v == "DE" for v in lang_flags.values()):
+        prefix += _GERMAN_LANG_BLOCK
+        prefix += "\n\n---\n\n"
+
+    return prefix
+
+
+# Injected after English voice rules when any language flag is DE.
+# Compact block: tone guidance + German AI tells to avoid.
+_GERMAN_LANG_BLOCK = """\
+## Ausgabesprache
+
+Output in German (Geschäftsdeutsch, authentischer Ton, keine akademische Sprache).
+Passe den Ton der Stellenausschreibung und Unternehmenskommunikation an.
+
+Vermeide diese KI-Muster:
+- "darüber hinaus", "zusätzlich", "ferner", "zusammenfassend", "abschließend"
+- "nicht nur... sondern auch", "es ist wichtig zu beachten", "es ist bemerkenswert"
+- Partizipialkonstruktionen: "gewährleistend", "hervorhebend", "widerspiegelnd", "betonend"
+- "steht als Zeugnis", "fasziniert weiterhin", "hinterlässt bleibenden Eindruck", "Wendepunkt"
+- "Ich hoffe, das hilft", "Natürlich!", "lassen Sie mich wissen"
+- Keine "Fazit"- oder "Zusammenfassung"-Abschnitte am Ende
+- Keine Bewerbungs-Floskeln: "hiermit bewerbe ich mich", "mit großem Interesse"
+- Kein "Von... bis" ohne konkrete Belege"""
 
 
 _AI_JD_KEYWORDS = [
@@ -109,6 +137,68 @@ def _run_script(script_name: str, args: list[str]) -> str:
 def _safe_filename(name: str) -> str:
     """Turn a company name into a filesystem-safe string."""
     return re.sub(r"[^\w\-]", "_", name).strip("_")
+
+
+# ─── German Language Support ──────────────────────────────────────
+
+
+def _lang_from_env() -> dict[str, str]:
+    """Read language flags from environment variables. Defaults to 'EN'."""
+    return {
+        "resume": os.getenv("JOBQUEST_LANG_RESUME", "EN"),
+        "cover": os.getenv("JOBQUEST_LANG_COVER", "EN"),
+        "qa": os.getenv("JOBQUEST_LANG_QA", "EN"),
+    }
+
+
+def _use_du(jd_text: str) -> bool:
+    """Check if the job description uses informal 'Du' address."""
+    return bool(re.search(r"\b[Dd]ich\b|\b[Dd]ein\b|\b[Dd]ir\b", jd_text))
+
+
+def _germanize_section_titles(latex: str) -> str:
+    """Replace English LaTeX section titles with German equivalents."""
+    _SECTION_MAP = {
+        "Summary": "Zusammenfassung",
+        "Experience": "Berufserfahrung",
+        "Skills & Tools": "Fähigkeiten & Tools",
+        "Skills \\\\& Tools": "Fähigkeiten & Tools",
+        "Languages": "Sprachen",
+        "Education": "Ausbildung",
+        "Certifications": "Zertifizierungen",
+    }
+    for eng, deu in _SECTION_MAP.items():
+        latex = latex.replace(
+            f"\\section*{{{eng}}}",
+            f"\\section*{{{deu}}}",
+        )
+    return latex
+
+
+def _add_t1_fontenc(latex: str) -> str:
+    """Add T1 font encoding for German hyphenation if not already present."""
+    if "\\usepackage[T1]{fontenc}" in latex:
+        return latex
+    return latex.replace(
+        "\\usepackage[utf8]{inputenc}",
+        "\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}",
+    )
+
+
+def _german_cover_letter_replacements(
+    company: str, role: str, use_du: bool
+) -> dict[str, str]:
+    """Return German-specific template substitution values."""
+    greeting = (
+        f"Liebes {company}-Team,"
+        if use_du
+        else f"Sehr geehrtes {company}-Team,"
+    )
+    return {
+        "title": f"Bewerbung als {role}, {company}",
+        "greeting": greeting,
+        "closing": "Mit freundlichen Grüßen,",
+    }
 
 
 # ─── Step 1: Scrape Job Posting ──────────────────────────────────
@@ -296,7 +386,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
 
     if targeted_mode:
         base_latex = (PROJECT_ROOT / "templates" / "resume.tex").read_text()
-        edits_system = _load_voice_prefix() + _load_prompt("resume_edits")
+        edits_system = _load_voice_prefix(ctx.get("lang")) + _load_prompt("resume_edits")
         edits_user = (
             f"## Tailoring Brief\n\n{tailoring_brief}\n\n"
             f"---\n\n"
@@ -325,7 +415,7 @@ def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
             targeted_mode = False  # fall through to full generation below
 
     if not targeted_mode:
-        system_prompt = _load_voice_prefix() + _load_prompt("resume_tailor")
+        system_prompt = _load_voice_prefix(ctx.get("lang")) + _load_prompt("resume_tailor")
         user_prompt = (
             f"## Tailoring Brief\n\n"
             f"This analysis was produced for you in advance. Follow it — it tells you "
@@ -443,7 +533,15 @@ def step_write_tex(ctx: dict, llm: LLMClient, console: Console) -> dict:
     filename = f"Resume_Rodrigo-Lopes.tex"
     tex_path = run_dir / filename
 
-    tex_path.write_text(ctx["tailored_latex"])
+    latex = ctx["tailored_latex"]
+
+    # German resume: localize section titles and add T1 font encoding
+    if ctx.get("lang", {}).get("resume") == "DE":
+        latex = _germanize_section_titles(latex)
+        latex = _add_t1_fontenc(latex)
+        console.print("  [dim]German: section titles localized, T1 fontenc added[/dim]")
+
+    tex_path.write_text(latex)
     ctx["tex_path"] = str(tex_path)
 
     console.print(f"  Written: {tex_path}")
@@ -806,11 +904,16 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         # Avoid duplication if user already typed "cover letter" in questions
         all_q = ctx.get("all_questions", [])
         already_has_cl = any(
-            "cover letter" in q.lower() for q in all_q
+            "cover letter" in q.lower() or "anschreiben" in q.lower()
+            for q in all_q
         )
         if not already_has_cl:
             cl_instructions = ctx.get("cover_letter_instructions", "").strip()
-            cl_q = "Write a cover letter body for this application. Output ONLY the body paragraphs (2-4 paragraphs). Do NOT include a date line, greeting, sign-off, or any other metadata — only the paragraphs themselves. The LaTeX template supplies the greeting and sign-off."
+            qa_lang_de = ctx.get("lang", {}).get("qa") == "DE"
+            if qa_lang_de:
+                cl_q = "Schreibe einen Anschreiben-Text für diese Bewerbung. Gib NUR die Textabsätze aus (2-4 Absätze). Kein Datum, keine Anrede, keine Grußformel — nur die Absätze. Die LaTeX-Vorlage fügt Anrede und Grußformel hinzu."
+            else:
+                cl_q = "Write a cover letter body for this application. Output ONLY the body paragraphs (2-4 paragraphs). Do NOT include a date line, greeting, sign-off, or any other metadata — only the paragraphs themselves. The LaTeX template supplies the greeting and sign-off."
             if cl_instructions:
                 cl_q += f" Additional instructions: {cl_instructions}"
             all_q.insert(0, cl_q)
@@ -875,7 +978,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     }.get(ROLE_VARIANT, "")
 
     writing_llm = _get_writing_client()
-    system_prompt = _load_voice_prefix() + _load_prompt("qa_generator")
+    system_prompt = _load_voice_prefix(ctx.get("lang")) + _load_prompt("qa_generator")
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)
     )
@@ -996,11 +1099,49 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
     place = APPLICANT_LOCATION or "Berlin"
 
     # Fill template (use .replace to avoid LaTeX brace conflicts with .format)
+    # Escape LaTeX special characters in title/company before insertion
+    def _latex_escape(s: str) -> str:
+        return (s
+            .replace("\\", "\\textbackslash{}")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+            .replace("&", "\\&")
+            .replace("%", "\\%")
+            .replace("$", "\\$")
+            .replace("#", "\\#")
+            .replace("_", "\\_")
+            .replace("~", "\\textasciitilde{}")
+            .replace("^", "\\textasciicircum{}"))
+
     latex = template_path.read_text()
-    latex = latex.replace("{role_title}", job_title)
-    latex = latex.replace("{company}", company)
-    latex = latex.replace("{place}", place)
-    latex = latex.replace("{date}", date_str)
+
+    # German cover letter: localized title, greeting, closing, date format
+    if ctx.get("lang", {}).get("cover") == "DE":
+        esc_company = _latex_escape(company)
+        esc_role = _latex_escape(job_title)
+        use_du = _use_du(ctx["job"].get("description", ""))
+        de = _german_cover_letter_replacements(esc_company, esc_role, use_du)
+        # Template has {role_title} and {company} as title placeholder
+        latex = latex.replace(
+            "{\\large\\bfseries Application for {role_title}, at {company}}",
+            "{\\large\\bfseries " + de["title"] + "}",
+        )
+        latex = latex.replace(
+            "Dear Hiring Team,",
+            de["greeting"],
+        )
+        latex = latex.replace(
+            "Kind regards,",
+            de["closing"],
+        )
+        # German date: no country suffix
+        latex = latex.replace("{place}, {date}", f"Berlin, {date_str}")
+        console.print(f"  [dim]German template: {de['greeting']}[/dim]")
+    else:
+        latex = latex.replace("{role_title}", _latex_escape(job_title))
+        latex = latex.replace("{company}", _latex_escape(company))
+        latex = latex.replace("{place}", _latex_escape(place))
+        latex = latex.replace("{date}", date_str)
 
     # Escape LaTeX special characters in body
     import re

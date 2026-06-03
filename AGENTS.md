@@ -10,7 +10,7 @@ JobQuest is Rodrigo Lopes' automated job application pipeline. Paste a job URL �
 
 **Stack:** Python 3.14, Gradio 6, Playwright, Notion API, multi-provider LLM
 
-**Test count:** 37 tests (pytest tests/ -v)
+**Test count:** 48 tests (pytest tests/ -v)
 
 ---
 
@@ -36,7 +36,7 @@ Then open:
 python apply.py "JOB_URL"
 
 # Tests
-pytest tests/ -v                    → 32 tests in 0.6s
+pytest tests/ -v                    → 48 tests in 0.6s
 ```
 
 ---
@@ -46,8 +46,8 @@ pytest tests/ -v                    → 32 tests in 0.6s
 ```
 JobQuest/
 ├── AGENTS.md                   ← Pi reads this first
-├── apply.py                    ← CLI pipeline orchestrator
-├── web_ui.py                   ← Gradio browser UI (3 parallel slots)
+├── apply.py                    ← CLI pipeline orchestrator (--lang-resume/--lang-cover/--lang-qa)
+├── web_ui.py                   ← Gradio browser UI (3 parallel slots, per-item language toggles)
 ├── serve_tracker.py            ← Tracker HTTP server
 ├── config.py                   ← Environment config
 │
@@ -85,8 +85,8 @@ JobQuest/
 │   ├── tracker.html            ← Application tracker (sortable HTML)
 │   └── applications.json       ← Tracker data (auto-generated)
 │
-├── specs/                      ← Feature specifications (7 specs)
-├── tests/                      ← pytest (32 tests: 22 smoke + 10 tracker)
+├── specs/                      ← Feature specifications (9 specs)
+├── tests/                      ← pytest (48 tests: 33 smoke + 11 german + 14 tracker)
 ├── interview-prep/             ← STAR+R story bank
 ├── data/
 │   ├── applications.json       ← Tracker data (21 entries)
@@ -109,7 +109,7 @@ JobQuest/
 7. Compile PDF via pdflatex
 8. Generate Q&A answers (with company research)
 9. Compute pipeline score (0-100)
-10. _(Optional)_ Compile cover letter PDF
+10. _(Optional)_ Compile cover letter PDF (English or German template)
 11. Save tracker entry (data/applications.json, dedup by URL)
 
 Pipeline auto-saves: `qa`, `cover_letter_content`, `resume_content` from output dirs.
@@ -130,6 +130,7 @@ Pipeline auto-saves: `qa`, `cover_letter_content`, `resume_content` from output 
 | **Application Tracker**    | `data/tracker.html`             | Sortable HTML table, editable modals for Q&A/Cover/Resume           |
 | **Tracker Fields**         | `data/applications.json`        | qa, cover_letter_content, resume_content, recompile PDF from modal  |
 | **Cover Letter**           | Pipeline step 10                | LaTeX template + PDF compilation, toggled in web UI                 |
+| **German Language Support** | `modules/pipeline.py`, `apply.py`, `web_ui.py` | Per-item EN/DE toggles for resume, cover letter, Q&A. CLI: `--lang-resume DE --lang-cover DE --lang-qa DE`. German section titles, T1 fontenc, "Mit freundlichen Grüßen", Du-detection for greeting. Anti-pattern injection from German Wikipedia AI-tell page. |
 | **Interview Prep**         | `modes/prep_interview.md`       | Company-specific research + STAR story bank                         |
 | **Batch Processing**       | `modes/batch.md`                | Queue → pipeline, sequential or parallel                            |
 | **3 Resume Variants**      | Growth PM / Generalist / AI-PM  | Notion-backed, toggled in web UI                                   |
@@ -178,12 +179,13 @@ User-selected (Gemini / Groq / SambaNova / OpenRouter)
 3. **Keep prompts honest.** Natural keyword insertion, never stuffing.
 4. **Preserve verified metrics.** Numbers and scope are sacred.
 5. **No em dashes anywhere.** Use commas, colons, or sentence breaks.
-6. **Voice rules in `rodrigo-voice-lite.md`.** Single source of truth for writing style.
+6. **Voice rules in `rodrigo-voice-lite.md`.** Single source of truth for writing style. German anti-patterns appended inline when `--lang-* DE`.
 7. **Prompts as files.** Never inline prompt text in Python. Load from `prompts/*.md`.
-8. **Test after every change.** `pytest tests/ -v` — 32 tests must pass.
+8. **Test after every change.** `pytest tests/ -v` — 48 tests must pass.
 9. **Spec before build.** Write spec in `specs/` before touching code.
 10. **Verify with dry-run.** `python apply.py "URL" --dry-run` before marking done.
 11. **Tracker data on feat/webwright-fallback branch** — that branch has application records missing from main. Always check it before declaring data lost.
+12. **German output: set per-item in web UI or CLI.** Resume, cover letter, and Q&A each have independent EN/DE toggles. No auto-detect — user chooses explicitly. German section titles applied in `step_write_tex`, cover letter greetings detected via Du-usage in JD (`_use_du()`), German AI-tell block injected via `_load_voice_prefix()`.
 
 ---
 
@@ -198,7 +200,8 @@ Pi reads mode files from `modes/`. To use:
 ## Running Tests
 
 ```bash
-pytest tests/ -v        # 32 tests in ~0.6s
+pytest tests/ -v        # 48 tests in ~0.6s
+pytest tests/ -v -k german    # Filter German language tests
 pytest tests/ -v -k discover  # Filter tracker/discovery tests
 pytest tests/ -v -k scoring   # Filter by name
 ```

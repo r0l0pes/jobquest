@@ -19,7 +19,7 @@ from rich.prompt import Confirm
 from rich.table import Table
 from rich import box
 
-from modules.llm_client import LLMClient, create_writing_client
+from modules.llm_client import LLMClient, create_client, create_writing_client
 from modules.job_scraper import scrape_job_posting, research_company
 from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers, parse_resume_edits, apply_resume_edits
 from scripts.render_pdf import compile_and_inspect
@@ -56,6 +56,36 @@ def _get_writing_client() -> LLMClient:
     if cache_key not in _writing_client_cache:
         _writing_client_cache[cache_key] = create_writing_client()
     return _writing_client_cache[cache_key]
+
+
+# Fit-evaluation-specific client cache (separate from writing chain)
+# Uses Gemini 3.1 Flash-Lite directly instead of the full writing chain.
+# Rationale: fit evaluation is a simple scoring task (~500 output tokens,
+# temperature 0.2). Using the full writing chain (Gemini 2.5 Pro) wastes
+# a precious 25-RPD slot for a task that Flash-Lite handles equally well.
+#
+# If fit evaluation quality degrades (e.g., scores feel random or miss
+# obvious JD-resume mismatches), revert to the writing chain by changing
+# _get_fit_client to call _get_writing_client() instead.
+_fit_client_cache: dict[str, LLMClient] = {}
+
+
+def _get_fit_client() -> LLMClient:
+    """Return a lightweight Gemini 3.1 Flash-Lite client for fit evaluation.
+
+    Fit scoring doesn't need the full writing chain — it's a short,
+    low-temperature classification task. Using Flash-Lite saves a
+    Gemini 2.5 Pro request per job, keeping capacity at 4-6 jobs/day.
+
+    To revert to the writing chain: change this function to return
+    _get_writing_client().
+    """
+    cache_key = "_fit"
+    if cache_key not in _fit_client_cache:
+        _fit_client_cache[cache_key] = create_client(
+            provider="gemini", model="gemini-3.1-flash-lite", fallback=False
+        )
+    return _fit_client_cache[cache_key]
 
 
 def _load_voice_prefix() -> str:
@@ -346,11 +376,15 @@ def step_evaluate_fit(
     # Load fit evaluation prompt
     fit_prompt = _load_prompt("fit_evaluation")
 
-    # Build the evaluation prompt
-    writing_llm = _get_writing_client()
+    # Use lightweight Gemini Flash-Lite for scoring — fit evaluation is a
+    # short classification task (~500 output tokens, temperature 0.2).
+    # The full writing chain (Gemini 2.5 Pro) is overkill here and would
+    # waste one of the 25 daily Pro requests.
+    # If fit quality degrades: switch to _get_writing_client().
+    fit_llm = _get_fit_client()
 
     try:
-        raw = writing_llm.generate(
+        raw = fit_llm.generate(
             fit_prompt,
             f"## Job Posting\n\n"
             f"**Title:** {ctx['job']['title']}\n"

@@ -244,3 +244,58 @@ class TestFitEvaluationIntegration:
         assert "console" in params
         # Optional: auto_apply parameter
         assert "auto_apply" in params or len(params) >= 3
+
+    def test_fit_client_importable(self):
+        """_get_fit_client should be importable and callable."""
+        from modules.pipeline import _get_fit_client
+
+        assert callable(_get_fit_client)
+
+    def test_fit_client_uses_flash_lite(self):
+        """_get_fit_client should use Gemini Flash-Lite (not the writing chain).
+
+        Only runs if GEMINI_API_KEY is available.
+        """
+        import os
+        if not os.getenv("GEMINI_API_KEY"):
+            pytest.skip("GEMINI_API_KEY not set — skipping instantiation test")
+
+        from modules.llm_client import GeminiClient
+        from modules.pipeline import _get_fit_client
+
+        client = _get_fit_client()
+        assert isinstance(client, GeminiClient), (
+            f"Expected GeminiClient, got {type(client).__name__}"
+        )
+        assert "flash-lite" in client.model_name().lower(), (
+            f"Expected flash-lite model, got {client.model_name()}"
+        )
+
+    def test_fit_client_docstrings_explain_revert(self):
+        """Docstring should explain how to revert to writing chain."""
+        from modules.pipeline import _get_fit_client
+
+        doc = _get_fit_client.__doc__ or ""
+        assert "revert" in doc.lower() or "_to revert" in doc.lower(), (
+            "_get_fit_client docstring should mention how to revert"
+        )
+        # Also check the module-level comment
+        import modules.pipeline as mod
+        source = mod.__doc__ or ""
+        # The comment is above the function in source, not in module docstring
+        # Check the function source instead
+        import inspect
+        source_lines = inspect.getsource(mod._get_fit_client)
+        assert "revert" in source_lines.lower() or "switch back" in source_lines.lower(), (
+            "Source should mention revert path"
+        )
+
+    def test_fit_client_has_separate_cache(self):
+        """_get_fit_client should have its own cache, separate from writing client."""
+        from modules.pipeline import _get_fit_client, _get_writing_client
+
+        fit_client = _get_fit_client
+        writing_client = _get_writing_client
+        assert fit_client is not writing_client, (
+            "fit and writing client accessors should be different functions"
+        )

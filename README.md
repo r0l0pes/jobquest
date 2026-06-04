@@ -5,9 +5,9 @@ Automated job application pipeline. Discovery, tailoring, scoring, tracking, and
 ## What It Does
 
 1. **Discover** — Exa API searches for PM jobs across the web. Pop-up modal on the Discovery tab asks time range (7d/24h) and whether to keep or clear existing positions.
-2. **Tailor** — 3-stage LLM resume tailoring with ATS keyword coverage check, Q&A generation, and optional cover letter compilation.
-3. **Score** — 0-100 pipeline score from ATS match, compliance, company research, and AI signals.
-4. **Track** — Sortable HTML tracker with editable Q&A, cover letter, and resume modals. Each modal has Save, Recompile PDF, and Remove. Dedup by URL on save.
+2. **Evaluate Fit** — Pre-pipeline gate scores job fit (0-100) across Skills, Experience, Behavioral/Culture, Location, Career Alignment. Blocks bad-fit jobs before LLM costs.
+3. **Tailor** — 3-stage LLM resume tailoring with adversarial review (separate Gemini 3 Flash call critiques for fabrications, missed keywords, tone). ATS keyword coverage check. Q&A generation with behavioral tone + salary context. Interview prep. Cover letter compilation.
+4. **Score & Track** — 0-100 pipeline score from ATS match, compliance, company research, AI signals, behavioral fit. Sortable HTML tracker with editable modals. Skill gap analysis via `--upskill`.
 
 Manual apply only. No auto-submission.
 
@@ -36,23 +36,29 @@ Job URL
   │
   ├─  1. Scrape job posting (6 ATS platforms + HTML fallback)
   ├─  2. Read master resume from Notion (cached per 3 variants)
-  ├─  3. Tailor resume via LLM (analysis → LaTeX → compliance)
-  ├─  4. Write .tex file
-  ├─  5. Run ATS keyword coverage check
-  ├─  6. Review & apply ATS edits
-  ├─  7. Compile PDF via pdflatex
-  ├─  8. Generate Q&A answers (saved as qa_*.md)
-  ├─  9. Compute pipeline score (0-100)
-  ├─ 10. (Optional) Compile cover letter PDF
-  └─ 11. Save to tracker (data/applications.json, dedup by URL)
+  ├─  3. Fit Evaluation Gate — score fit (0-100), block poor fits
+  ├─  4. Tailor resume via LLM (analysis → LaTeX → compliance)
+  ├─  5. Write .tex file
+  ├─  6. Review drafts (adversarial) — Gemini 3 Flash critiques
+  ├─  7. Apply reviewer feedback — JSON edits + narrative fixes
+  ├─  8. Run ATS keyword coverage check
+  ├─  9. Review & apply ATS edits
+  ├─ 10. Compile PDF via pdflatex (+ compile-and-inspect loop)
+  ├─ 11. Generate Q&A answers (+ behavioral tone + salary context)
+  ├─ 12. Generate interview prep (STAR examples, likely questions)
+  ├─ 13. Compute pipeline score (0-100)
+  ├─ 14. (Optional) Compile cover letter PDF
+  └─ 15. Save to tracker (data/applications.json, dedup by URL)
           │
           ▼
      Output/Company_YYYY-MM-DD/
        ├── Resume_Rodrigo-Lopes.tex + .pdf
        ├── Cover-Letter_RodrigoLopes.tex + .pdf (optional)
        ├── qa_Company.md
+       ├── interview_prep_Company.md
        ├── ats_report_Company.md
        ├── tailoring_brief_Company.md
+       ├── review_feedback_Company.md
        └── pipeline_context.json
 ```
 
@@ -65,6 +71,7 @@ Pi reads mode files from `modes/`:
 | Discover       | `modes/discover.md`       | Search 20+ platforms (12 remote-only + local), output to `data/job_queue.html` |
 | Interview Prep | `modes/prep_interview.md` | Company-specific research + STAR story bank                                    |
 | Batch          | `modes/batch.md`          | Process job queue sequentially or via web UI                                   |
+| Upskill        | `modes/upskill.md`        | Skill gap analysis (hard skill diff + LLM synthesis → heatmap → learning plan) |
 
 ## Resume Variants
 
@@ -94,6 +101,12 @@ NOTION_MASTER_RESUME_ID=...
 
 # Ensure pdflatex
 brew install --cask mactex  # macOS
+
+# CLI usage
+python apply.py "JOB_URL"
+python apply.py "JOB_URL" --skip-reviewer    # Skip adversarial review
+python apply.py --upskill                     # Skill gap analysis
+python apply.py --dry-run "JOB_URL"           # Dry-run without LLM calls
 ```
 
 ## LLM Providers
@@ -112,6 +125,12 @@ rate-limit errors.
 | OpenRouter  | Qwen 3.5          | Paid | —          |
 | Groq        | Llama 3.3 70B     | Free | 1000 RPD   |
 | SambaNova   | Llama 3.1 405B    | Free | 30 RPM     |
+
+**Reviewer (step 6):** Separate Gemini 3 Flash client with Flash-Lite fallback — different model from the writing chain for true adversarial perspective.
+
+**Fit evaluation (step 3):** Gemini 3.1 Flash-Lite — short classification task doesn't need the full writing chain.
+
+**Upskill (CLI):** Gemini 3.1 Flash-Lite for gap synthesis.
 
 **ATS check (step 5):** User-selectable provider with cross-provider fallback.
 Primary (Gemini / Groq / SambaNova / OpenRouter) → rate-limit → next in chain.
@@ -134,28 +153,43 @@ Clicking **Recompile PDF** sends the edited content to the server, which writes 
 JobQuest/
 ├── AGENTS.md                  ← Pi reads this first
 ├── JobQuest.command           ← One-click launcher (3 browser tabs)
-├── apply.py                   ← CLI pipeline orchestrator
+├── apply.py                   ← CLI pipeline orchestrator (+ --skip-reviewer, --upskill)
 ├── web_ui.py                  ← Gradio UI (3 parallel slots)
 ├── serve_tracker.py           ← Tracker + Discovery + API server
 ├── config.py
 ├── modules/                   ← Core pipeline logic
+│   ├── pipeline.py            ← 15 steps + fit scoring + behavioral profile
+│   ├── llm_client.py          ← Multi-provider LLM (Gemini, Groq, SambaNova, OpenAI, Anthropic)
+│   ├── upskill.py             ← Skill gap analysis (5-pass pipeline)
+│   └── parsers.py
 ├── scripts/                   ← Subprocess utilities
-├── prompts/                   ← LLM prompt templates
-├── modes/                     ← Pi agent instructions
+│   ├── render_pdf.py          ← pdflatex + compile-and-inspect loop
+│   ├── salary_lookup.py       ← Salary benchmarking (fuzzy company matching)
+│   └── form_filler.py
+├── prompts/                   ← LLM prompt templates (10 prompts)
+│   ├── reviewer.md            ← Adversarial review (Part A JSON + Part B narrative)
+│   ├── behavioral_profile.md  ← Behavioral profile template
+│   └── fit_evaluation.md      ← Fit scoring with behavioral/Culture dimension
+├── modes/                     ← Pi agent instructions (4 modes)
 ├── data/
-│   ├── applications.json      ← 21 entries, auto-saved by pipeline
+│   ├── applications.json      ← 21+ entries, auto-saved by pipeline
 │   ├── tracker.html           ← Editable tracker UI
 │   └── job_queue.html         ← Discovery queue with pop-up modal
 ├── output/                    ← Per-application output dirs
-├── specs/                     ← 7 feature specifications
-├── tests/                     ← pytest (32 tests)
+├── upskill/                   ← Skill gap analysis report output
+├── specs/                     ← 11 feature specifications
+├── tests/                     ← pytest (186 tests)
 └── templates/                 ← LaTeX resume + cover letter templates
 ```
 
 ## Testing
 
 ```bash
-pytest tests/ -v               # 32 tests in ~0.6s
+pytest tests/ -v               # 186 tests in ~1.4s
+pytest tests/ -v -k reviewer   # Filter reviewer tests
+pytest tests/ -v -k salary     # Filter salary benchmarking tests
+pytest tests/ -v -k upskill    # Filter upskill gap analysis tests
+pytest tests/ -v -k behavior   # Filter behavioral profile tests
 ```
 
 ## Supported Platforms

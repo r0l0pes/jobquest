@@ -10,7 +10,7 @@ JobQuest is Rodrigo Lopes' automated job application pipeline. Paste a job URL �
 
 **Stack:** Python 3.14, Gradio 6, Playwright, Notion API, multi-provider LLM
 
-**Test count:** 32 tests (pytest tests/ -v)
+**Test count:** 186 tests (pytest tests/ -v)
 
 ---
 
@@ -34,9 +34,13 @@ Then open:
 ```bash
 # CLI
 python apply.py "JOB_URL"
+python apply.py "JOB_URL" --skip-reviewer  # Skip adversarial review (faster)
+python apply.py --upskill                   # Skill gap analysis (aggregate)
+python apply.py --upskill "JOB_URL"         # Skill gap analysis (targeted)
 
 # Tests
-pytest tests/ -v                    → 32 tests in 0.6s
+pytest tests/ -v                    → 186 tests in 1.4s
+pytest tests/ -v -k "reviewer"      → Filter reviewer tests
 ```
 
 ---
@@ -52,18 +56,20 @@ JobQuest/
 ├── config.py                   ← Environment config
 │
 ├── modules/
-│   ├── pipeline.py             ← 10 pipeline steps + fit scoring
+│   ├── pipeline.py             ← 15 pipeline steps + fit scoring
 │   ├── llm_client.py           ← Multi-provider LLM (Gemini, Groq, SambaNova, DeepSeek, OpenRouter, Anthropic)
 │   ├── scrapers/
 │   │   ├── job_postings.py     ← ATS APIs + HTML scraping (6 platforms)
 │   │   └── company_research.py ← Company page discovery + search
-│   └── parsers.py              ← LaTeX, JSON, Q&A parsers
+│   ├── parsers.py              ← LaTeX, JSON, Q&A parsers
+│   └── upskill.py              ← Skill gap analysis (5-pass pipeline)
 │
 ├── scripts/
 │   ├── notion_reader.py        ← Read master resume from Notion
 │   ├── notion_tracker.py       ← Create Notion application entries
-│   ├── render_pdf.py           ← pdflatex → PDF
-│   └── form_filler.py          ← Browser form filler (Playwright)
+│   ├── render_pdf.py           ← pdflatex → PDF (compile + inspect loop)
+│   ├── form_filler.py          ← Browser form filler (Playwright)
+│   └── salary_lookup.py        ← Salary benchmarking (fuzzy company matching)
 │
 ├── prompts/
 │   ├── rodrigo-voice-lite.md   ← Writing rules (~500 tokens, DEFAULT)
@@ -72,12 +78,16 @@ JobQuest/
 │   ├── resume_tailor.md        ← Step 3b: LaTeX generation
 │   ├── tailor_review.md        ← Step 3c: compliance check
 │   ├── ats_check.md            ← ATS keyword analysis
-│   └── qa_generator.md         ← Q&A generation
+│   ├── qa_generator.md         ← Q&A generation (+ Behavioral Tone Instructions)
+│   ├── fit_evaluation.md       ← Fit evaluation prompt (+ behavioral profile/Culture dimension)
+│   ├── reviewer.md             ← Adversarial review prompt (Part A JSON edits + Part B narrative)
+│   └── behavioral_profile.md   ← Behavioral profile template (drives, communication, strengths)
 │
 ├── modes/                      ← Pi agent instructions
 │   ├── discover.md             ← Job discovery (search boards)
 │   ├── prep_interview.md       ← Interview preparation
-│   └── batch.md                ← Batch pipeline processing
+│   ├── batch.md                ← Batch pipeline processing
+│   └── upskill.md              ← Skill gap analysis CLI mode
 │
 ├── data/
 │   ├── job_queue.html          ← Discovery results (sortable HTML)
@@ -85,8 +95,9 @@ JobQuest/
 │   ├── tracker.html            ← Application tracker (sortable HTML)
 │   └── applications.json       ← Tracker data (auto-generated)
 │
-├── specs/                      ← Feature specifications (7 specs)
-├── tests/                      ← pytest (32 tests: 22 smoke + 10 tracker)
+├── specs/                      ← Feature specifications (11 specs)
+├── tests/                      ← pytest (186 tests)
+├── upskill/                    ← Skill gap analysis report output
 ├── interview-prep/             ← STAR+R story bank
 ├── data/
 │   ├── applications.json       ← Tracker data (21 entries)
@@ -98,39 +109,48 @@ JobQuest/
 
 ---
 
-## The Pipeline (11 Steps)
+## The Pipeline (15 Steps)
 
 1. Scrape job posting (6 ATS APIs + HTML fallback)
 2. Read master resume from Notion (cached per variant)
-3. Tailor resume via LLM (3-stage: analysis → LaTeX → compliance check)
-4. Write .tex file
-5. Run ATS keyword coverage check
-6. Review & apply ATS edits
-7. Compile PDF via pdflatex
-8. Generate Q&A answers (with company research)
-9. Compute pipeline score (0-100)
-10. _(Optional)_ Compile cover letter PDF
-11. Save tracker entry (data/applications.json, dedup by URL)
-
-Pipeline auto-saves: `qa`, `cover_letter_content`, `resume_content` from output dirs.
+3. Fit Evaluation Gate — score job fit (0-100) before spending tokens
+4. Tailor resume via LLM (3-stage: analysis → LaTeX → compliance check)
+5. Write .tex file
+6. **Review drafts (adversarial)** — separate Gemini 3 Flash call critiques drafts for fabrications, missed keywords, tone mismatches, company angles, repetition
+7. **Apply reviewer feedback** — JSON patch edits applied to .tex, narrative suggestions logged
+8. Run ATS keyword coverage check
+9. Review & apply ATS edits
+10. Compile PDF via pdflatex (compile-and-inspect loop, auto-fix orphaned entries, page spills, isolated sections)
+11. Generate Q&A answers (with company research + salary benchmark context)
+12. Generate interview prep (STAR examples, likely questions, company talking points)
+13. Compute pipeline score (0-100)
+14. _(Optional)_ Compile cover letter PDF
+15. Save tracker entry (data/applications.json, dedup by URL)
 
 ---
 
 ## Key Features (May 2026)
 
-| Feature                    | Where                           | How                                                                 |
-| -------------------------- | ------------------------------- | ------------------------------------------------------------------- |
-| **Jobs Hub**               | `JobQuest.command`              | One-click launcher — Pipeline + Tracker + Discovery in 3 tabs       |
-| **Job Discovery**          | `scripts/discover_jobs.py`      | Exa API search, served at `/queue` on tracker server                |
-| **Discovery Pop-Up**       | `data/job_queue.html`           | Modal on load: time range (7d/24h) + keep/remove existing           |
-| **Fit Scoring**            | `modules/pipeline.py`           | 0-100 score from ATS, compliance, research, AI signals              |
-| **Application Tracker**    | `data/tracker.html`             | Sortable HTML table, editable modals for Q&A/Cover/Resume           |
-| **Tracker Fields**         | `data/applications.json`        | qa, cover_letter_content, resume_content, recompile PDF from modal  |
-| **Cover Letter**           | Pipeline step 10                | LaTeX template + PDF compilation, toggled in web UI                 |
-| **Interview Prep**         | `modes/prep_interview.md`       | Company-specific research + STAR story bank                         |
-| **Batch Processing**       | `modes/batch.md`                | Queue → pipeline, sequential or parallel                            |
-| **3 Resume Variants**      | Growth PM / Generalist / AI-PM  | Notion-backed, toggled in web UI                                   |
-| **Voice Enforcement**      | `prompts/rodrigo-voice-lite.md` | ~500 token writing rules, injected into all writing steps            |
+| Feature                      | Where                           | How                                                                 |
+| ---------------------------- | ------------------------------- | ------------------------------------------------------------------- |
+| **Jobs Hub**                 | `JobQuest.command`              | One-click launcher — Pipeline + Tracker + Discovery in 3 tabs       |
+| **Job Discovery**            | `scripts/discover_jobs.py`      | Exa API search, served at `/queue` on tracker server                |
+| **Discovery Pop-Up**         | `data/job_queue.html`           | Modal on load: time range (7d/24h) + keep/remove existing           |
+| **Fit Evaluation Gate**      | `modules/pipeline.py`           | Pre-pipeline gate (step 3) — blocks bad-fit jobs before LLM costs   |
+| **Fit Scoring**              | `modules/pipeline.py`           | 0-100 score from ATS, compliance, research, AI signals, behavior    |
+| **Adversarial Review**       | `modules/pipeline.py` + `prompts/reviewer.md` | Separate LLM call critiques drafts for fabrications, missed keywords, tone |
+| **Behavioral Profile**       | `prompts/behavioral_profile.md` | Structured profile drives Q&A tone, cover voice, and fit evaluation Culture dimension |
+| **Salary Benchmarking**      | `scripts/salary_lookup.py`      | Optional salary data lookup — shows compensation context when data exists |
+| **Skill Gap Analysis**       | `modules/upskill.py`            | `--upskill` flag: hard skill diff + LLM synthesis → heatmap → learning plan → report |
+| **PDF Compile-Inspect Loop** | `scripts/render_pdf.py`         | Auto-fix orphaned entries, page spills, isolated sections, closings |
+| **Application Tracker**      | `data/tracker.html`             | Sortable HTML table, editable modals for Q&A/Cover/Resume           |
+| **Tracker Fields**           | `data/applications.json`        | qa, cover_letter_content, resume_content, recompile PDF from modal  |
+| **Cover Letter**             | Pipeline step 14                | LaTeX template + forward-looking framing, toggled in web UI         |
+| **Interview Prep**           | Pipeline step 12                | Auto-generated after Q&A, saved to run dir                          |
+| **Interview Prep Mode**      | `modes/prep_interview.md`       | Company-specific research + STAR story bank                         |
+| **Batch Processing**         | `modes/batch.md`                | Queue → pipeline, sequential or parallel                            |
+| **3 Resume Variants**        | Growth PM / Generalist / AI-PM  | Notion-backed, toggled in web UI                                   |
+| **Voice Enforcement**        | `prompts/rodrigo-voice-lite.md` | ~500 token writing rules, injected into all writing steps            |
 
 ---
 
@@ -170,17 +190,18 @@ User-selected (Gemini / Groq / SambaNova / OpenRouter)
 
 ## Core Rules
 
-1. **Never fabricate resume content.** Only keywords from verified skills.
+1. **Never fabricate resume content.** Only keywords from verified skills. The reviewer step (6) explicitly checks for this.
 2. **Never auto-submit applications.** Rodrigo submits manually.
 3. **Keep prompts honest.** Natural keyword insertion, never stuffing.
 4. **Preserve verified metrics.** Numbers and scope are sacred.
 5. **No em dashes anywhere.** Use commas, colons, or sentence breaks.
-6. **Voice rules in `rodrigo-voice-lite.md`.** Single source of truth for writing style.
+6. **Voice rules in `rodrigo-voice-lite.md`.** Single source of truth for writing style. Complemented by `prompts/behavioral_profile.md` for behavioral tone.
 7. **Prompts as files.** Never inline prompt text in Python. Load from `prompts/*.md`.
-8. **Test after every change.** `pytest tests/ -v` — 32 tests must pass.
+8. **Test after every change.** `pytest tests/ -v` — 186 tests must pass.
 9. **Spec before build.** Write spec in `specs/` before touching code.
 10. **Verify with dry-run.** `python apply.py "URL" --dry-run` before marking done.
 11. **Tracker data on feat/webwright-fallback branch** — that branch has application records missing from main. Always check it before declaring data lost.
+12. **Adversarial review by default.** Step 6-7 run for every pipeline unless `--skip-reviewer` is passed.
 
 ---
 
@@ -195,9 +216,11 @@ Pi reads mode files from `modes/`. To use:
 ## Running Tests
 
 ```bash
-pytest tests/ -v        # 32 tests in ~0.6s
-pytest tests/ -v -k discover  # Filter tracker/discovery tests
-pytest tests/ -v -k scoring   # Filter by name
+pytest tests/ -v        # 186 tests in ~1.4s
+pytest tests/ -v -k reviewer  # Filter reviewer tests
+pytest tests/ -v -k salary    # Filter salary benchmarking tests
+pytest tests/ -v -k upskill   # Filter upskill gap analysis tests
+pytest tests/ -v -k behavior  # Filter behavioral profile tests
 ```
 
 ## Tracker Server API

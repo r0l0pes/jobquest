@@ -56,3 +56,5 @@ personal/
 saas/
 SAAS_SPEC.md
 SAAS_RESUME.md
+.pi-lens/cache/
+scripts/update_certs.py

@@ -1,6 +1,53 @@
-# SESSION_HANDOFF.md
+# Session Handoff — June 4, 2026
 
-## Current State (May 27, 2026 — 13:30)
+## Previous Session (May 27)
+
+See commit history and specs/005-pipeline-token-crisis.md for the token crisis fix.
+
+**Branch then:** `feat/pipeline-quality-gates`
+**Tests then:** 108 passing
+
+---
+
+## This Session (June 4, 2026)
+
+### What Was Done
+
+**Implemented 4 specs (005-008) on `feat/pipeline-quality-gates`:**
+
+| Spec | ICE | Files | Tests |
+|------|-----|-------|-------|
+| **005 Drafter-Reviewer** | 6.7 | `prompts/reviewer.md`, `llm_client.py` (+create_reviewer_client), `pipeline.py` (+step_review_drafts, +step_apply_review), `apply.py` (--skip-reviewer) | 18 |
+| **006 Behavioral Profile** | 6.3 | `prompts/behavioral_profile.md`, `prompts/fit_evaluation.md`, `prompts/qa_generator.md`, `pipeline.py` (+_load_behavioral_profile) | 14 |
+| **007 Salary Benchmarking** | 6.0 | `scripts/salary_lookup.py`, `salary_data.json`, `pipeline.py` (+_get_salary_benchmark) | 20 |
+| **008 Upskill Gap Analysis** | 4.7 | `modules/upskill.py`, `apply.py` (--upskill flag), `modes/upskill.md`, `upskill/` dir | 26 |
+
+**Total tests: 186 passing** (was 108, +78 new tests)
+
+**Docs updated:** `AGENTS.md`, `README.md` — pipeline steps 11→15, test count 32→186, new features table, project structure expanded
+
+**Cleanup:**
+- Deleted stale root-level spec-001..spec-004 implementation summaries
+- Added `.gitignore` entries: `.pi-lens/cache/`, `scripts/update_certs.py`, `salary_data.json`, `PI_SCREENSHOT_ISSUE_FIX.md`
+- Removed Resume Variants section from README
+
+### Commits
+```
+548b903 chore: gitignore PI_SCREENSHOT_ISSUE_FIX.md
+072fbcc docs: remove Resume Variants section from README
+d9107ed chore: gitignore .pi-lens/cache/ and scripts/update_certs.py
+cf5b70b feat: wire behavioral profile into reviewer step
+df5e41c docs: update AGENTS.md and README.md for specs 005-008
+539ac32 feat: implement specs 005-008
+```
+
+### Current State
+- **Branch:** `feat/pipeline-quality-gates`
+- **HEAD:** `548b903`
+- **Tests:** 186 passing (`pytest tests/ -v`)
+- **Test files:** 10 (test_cover_letter, test_fit_evaluation, test_interview_prep, test_pdf_inspect, test_reviewer, test_behavioral_profile, test_salary_benchmarking, test_upskill, test_smoke, test_tracker)
+- **Pipeline steps:** 15
+- **Uncommitted:** specs/ directory (spec docs — untracked)
 
 **This session's work:**
 - Kimi (K2.6) diagnosed the root cause: commit `e73987a` removed free providers from WRITING_CHAIN.

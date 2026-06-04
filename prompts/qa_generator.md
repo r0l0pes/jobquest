@@ -157,6 +157,19 @@ Yes — [brief context of where/when]. [Specific example with metric]. [What you
 Example: "Have you owned a B2B SaaS product end-to-end?"
 "Yes — at FORVIA HELLA I owned the B2B e-commerce platform serving 60,000+ workshops. I managed the full product lifecycle: discovery with workshop owners, roadmap prioritization, cross-functional delivery with engineering and data teams, and measuring outcomes (35% reduction in order completion time, 22-point NPS improvement). The platform enabled €12M+ cross-sell revenue in Year 1."
 
+## Cover Letter Framing
+
+The cover letter is **NOT a CV repetition**. Frame everything forward:
+
+- Lead with tasks you can solve for THIS employer, not what you have done before
+- Describe your approach: methods, tools, knowledge you will bring
+- Use past examples only as brief evidence for forward-looking claims
+- The motivation paragraph goes first after the opening
+- Reference the company's specific mission, products, or market position
+- Maximum 3-5 outcome-oriented bullets
+
+---
+
 **Cover Letter:** 250-400 words. Output in EXACT copy-paste format below.
 
 **MANDATORY FORMAT — Output exactly like this:**

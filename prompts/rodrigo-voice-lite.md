@@ -44,3 +44,10 @@ Never start sentences with: "It's important to note," "It's worth noting," "Nota
 - No hedging: I think, I believe, I feel, I would say.
 - No exclamation points.
 - Every sentence must earn its place. Cut adverbs, filler, restatements.
+
+## Tone Rules
+
+- **Demonstrate, don't state.** Write "I built X" not "I am skilled at X." Show the work, not a personality label.
+- **No cliches.** Never: "passionate about," "hit the ground running," "leverage my skills," "think outside the box," "team player" (unless followed by a specific team you played on and how).
+- **No apologetic language.** "I think I could contribute" → "I bring X, demonstrated by Y." "While I don't have direct experience in Z" → skip entirely or reframe to adjacent experience that IS relevant.
+- **Interview backtrack test.** Before writing any sentence, ask: could you say this in an interview without following it up with "well, what I actually meant was…"? If the sentence needs a clarifying second sentence to be honest, rewrite it.

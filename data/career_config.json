@@ -1,0 +1,27 @@
+{
+  "career_goals": [
+    "Lead AI/ML product initiatives from 0 to 1",
+    "Build data-driven growth engines",
+    "Work in cross-functional teams with engineering, design, and data science"
+  ],
+  "energizing_tasks": [
+    "Running experiments and analyzing results",
+    "Building internal tools that multiply team output",
+    "Shipping fast and iterating based on data",
+    "Working with LLMs and AI-augmented workflows"
+  ],
+  "deal_breakers": [
+    "No remote or hybrid flexibility",
+    "Pure project management with no product ownership",
+    "No engineering collaboration or technical depth expected"
+  ],
+  "location": {
+    "preferred": ["Berlin", "Remote Europe", "Remote EMEA"],
+    "constraint": "Must be in Berlin or fully remote within European / EMEA time zones. Relocation within Europe considered for exceptional opportunities."
+  },
+  "behavioral_profile": {
+    "configured": false,
+    "note": "Behavioral profile not yet configured. Behavioral/Culture Fit dimension will score 50 (neutral) until profile is created.",
+    "profile_path": "prompts/behavioral_profile.md"
+  }
+}

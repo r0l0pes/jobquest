@@ -16,10 +16,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.prompt import Confirm
+from rich.table import Table
+from rich import box
 
 from modules.llm_client import LLMClient, create_writing_client
 from modules.job_scraper import scrape_job_posting, research_company
 from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers, parse_resume_edits, apply_resume_edits
+from scripts.render_pdf import compile_and_inspect
 
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
@@ -222,6 +225,310 @@ def _slim_resume_for_analysis(master_resume: str) -> str:
             continue
         slim.append(line)
     return "\n".join(slim)
+
+
+# ─── Fit Evaluation Gate Exception ─────────────────────────────
+
+
+class FitGateBlocked(Exception):
+    """Raised when the fit evaluation gate blocks the pipeline.
+    
+    This is not a program error — it means the job is a poor fit and
+    the user (or auto-apply logic) chose not to proceed.
+    """
+    pass
+
+
+# ─── Fit Evaluation (Step 2b) ───────────────────────────────────
+
+
+def _load_career_config() -> dict:
+    """Load career goals, deal-breakers, and constraints from career_config.json.
+    
+    Returns empty dict if the file is missing or malformed.
+    """
+    config_path = PROJECT_ROOT / "data" / "career_config.json"
+    if not config_path.exists():
+        return {}
+    try:
+        return json.loads(config_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _compute_fit_score(dimensions: dict) -> dict:
+    """Compute weighted fit score from dimension scores.
+    
+    Args:
+        dimensions: Dictionary with keys technical_skills, experience_match,
+                    behavioral_fit, career_alignment, location.
+    
+    Returns:
+        {"score": int, "label": str, "location_pass": bool}
+    """
+    weights = {
+        "technical_skills": 0.30,
+        "experience_match": 0.25,
+        "behavioral_fit": 0.15,
+        "career_alignment": 0.30,
+    }
+
+    # Location is pass/fail
+    location = dimensions.get("location", {})
+    location_pass = location.get("status", "").upper() == "PASS"
+
+    if not location_pass:
+        return {"score": 0, "label": "POOR FIT (Location Failed)", "location_pass": False}
+
+    total = 0.0
+    for dim, weight in weights.items():
+        dim_data = dimensions.get(dim, {})
+        score = dim_data.get("score", 50) if isinstance(dim_data, dict) else dim_data
+        total += score * weight
+
+    score = round(total)
+
+    if score >= 75:
+        label = "STRONG FIT"
+    elif score >= 60:
+        label = "GOOD FIT"
+    elif score >= 45:
+        label = "MODERATE"
+    elif score >= 30:
+        label = "WEAK"
+    else:
+        label = "POOR FIT"
+
+    return {"score": score, "label": label, "location_pass": True}
+
+
+def _parse_fit_evaluation(raw_response: str) -> dict | None:
+    """Parse the JSON fit evaluation from LLM output.
+    
+    Expects JSON between ```json and ``` markers.
+    Returns None if parsing fails.
+    """
+    import re as _re
+    match = _re.search(r"```json\s*\n(.*?)\n```", raw_response, _re.DOTALL)
+    if not match:
+        # Try without code fences
+        match = _re.search(r'\{[^}]*"dimensions"', raw_response)
+        if match:
+            # Try to parse the whole block
+            try:
+                return json.loads(raw_response)
+            except json.JSONDecodeError:
+                return None
+        return None
+    try:
+        return json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return None
+
+
+def step_evaluate_fit(
+    ctx: dict, llm: LLMClient, console: Console,
+    auto_apply: bool = False
+) -> dict:
+    """Evaluate job fit before tailoring.
+    
+    Calls LLM to score fit across 5 dimensions, computes weighted score,
+    and gates the pipeline based on score thresholds.
+    
+    Raises FitGateBlocked if the job is a poor fit and the pipeline should stop.
+    """
+    console.print("\n[bold]Step 2b:[/bold] Evaluating job fit...")
+
+    # Load career config
+    career_config = _load_career_config()
+    career_text = json.dumps(career_config, indent=2) if career_config else "No career config available."
+
+    # Load fit evaluation prompt
+    fit_prompt = _load_prompt("fit_evaluation")
+
+    # Build the evaluation prompt
+    writing_llm = _get_writing_client()
+
+    try:
+        raw = writing_llm.generate(
+            fit_prompt,
+            f"## Job Posting\n\n"
+            f"**Title:** {ctx['job']['title']}\n"
+            f"**Company:** {ctx['job']['company']}\n\n"
+            f"{ctx['job']['description'][:4000]}\n\n"
+            f"---\n\n"
+            f"## Master Resume\n\n{ctx['master_resume'][:4000]}\n\n"
+            f"---\n\n"
+            f"## Career Config\n\n{career_text}\n\n"
+            f"---\n\n"
+            f"Evaluate the fit and return the JSON result.",
+            temperature=0.2,
+        )
+    except Exception as e:
+        console.print(f"  [yellow]Fit evaluation LLM call failed ({e}). Proceeding without gate.[/yellow]")
+        ctx["fit_evaluation"] = None
+        ctx["fit_score"] = 50
+        ctx["fit_label"] = "UNKNOWN (eval failed)"
+        return ctx
+
+    # Parse the response
+    evaluation = _parse_fit_evaluation(raw)
+    if evaluation is None:
+        console.print("  [yellow]Failed to parse fit evaluation JSON. Proceeding without gate.[/yellow]")
+        ctx["fit_evaluation"] = None
+        ctx["fit_score"] = 50
+        ctx["fit_label"] = "UNKNOWN (parse failed)"
+        return ctx
+
+    ctx["fit_evaluation"] = evaluation
+
+    # Compute score
+    dimensions = evaluation.get("dimensions", {})
+    result = _compute_fit_score(dimensions)
+    score = result["score"]
+    label = result["label"]
+
+    ctx["fit_score"] = score
+    ctx["fit_label"] = label
+
+    # Save to run dir
+    run_dir = Path(ctx["run_dir"])
+    (run_dir / f"fit_evaluation_{ctx['company_safe']}.md").write_text(raw)
+    (run_dir / f"fit_evaluation_{ctx['company_safe']}.json").write_text(json.dumps(evaluation, indent=2))
+
+    # Display evaluation
+    _display_fit_evaluation(console, evaluation, score, label)
+
+    # Gate logic
+    style = "green" if score >= 75 else "yellow" if score >= 45 else "red"
+    console.print(f"  Fit Score: [{style}]{score}/100 — {label}[/{style}]")
+
+    # Always block on location fail
+    if not result["location_pass"]:
+        console.print("\n  [red]✗ Location constraint not met. Pipeline stopped.[/red]")
+        if not auto_apply:
+            raise FitGateBlocked(
+                f"Location FAIL for {ctx['job']['company']} — "
+                f"{ctx['job']['title']}"
+            )
+        else:
+            console.print("  [yellow]Auto-apply enabled, but location FAIL overrides. Stopping.[/yellow]")
+            raise FitGateBlocked(
+                f"Location FAIL for {ctx['job']['company']} — "
+                f"{ctx['job']['title']} (auto-apply cannot override location fail)"
+            )
+
+    # Auto-apply skips the gate for all other scores
+    if auto_apply:
+        console.print(f"  [dim]Auto-apply enabled — proceeding regardless of fit score.[/dim]")
+        return ctx
+
+    # Strong fit: proceed automatically
+    if score >= 75:
+        console.print("  [green]✓ STRONG FIT — proceeding automatically.[/green]")
+        return ctx
+
+    # Good fit: proceed, note gaps
+    if score >= 60:
+        console.print("  [green]✓ GOOD FIT — proceeding. Review gaps above.[/green]")
+        return ctx
+
+    # Moderate: warn, ask user
+    if score >= 45:
+        console.print("\n  [yellow]⚠ MODERATE fit — this may not be the best use of your time.[/yellow]")
+        import sys
+        if sys.stdin.isatty():
+            proceed = Confirm.ask("  Proceed with tailoring?", default=True)
+            if not proceed:
+                console.print("  [red]✗ User declined. Pipeline stopped.[/red]")
+                raise FitGateBlocked(
+                    f"User declined moderate fit ({score}/100) for {ctx['job']['company']}"
+                )
+            return ctx
+        else:
+            console.print("  [yellow]Non-interactive mode — proceeding with caution.[/yellow]")
+            return ctx
+
+    # Weak: strong warning, ask user
+    if score >= 30:
+        console.print("\n  [red]⚠ WEAK fit — this role is likely a poor match.[/red]")
+        import sys
+        if sys.stdin.isatty():
+            proceed = Confirm.ask("  Proceed anyway?", default=False)
+            if not proceed:
+                console.print("  [red]✗ User declined. Pipeline stopped.[/red]")
+                raise FitGateBlocked(
+                    f"User declined weak fit ({score}/100) for {ctx['job']['company']}"
+                )
+            console.print("  [yellow]Proceeding by user override.[/yellow]")
+            return ctx
+        else:
+            console.print("  [red]Non-interactive mode — stopping for weak fit.[/red]")
+            raise FitGateBlocked(
+                f"Auto-stopped weak fit ({score}/100) for {ctx['job']['company']}"
+            )
+
+    # Poor fit: stop
+    console.print("\n  [red]✗ POOR FIT — pipeline stopped. This role is not worth your time.[/red]")
+    raise FitGateBlocked(
+        f"Poor fit ({score}/100) for {ctx['job']['company']} — {ctx['job']['title']}"
+    )
+
+
+def _display_fit_evaluation(console: Console, evaluation: dict, score: int, label: str):
+    """Render the fit evaluation as a formatted table and markdown sections."""
+    dims = evaluation.get("dimensions", {})
+
+    # Dimension table
+    table = Table(title=f"Job Fit Evaluation: {label}", box=box.SIMPLE)
+    table.add_column("Dimension", style="bold")
+    table.add_column("Score", justify="right")
+    table.add_column("Notes")
+
+    for dim_key, dim_label in [
+        ("technical_skills", "Technical Skills"),
+        ("experience_match", "Experience Match"),
+        ("behavioral_fit", "Behavioral Fit"),
+        ("career_alignment", "Career Alignment"),
+    ]:
+        dim = dims.get(dim_key, {})
+        s = dim.get("score", "?")
+        note = (dim.get("note", "") or "")[:100]
+        style = "green" if isinstance(s, (int, float)) and s >= 70 else "yellow" if isinstance(s, (int, float)) and s >= 50 else "red"
+        table.add_row(dim_label, f"[{style}]{s}/100[/{style}]", note)
+
+    # Location row
+    loc = dims.get("location", {})
+    loc_status = loc.get("status", "?")
+    loc_note = (loc.get("note", "") or "")[:100]
+    loc_style = "green" if loc_status.upper() == "PASS" else "red"
+    table.add_row("Location", f"[{loc_style}]{loc_status}[/{loc_style}]", loc_note)
+
+    console.print()
+    console.print(table)
+
+    # Overall score
+    style = "green" if score >= 75 else "yellow" if score >= 45 else "red"
+    console.print(f"\n  [bold]Overall Score: [{style}]{score}/100 — {label}[/{style}]")
+
+    # Strengths
+    strengths = evaluation.get("strengths", [])
+    if strengths:
+        console.print("\n  [bold]Key Strengths:[/bold]")
+        for s in strengths:
+            console.print(f"    • {s}")
+
+    # Gaps
+    gaps = evaluation.get("gaps", [])
+    if gaps:
+        console.print("\n  [bold]Gaps to Address:[/bold]")
+        for g in gaps:
+            console.print(f"    • {g}")
+
+    # Recommendation
+    rec = evaluation.get("recommendation", "")
+    if rec:
+        console.print(f"\n  [bold]Recommendation:[/bold] {rec}")
 
 
 # ─── Step 3: Tailor Resume via LLM ───────────────────────────────
@@ -783,10 +1090,9 @@ def step_apply_ats_edits(
 def step_compile_pdf(ctx: dict, llm: LLMClient, console: Console) -> dict:
     console.print("\n[bold]Step 7/9:[/bold] Compiling PDF...")
 
-    output = _run_script("render_pdf.py", [ctx["tex_path"]])
-    result = json.loads(output)
+    result = compile_and_inspect(ctx["tex_path"], doc_type="cv")
 
-    if not result.get("success"):
+    if not result.get("ok"):
         error = result.get("error", "Unknown error")
         for line in result.get("details", [])[:5]:
             console.print(f"  [red]{line}[/red]")
@@ -794,6 +1100,10 @@ def step_compile_pdf(ctx: dict, llm: LLMClient, console: Console) -> dict:
 
     ctx["pdf_path"] = result["pdf_path"]
     console.print(f"  [green]PDF: {result['pdf_path']}[/green]")
+    if result.get("fixes"):
+        console.print(f"  [yellow]Auto-fixes applied: {', '.join(result['fixes'])}[/yellow]")
+    if result.get("warning"):
+        console.print(f"  [yellow]{result['warning']}[/yellow]")
     return ctx
 
 
@@ -959,6 +1269,144 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
     return ctx
 
 
+# ─── Step 8b: Generate Interview Prep ────────────────────────────
+
+
+def step_generate_interview_prep(ctx: dict, llm: LLMClient, console: Console) -> dict:
+    """Generate a structured interview prep document from pipeline context.
+
+    Runs after Q&A generation (step 8), reusing company research context.
+    Matches STAR stories from the story bank to JD requirements, generates
+    likely interview questions, and saves the output to the run directory.
+    """
+    console.print("\n[bold]Step 8b/10:[/bold] Generating interview prep...")
+
+    run_dir = Path(ctx["run_dir"])
+    company = ctx["job"].get("company", "Unknown")
+    company_safe = ctx.get("company_safe", _safe_filename(company))
+
+    # Load story bank (empty string if file missing)
+    story_bank_path = PROJECT_ROOT / "interview-prep" / "story-bank.md"
+    story_bank = ""
+    if story_bank_path.exists():
+        story_bank = story_bank_path.read_text()
+        if len(story_bank) > 100:
+            console.print(f"  Story bank loaded: {len(story_bank)} chars")
+    else:
+        console.print("  [dim]No story bank found — skipping STAR matching.[/dim]")
+
+    # Build prompt with all available context
+    writing_llm = _get_writing_client()
+    system_prompt = _load_prompt("interview_prep")
+
+    company_research = ctx.get("company_research", "")
+    jd_text = ctx["job"].get("description", "")
+    master_resume = ctx.get("master_resume", "")
+
+    # Include Q&A answers if available (for consistency)
+    qa_section = ""
+    qa_answers = ctx.get("qa_answers", [])
+    if qa_answers:
+        qa_lines = ["## Q&A Answers (for context — do not duplicate)"]
+        for qa in qa_answers:
+            q = qa.get("question", "")
+            a = qa.get("answer", "")
+            qa_lines.append(f"**Q:** {q}\n\n{a}\n")
+        qa_section = "\n".join(qa_lines)
+
+    user_prompt = (
+        f"## Job Posting\n\n"
+        f"**Title:** {ctx['job']['title']}\n"
+        f"**Company:** {company}\n\n"
+        f"{jd_text[:4000]}\n\n"
+        f"---\n\n"
+        f"## Company Research\n\n"
+        f"{company_research[:3000] if company_research else 'No company research available.'}\n\n"
+        f"---\n\n"
+        f"## Master Resume\n\n"
+        f"{master_resume[:3000]}\n\n"
+    )
+
+    # Story bank section (optional)
+    if story_bank:
+        user_prompt += (
+            f"---\n\n"
+            f"## Story Bank (STAR+R)\n\n"
+            f"{story_bank}\n\n"
+        )
+
+    if qa_section:
+        user_prompt += (
+            f"---\n\n"
+            f"{qa_section}\n\n"
+        )
+
+    user_prompt += "Generate the full interview preparation document."
+
+    try:
+        raw = writing_llm.generate(system_prompt, user_prompt, temperature=0.6)
+    except Exception as err:
+        console.print(f"  [yellow]Interview prep LLM call failed ({err}) — generating basic template.[/yellow]")
+        raw = _fallback_interview_prep(ctx, story_bank)
+
+    # Save output
+    filename = f"interview_prep_{company_safe}.md"
+    output_path = run_dir / filename
+    output_path.write_text(raw)
+    ctx["interview_prep_path"] = str(output_path)
+
+    console.print(f"  [green]Interview prep: {output_path}[/green]")
+    return ctx
+
+
+def _fallback_interview_prep(ctx: dict, story_bank: str) -> str:
+    """Generate a basic interview prep template when the LLM call fails."""
+    company = ctx["job"].get("company", "Unknown")
+    title = ctx["job"].get("title", "Unknown")
+    research = ctx.get("company_research", "")
+
+    lines = [
+        f"# Interview Preparation: {title} at {company}",
+        "",
+        "## Company Context",
+        "",
+        research if research.strip() else "No company research available.",
+        "",
+        "## Likely Questions",
+        "",
+        "### Technical / Role-Specific",
+        "",
+        "*No questions generated — LLM call failed. Review the JD manually.*",
+        "",
+        "### Behavioral",
+        "",
+        "*No questions generated — LLM call failed.*",
+        "",
+        "## Questions to Ask Them",
+        "",
+        "- What does success look like in the first 6 months?",
+        "- How does the team divide work between PM, design, and engineering?",
+        "- What do people who thrive here have in common?",
+        "",
+    ]
+
+    if story_bank.strip():
+        lines += [
+            "## STAR Examples (Pre-Selected)",
+            "",
+            story_bank,
+            "",
+        ]
+
+    lines += [
+        "## Follow-Up Timeline",
+        "",
+        "- If no response after 2 weeks, send a brief follow-up.",
+    ]
+
+    return "\n".join(lines)
+
+
 # ─── Step 9: Compile Cover Letter ──────────────────────────────────
 
 
@@ -1013,6 +1461,18 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
     cover_body = cover_body.replace("~", "\\textasciitilde{}")
     cover_body = cover_body.replace("^", "\\textasciicircum{}")
 
+    # Handle company motivation paragraph (optional — forward-looking framing, Spec 002)
+    company_paragraph = ctx.get("cover_letter_company_paragraph", "").strip()
+    if company_paragraph:
+        company_paragraph = re.sub(r"\n?_Used:.*", "", company_paragraph)
+        company_paragraph = company_paragraph.replace("%", "\\%")
+        company_paragraph = company_paragraph.replace("_", "\\_")
+        company_paragraph = company_paragraph.replace("&", "\\&")
+        company_paragraph = company_paragraph.replace("$", "\\$")
+        company_paragraph = company_paragraph.replace("#", "\\#")
+        company_paragraph = company_paragraph.replace("~", "\\textasciitilde{}")
+        company_paragraph = company_paragraph.replace("^", "\\textasciicircum{}")
+    latex = latex.replace("{company_paragraph}", company_paragraph)
     latex = latex.replace("{body}", cover_body)
 
     # Write .tex file
@@ -1021,12 +1481,15 @@ def step_compile_cover_letter(ctx: dict, llm: LLMClient, console: Console) -> di
     tex_path.write_text(latex)
     console.print(f"  [green]Written: {tex_path}[/green]")
 
-    # Compile PDF (reuse render_pdf.py as subprocess)
-    output = _run_script("render_pdf.py", [str(tex_path)])
-    result = json.loads(output)
-    if result.get("success"):
+    # Compile PDF with inspect-and-fix loop
+    result = compile_and_inspect(str(tex_path), doc_type="cover_letter")
+    if result.get("ok"):
         ctx["cover_letter_pdf_path"] = result["pdf_path"]
         console.print(f"  [green]PDF: {result['pdf_path']}[/green]")
+        if result.get("fixes"):
+            console.print(f"  [yellow]Auto-fixes applied: {', '.join(result['fixes'])}[/yellow]")
+        if result.get("warning"):
+            console.print(f"  [yellow]{result['warning']}[/yellow]")
     else:
         error = result.get("error", "Unknown error")
         console.print(f"  [red]PDF compilation failed: {error}[/red]")

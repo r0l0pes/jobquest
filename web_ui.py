@@ -115,7 +115,7 @@ def stop_process(slot_num):
         return "No process to stop"
 
 
-def _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, slot_num):
+def _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, slot_num):
     """Internal generator for running the pipeline."""
     global running_processes
 
@@ -137,6 +137,9 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
         cmd.append("--cover-letter")
         if cover_letter_instructions and cover_letter_instructions.strip():
             cmd.extend(["--cover-letter-instructions", cover_letter_instructions.strip()])
+
+    if auto_apply:
+        cmd.append("--auto-apply")
 
     full_env = os.environ.copy()
     full_env["LLM_PROVIDER"] = provider
@@ -175,7 +178,8 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
     full_env["ROLE_VARIANT"] = role_variant_map.get(variant_label, variant_label.lower().replace(" ", "_"))
 
     wm_label = writing_model or "Gemini 2.5 Pro"
-    yield f"🚀 Starting with {provider} (ATS) · {wm_label} (writing) · {variant_label} resume...\n\n"
+    auto_label = " (auto-apply)" if auto_apply else ""
+    yield f"🚀 Starting with {provider} (ATS) · {wm_label} (writing) · {variant_label} resume{auto_label}...\n\n"
 
     try:
         process = subprocess.Popen(
@@ -243,14 +247,14 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
 
 
 # Create separate generator functions for each slot (can't use lambda with generators)
-def run_slot_1(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions):
-    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, 1)
+def run_slot_1(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply):
+    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, 1)
 
-def run_slot_2(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions):
-    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, 2)
+def run_slot_2(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply):
+    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, 2)
 
-def run_slot_3(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions):
-    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, 3)
+def run_slot_3(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply):
+    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, 3)
 
 
 def create_app_form(slot_num):
@@ -287,6 +291,11 @@ def create_app_form(slot_num):
                 label="Cover letter instructions (optional)",
                 placeholder="e.g., Emphasize my Postscript AI experience",
                 lines=1,
+            )
+        with gr.Row():
+            auto_apply = gr.Checkbox(
+                label="Auto-apply (skip fit evaluation gate)",
+                value=False,
             )
         with gr.Row():
             writing_model = gr.Radio(
@@ -332,7 +341,7 @@ def create_app_form(slot_num):
                 show_label=False,
             )
 
-    return job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, submit_btn, stop_btn, output, console
+    return job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, submit_btn, stop_btn, output, console
 
 
 def create_ui():
@@ -351,20 +360,20 @@ def create_ui():
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### Application 1")
-                j1, c1, q1, p1, wm1, r1, cl1, cli1, b1, s1, o1, con1 = create_app_form(1)
+                j1, c1, q1, p1, wm1, r1, cl1, cli1, aa1, b1, s1, o1, con1 = create_app_form(1)
 
             with gr.Column():
                 gr.Markdown("### Application 2")
-                j2, c2, q2, p2, wm2, r2, cl2, cli2, b2, s2, o2, con2 = create_app_form(2)
+                j2, c2, q2, p2, wm2, r2, cl2, cli2, aa2, b2, s2, o2, con2 = create_app_form(2)
 
             with gr.Column():
                 gr.Markdown("### Application 3")
-                j3, c3, q3, p3, wm3, r3, cl3, cli3, b3, s3, o3, con3 = create_app_form(3)
+                j3, c3, q3, p3, wm3, r3, cl3, cli3, aa3, b3, s3, o3, con3 = create_app_form(3)
 
         # Run buttons - use dedicated generator functions (not lambdas)
-        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1, wm1, r1, cl1, cli1], outputs=[o1], concurrency_limit=None)
-        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2, wm2, r2, cl2, cli2], outputs=[o2], concurrency_limit=None)
-        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3, wm3, r3, cl3, cli3], outputs=[o3], concurrency_limit=None)
+        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1, wm1, r1, cl1, cli1, aa1], outputs=[o1], concurrency_limit=None)
+        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2, wm2, r2, cl2, cli2, aa2], outputs=[o2], concurrency_limit=None)
+        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3, wm3, r3, cl3, cli3, aa3], outputs=[o3], concurrency_limit=None)
 
         # Stop buttons
         s1.click(fn=lambda: stop_process(1), outputs=[con1])

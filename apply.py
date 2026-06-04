@@ -88,6 +88,11 @@ def parse_args(argv: list[str] | None = None):
         "--cover-letter-instructions",
         help="Optional specific instructions for the cover letter (e.g., 'Emphasize AI experience')",
     )
+    parser.add_argument(
+        "--auto-apply",
+        action="store_true",
+        help="Skip the fit evaluation gate and proceed automatically (batch mode)",
+    )
     return parser.parse_args(argv)
 
 
@@ -99,16 +104,19 @@ def build_steps(fill_form: bool = False):
     from modules.pipeline import (
         step_scrape_job,
         step_read_master_resume,
+        step_evaluate_fit,
         step_tailor_resume,
         step_write_tex,
         step_ats_check,
         step_apply_ats_edits,
         step_compile_pdf,
         step_generate_qa,
+        step_generate_interview_prep,
         step_compile_cover_letter,
         step_create_tracker_entry,
         step_run_form_filler,
         compute_pipeline_score,
+        FitGateBlocked,
     )
 
     def _step_score(ctx, llm, console):
@@ -120,12 +128,14 @@ def build_steps(fill_form: bool = False):
     steps = [
         ("scrape", "Scrape job posting", step_scrape_job),
         ("resume", "Read master resume from Notion", step_read_master_resume),
+        ("fit", "Evaluate job fit", step_evaluate_fit),
         ("tailor", "Tailor resume via LLM", step_tailor_resume),
         ("write_tex", "Write .tex file", step_write_tex),
         ("ats_check", "Run ATS keyword check", step_ats_check),
         ("ats_apply", "Review & apply ATS edits", step_apply_ats_edits),
         ("compile", "Compile PDF", step_compile_pdf),
         ("qa", "Generate Q&A answers", step_generate_qa),
+        ("interview_prep", "Generate interview prep", step_generate_interview_prep),
         ("cl", "Compile cover letter", step_compile_cover_letter),
         ("score", "Compute pipeline score", _step_score),
         ("tracker", "Create tracker entry", step_create_tracker_entry),
@@ -137,7 +147,12 @@ def build_steps(fill_form: bool = False):
     return steps
 
 
-def execute_step(step_fn, ctx, llm, console):
+def execute_step(step_fn, ctx, llm, console, auto_apply=False):
+    """Execute a pipeline step. Passes auto_apply to fit evaluation gate."""
+    import inspect
+    sig = inspect.signature(step_fn)
+    if "auto_apply" in sig.parameters:
+        return step_fn(ctx=ctx, llm=llm, console=console, auto_apply=auto_apply)
     return step_fn(ctx=ctx, llm=llm, console=console)
 
 
@@ -196,6 +211,12 @@ def show_summary(ctx: dict, console: Console):
     if ctx.get("notion_page_id"):
         table.add_row("Notion Entry", ctx["notion_page_id"])
 
+    fit_score = ctx.get("fit_score")
+    if fit_score is not None:
+        fit_label = ctx.get("fit_label", "?")
+        fit_style = {"STRONG FIT": "green", "GOOD FIT": "yellow", "MODERATE": "yellow", "WEAK": "red", "POOR FIT": "red"}.get(fit_label, "")
+        table.add_row("Fit Evaluation", f"[{fit_style}]{fit_score}/100 — {fit_label}[/{fit_style}]")
+
     score = ctx.get("pipeline_score")
     if score is not None:
         label = ctx.get("pipeline_score_label", "?")
@@ -239,6 +260,7 @@ def run_pipeline_from_cli(args) -> int:
         os.environ["WRITING_PROVIDER"] = _WRITING_MODEL_TO_PROVIDER.get(writing_model, "gemini")
 
     # Build initial context
+    auto_apply = getattr(args, 'auto_apply', False)
     ctx = {
         "job_url": args.job_url,
         "company_url": args.company_url,
@@ -248,6 +270,7 @@ def run_pipeline_from_cli(args) -> int:
         "provider": provider,
         "generate_cover_letter": args.cover_letter,
         "cover_letter_instructions": args.cover_letter_instructions or "",
+        "auto_apply": auto_apply,
     }
 
     # Dry run
@@ -279,10 +302,16 @@ def run_pipeline_from_cli(args) -> int:
         return 1
 
     # Run pipeline
+    from modules.pipeline import FitGateBlocked
+    auto_apply = ctx.get("auto_apply", False)
     for i, (step_id, desc, step_fn) in enumerate(STEPS, 1):
         try:
-            new_ctx = execute_step(step_fn, ctx, llm, console)
+            new_ctx = execute_step(step_fn, ctx, llm, console, auto_apply=auto_apply)
             ctx = new_ctx
+        except FitGateBlocked as e:
+            console.print(f"\n  [yellow]⛔ Fit gate blocked: {e}[/yellow]")
+            _save_context(ctx, console)
+            return 0
         except KeyboardInterrupt:
             console.print("\n[yellow]Pipeline interrupted by user.[/yellow]")
             # Save what we have

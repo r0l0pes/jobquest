@@ -38,6 +38,27 @@ Does the draft connect the candidate's experience to this specific company?
 Does the cover letter (if present) just rephrase resume bullets?
 Does the summary repeat the tagline verbatim?
 
+### 6. Behavioral Voice Alignment
+If a **Behavioral Profile** section is present in the prompt input, check whether
+the draft's voice matches the candidate's natural communication style and drives:
+- **Direct and concise** — does the draft hedge, over-explain, or pad with filler?
+- **Evidence-first** — are claims backed by data from the master resume, or are
+  there ungrounded assertions?
+- **Autonomy & ownership** — does the draft demonstrate end-to-end problem
+  ownership or describe team outcomes generically?
+- **Written > spoken** — is the writing dense in signal, or does it read like
+  transcribed speech with empty transitions?
+
+If the draft clashes with the behavioral profile, flag in Part B as:
+
+```
+SUGGESTION: Voice misalignment — [specific clash description]
+CONTEXT: [where in the draft the clash appears]
+FIX: [rewrite suggestion matching the profile's described communication style]
+```
+
+If no Behavioral Profile is provided, skip this criterion entirely.
+
 ---
 
 ## Output Format

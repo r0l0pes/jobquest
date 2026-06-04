@@ -941,6 +941,7 @@ def step_review_drafts(ctx: dict, llm: LLMClient, console: Console) -> dict:
     brief = ctx.get("tailoring_brief", "")
     draft = ctx.get("tailored_latex", "")
     master = ctx["master_resume"]
+    behavioral_profile = _load_behavioral_profile()
 
     review_user = (
         f"## Job Posting\n\n"
@@ -956,7 +957,8 @@ def step_review_drafts(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"## Candidate Master Resume (ground truth)\n\n"
         f"{master}\n\n"
         f"---\n\n"
-        f"Review the draft against the tailoring brief, job description, "
+        + (f"## Behavioral Profile\n\n{behavioral_profile}\n\n---\n\n" if behavioral_profile else "")
+        + f"Review the draft against the tailoring brief, job description, "
         f"and master resume. Produce Part A (JSON edits) and Part B (narrative "
         f"suggestions) following the reviewer prompt format."
     )

@@ -244,3 +244,108 @@ class TestBehavioralInQA:
                                     assert "## Behavioral Profile" not in user_prompt, (
                                         "No behavioral profile section should appear in user prompt"
                                     )
+
+
+# ─── Reviewer integration ─────────────────────────────────────────
+
+class TestBehavioralInReviewer:
+    """Verify behavioral profile is passed to the reviewer step."""
+
+    def test_reviewer_receives_behavioral_profile(self, tmp_path):
+        """step_review_drafts should include behavioral profile in its prompt."""
+        from modules.pipeline import step_review_drafts
+        from rich.console import Console
+
+        run_dir = tmp_path / "TestBehaveReviewer"
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        c = Console()
+        ctx = {
+            "run_dir": str(run_dir),
+            "company_safe": "TestBehaveReviewer",
+            "job": {
+                "title": "Senior Product Manager",
+                "company": "TestBehaveReviewer",
+                "description": "Seeking a data-driven PM with autonomy.",
+            },
+            "master_resume": "### Experience\n\n**Acme** — Built products.",
+            "tailored_latex": "% LaTeX resume draft\n\\section{Experience}\n\\textbf{Product Manager} — Acme Inc.",
+            "tailoring_brief": "Themes: data-driven, execution speed.",
+        }
+
+        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+            mock = MagicMock()
+            mock.model_name.return_value = "gemini-3-flash-preview"
+            mock.generate.return_value = 'SUGGESTION: No issues found.'
+            mock_get.return_value = mock
+
+            result = step_review_drafts(ctx, None, c)
+
+            generate_kwargs = mock.generate.call_args
+            user_prompt = generate_kwargs[0][1] if generate_kwargs and len(generate_kwargs[0]) >= 2 else ""
+
+            assert "Behavioral Profile" in user_prompt, (
+                "Reviewer prompt should include behavioral profile"
+            )
+
+    def test_reviewer_without_profile_graceful(self, tmp_path):
+        """When no behavioral profile exists, reviewer should still work."""
+        from modules.pipeline import step_review_drafts
+        from rich.console import Console
+
+        run_dir = tmp_path / "TestNoBehaveReviewer"
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        c = Console()
+        ctx = {
+            "run_dir": str(run_dir),
+            "company_safe": "TestNoBehaveReviewer",
+            "job": {
+                "title": "PM",
+                "company": "TestNoBehaveReviewer",
+                "description": "PM role.",
+            },
+            "master_resume": "### Experience\n\n**Firm** — Products.",
+            "tailored_latex": "% LaTeX resume\n\\section{Experience}\n\\textbf{PM} — Firm Co.",
+            "tailoring_brief": "Theme: general PM.",
+        }
+
+        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+            with patch("modules.pipeline._load_behavioral_profile", return_value=""):
+                mock = MagicMock()
+                mock.model_name.return_value = "gemini-3-flash-preview"
+                mock.generate.return_value = 'SUGGESTION: No issues.'
+                mock_get.return_value = mock
+
+                result = step_review_drafts(ctx, None, c)
+
+                generate_kwargs = mock.generate.call_args
+                user_prompt = generate_kwargs[0][1] if generate_kwargs and len(generate_kwargs[0]) >= 2 else ""
+
+                assert "## Behavioral Profile" not in user_prompt, (
+                    "No behavioral profile section when file is missing"
+                )
+
+    def test_skip_reviewer_bypasses_behavioral_load(self, tmp_path):
+        """When --skip-reviewer is set, behavioral profile loading is irrelevant."""
+        from modules.pipeline import step_review_drafts
+        from rich.console import Console
+
+        run_dir = tmp_path / "TestSkipReviewer"
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        c = Console()
+        ctx = {
+            "run_dir": str(run_dir),
+            "company_safe": "TestSkipReviewer",
+            "skip_reviewer": True,
+            "job": {"title": "PM", "company": "TestSkipReviewer", "description": "PM"},
+            "master_resume": "Experience",
+            "tailored_latex": "LaTeX",
+            "tailoring_brief": "Brief",
+        }
+
+        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+            result = step_review_drafts(ctx, None, c)
+            mock_get.assert_not_called()
+            assert result["review_feedback"] is None

@@ -104,6 +104,18 @@ Before outputting, verify each answer:
 - [ ] Sounds like Rodrigo — direct, builder-focused, honest
 - [ ] Length: match stated constraints exactly. "2-6 sentences" means 2-6 sentences. 100-150 words for short answers, 200-300 for motivation letters.
 
+## Behavioral Tone Instructions
+
+If a **Behavioral Profile** section is present in the input, use it to calibrate voice:
+- Match the communication style (direct and concise, evidence-first)
+- Reference the candidate's drives (Results, Autonomy, Evidence) as framing for achievements
+- Use the Strengths table to structure how experience is presented
+- Avoid language that clashes with the Behavioral Profile's communication style (e.g., hedging, over-explaining)
+- For Growth Areas, acknowledge honestly without apologizing (see the positive framing in the profile)
+- When answering motivation questions, reference the candidate's thrive conditions (autonomy, outcome-based expectations, speed of learning)
+
+If no Behavioral Profile section is present, use the standard voice rules below.
+
 ## Good vs Bad Example
 
 **Question:** "Why are you interested in this role?"

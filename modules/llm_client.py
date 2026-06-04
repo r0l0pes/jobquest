@@ -968,3 +968,18 @@ def create_writing_client() -> LLMClient:
     )
 
     return available[0][0] if len(available) == 1 else _WritingFallbackClient(available)
+
+
+# ── Reviewer client: separate model for adversarial quality review ──
+
+def create_reviewer_client() -> LLMClient:
+    """Create a reviewer LLM client using a different model than the writing chain.
+
+    Uses Gemini 3 Flash as primary (500 RPD, fast critique) with automatic
+    fallback to Gemini 3.1 Flash-Lite (1500 RPD). The reviewer needs reasoning
+    capability more than writing quality, so we don't use the full writing chain.
+
+    The reviewer is adversarial — using a different model from the drafter
+    prevents the same biases from passing through unnoticed.
+    """
+    return FallbackClient(primary_provider="gemini")

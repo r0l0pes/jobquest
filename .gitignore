@@ -26,6 +26,7 @@ templates/*.pdf
 # Runtime state
 .usage_stats.json
 .master_resume_cache*.txt
+salary_data.json
 .pytest_cache/
 data/applications.json
 

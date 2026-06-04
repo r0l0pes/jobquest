@@ -31,6 +31,7 @@ Consider: Years of experience, role level (Senior/Lead/Head), domain (B2B/B2C/AI
 ### 3. Behavioral / Culture Fit (weight: 15%)
 Does the JD language and company context align with the candidate's working style?
 Consider: Autonomy vs. process-heavy, remote-first vs. on-site, velocity expectations, collaboration style.
+If a **Behavioral Profile** section is provided below, use it to score this dimension — match the JD language to the candidate's drives, communication style, and thrive conditions.
 If no behavioral profile is available, score 50 (neutral) and note: "No behavioral profile configured — scored neutral."
 
 ### 4. Career Alignment (weight: 30%)

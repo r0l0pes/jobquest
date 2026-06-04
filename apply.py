@@ -33,7 +33,7 @@ def parse_args(argv: list[str] | None = None):
             "  python apply.py https://example.com/jobs/pm --skip-notion\n"
         ),
     )
-    parser.add_argument("job_url", help="URL of the job posting")
+    parser.add_argument("job_url", nargs="?", default=None, help="URL of the job posting (optional with --upskill)")
     parser.add_argument(
         "--company-url",
         help="Company website URL for research (e.g., https://company.com)",
@@ -65,6 +65,11 @@ def parse_args(argv: list[str] | None = None):
         help="Writing model for steps 3, 6, 8 (default: gemini-2.5-pro)",
     )
     parser.add_argument(
+        "--skip-reviewer",
+        action="store_true",
+        help="Skip the adversarial draft review step for speed",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show pipeline plan without executing",
@@ -93,6 +98,13 @@ def parse_args(argv: list[str] | None = None):
         action="store_true",
         help="Skip the fit evaluation gate and proceed automatically (batch mode)",
     )
+    parser.add_argument(
+        "--upskill",
+        nargs="?",
+        const="__aggregate__",
+        default=None,
+        help="Run skill gap analysis. Without args: aggregate mode (all tracked apps). With URL: targeted mode.",
+    )
     return parser.parse_args(argv)
 
 
@@ -107,6 +119,8 @@ def build_steps(fill_form: bool = False):
         step_evaluate_fit,
         step_tailor_resume,
         step_write_tex,
+        step_review_drafts,
+        step_apply_review,
         step_ats_check,
         step_apply_ats_edits,
         step_compile_pdf,
@@ -131,6 +145,8 @@ def build_steps(fill_form: bool = False):
         ("fit", "Evaluate job fit", step_evaluate_fit),
         ("tailor", "Tailor resume via LLM", step_tailor_resume),
         ("write_tex", "Write .tex file", step_write_tex),
+        ("review", "Review drafts (adversarial)", step_review_drafts),
+        ("apply_review", "Apply reviewer feedback", step_apply_review),
         ("ats_check", "Run ATS keyword check", step_ats_check),
         ("ats_apply", "Review & apply ATS edits", step_apply_ats_edits),
         ("compile", "Compile PDF", step_compile_pdf),
@@ -261,6 +277,27 @@ def run_pipeline_from_cli(args) -> int:
 
     # Build initial context
     auto_apply = getattr(args, 'auto_apply', False)
+    # Upskill mode: run skill gap analysis instead of the pipeline
+    if args.upskill is not None:
+        from modules.upskill import run_upskill
+        target = None if args.upskill == "__aggregate__" else args.upskill
+        result = run_upskill(target_url=target)
+        console.print(f"\n[bold]Upskill Report[/bold]\n")
+        console.print(f"  {result['message']}")
+        if result.get("report_path"):
+            console.print(f"  Report: {result['report_path']}")
+        if result.get("heatmap"):
+            console.print(f"\n  Gaps found: {len(result['heatmap'])}")
+            for item in result["heatmap"][:10]:
+                console.print(f"    [{item['priority']}] {item['skill'].title()} ({item['type']})")
+            if len(result["heatmap"]) > 10:
+                console.print(f"    ... and {len(result['heatmap']) - 10} more")
+        return 0
+
+    if not args.job_url:
+        console.print("[red]Error: job_url is required (or use --upskill for skill gap analysis)[/red]")
+        return 1
+
     ctx = {
         "job_url": args.job_url,
         "company_url": args.company_url,
@@ -271,6 +308,7 @@ def run_pipeline_from_cli(args) -> int:
         "generate_cover_letter": args.cover_letter,
         "cover_letter_instructions": args.cover_letter_instructions or "",
         "auto_apply": auto_apply,
+        "skip_reviewer": getattr(args, 'skip_reviewer', False),
     }
 
     # Dry run

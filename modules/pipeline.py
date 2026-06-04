@@ -19,7 +19,7 @@ from rich.prompt import Confirm
 from rich.table import Table
 from rich import box
 
-from modules.llm_client import LLMClient, create_client, create_writing_client
+from modules.llm_client import LLMClient, create_client, create_writing_client, create_reviewer_client
 from modules.job_scraper import scrape_job_posting, research_company
 from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers, parse_resume_edits, apply_resume_edits
 from scripts.render_pdf import compile_and_inspect
@@ -86,6 +86,118 @@ def _get_fit_client() -> LLMClient:
             provider="gemini", model="gemini-3.1-flash-lite", fallback=False
         )
     return _fit_client_cache[cache_key]
+
+
+# Reviewer client cache (separate from writing chain and fit client)
+# Uses Gemini 3 Flash → Flash-Lite fallback for adversarial quality review.
+_reviewer_client_cache: dict[str, LLMClient] = {}
+
+
+def _get_reviewer_client() -> LLMClient:
+    """Return a cached reviewer LLM client for adversarial draft review.
+
+    Uses a different model chain than the drafter to prevent the same biases
+    from passing through unnoticed. Gemini 3 Flash primary with Flash-Lite fallback.
+    """
+    cache_key = "_reviewer"
+    if cache_key not in _reviewer_client_cache:
+        _reviewer_client_cache[cache_key] = create_reviewer_client()
+    return _reviewer_client_cache[cache_key]
+
+
+def _load_behavioral_profile() -> str:
+    """Load the behavioral profile from prompts/behavioral_profile.md.
+
+    Returns empty string if the file doesn't exist — steps degrade gracefully.
+    Callers should add their own section header and separator.
+    """
+    profile_path = PROMPTS_DIR / "behavioral_profile.md"
+    if profile_path.exists():
+        return profile_path.read_text()
+    return ""
+
+
+def _get_salary_benchmark(ctx: dict) -> dict | None:
+    """Look up salary benchmarking data for the current job's company.
+
+    Uses scripts.salary_lookup.SalaryLookup. Returns None if no data available
+    or if the company isn't found — always safe to call, always graceful.
+    """
+    try:
+        from scripts.salary_lookup import SalaryLookup
+        lookup = SalaryLookup()
+        company = ctx.get("job", {}).get("company", "")
+        if not company:
+            return None
+        city = ctx.get("job", {}).get("location", "")
+        return lookup.lookup(company, city)
+    except Exception:
+        return None
+
+
+def _display_salary_benchmark(console, salary_data: dict):
+    """Display salary benchmarking info in the console output."""
+    categories = salary_data.get("categories", {})
+    currency = salary_data.get("currency", "EUR")
+    company = salary_data.get("company", "")
+    city = salary_data.get("city", "")
+    baseline = salary_data.get("baseline_description", "")
+
+    table = Table(title=f"Salary Benchmark — {company}", box=box.SIMPLE)
+    table.add_column("Metric", style="bold")
+    table.add_column("Data Points", justify="right")
+    table.add_column("Index", justify="right")
+    table.add_column("Note")
+
+    for cat_name, cat_data in categories.items():
+        label = cat_name.replace("_", " ").title()
+        count = cat_data.get("count", "?")
+        index = cat_data.get("index", "?")
+        vs_market = f"{index - 100:+.1f}% vs market" if isinstance(index, (int, float)) else ""
+        table.add_row(label, str(count), str(index), vs_market)
+
+    if city:
+        location_note = f"Location: {city}"
+    else:
+        location_note = ""
+
+    console.print()
+    console.print(table)
+    if baseline:
+        console.print(f"  [dim]{baseline} ({currency})[/dim]")
+    if location_note:
+        console.print(f"  [dim]{location_note}[/dim]")
+    console.print()
+
+
+def _build_salary_qa_section(salary_data: dict) -> str:
+    """Build a salary context section for Q&A generation prompt.
+
+    Only injected when the Q&A includes a salary expectations question.
+    The LLM uses this to produce informed answers.
+    """
+    company = salary_data.get("company", "")
+    currency = salary_data.get("currency", "EUR")
+    categories = salary_data.get("categories", {})
+    index_label = salary_data.get("index_label", "Index")
+
+    lines = [f"## Salary Context\n"]
+    lines.append(f"{company} compensation data:")
+
+    for cat_name, cat_data in categories.items():
+        label = cat_name.replace("_", " ").title()
+        count = cat_data.get("count", "?")
+        index = cat_data.get("index", "?")
+        vs_market = f" ({index - 100:+.1f}% vs market)" if isinstance(index, (int, float)) else ""
+        lines.append(f"- {label}: index {index}{vs_market} (n={count})")
+
+    lines.append(f"Use this data to answer salary expectation questions if the application asks.")
+    lines.append(f"If no salary question is asked, ignore this section.")
+    lines.append("")
+    lines.append(f"---")
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def _load_voice_prefix() -> str:
@@ -373,6 +485,9 @@ def step_evaluate_fit(
     career_config = _load_career_config()
     career_text = json.dumps(career_config, indent=2) if career_config else "No career config available."
 
+    # Load behavioral profile (optional — graceful empty fallback)
+    behavioral_profile = _load_behavioral_profile()
+
     # Load fit evaluation prompt
     fit_prompt = _load_prompt("fit_evaluation")
 
@@ -395,7 +510,8 @@ def step_evaluate_fit(
             f"---\n\n"
             f"## Career Config\n\n{career_text}\n\n"
             f"---\n\n"
-            f"Evaluate the fit and return the JSON result.",
+            + (f"## Behavioral Profile\n\n{behavioral_profile}\n\n---\n\n" if behavioral_profile else "")
+            + f"Evaluate the fit and return the JSON result.",
             temperature=0.2,
         )
     except Exception as e:
@@ -432,6 +548,12 @@ def step_evaluate_fit(
 
     # Display evaluation
     _display_fit_evaluation(console, evaluation, score, label)
+
+    # Salary benchmarking (optional — silent skip if no data)
+    salary_data = _get_salary_benchmark(ctx)
+    if salary_data:
+        ctx["salary_benchmark"] = salary_data
+        _display_salary_benchmark(console, salary_data)
 
     # Gate logic
     style = "green" if score >= 75 else "yellow" if score >= 45 else "red"
@@ -789,6 +911,168 @@ def step_write_tex(ctx: dict, llm: LLMClient, console: Console) -> dict:
 
     console.print(f"  Written: {tex_path}")
     return ctx
+
+
+# ─── Reviewer Steps: adversarial draft critique + revision ───────
+
+
+def step_review_drafts(ctx: dict, llm: LLMClient, console: Console) -> dict:
+    """Review the tailored LaTeX draft with a separate adversarial LLM.
+
+    Runs after step_write_tex, before step_ats_check. Uses a different model
+    (Gemini 3 Flash) to catch issues the drafter missed: fabricated content,
+    missed keywords, tone mismatches, company-specific angles, repetition.
+    """
+    if ctx.get("skip_reviewer"):
+        console.print("\n[bold]Reviewer:[/bold] [yellow]Skipped (--skip-reviewer)[/yellow]")
+        ctx["review_feedback"] = None
+        return ctx
+
+    console.print("\n[bold]Step 5/10:[/bold] Reviewing drafts (adversarial review)...")
+
+    reviewer = _get_reviewer_client()
+    console.print(f"  Reviewer model: {reviewer.model_name()}")
+
+    # Build review prompt with full context
+    review_system = _load_prompt("reviewer")
+    job_text = ctx["job"].get("description", "") or ""
+    company = ctx["job"].get("company", "Unknown")
+    title = ctx["job"].get("title", "Unknown")
+    brief = ctx.get("tailoring_brief", "")
+    draft = ctx.get("tailored_latex", "")
+    master = ctx["master_resume"]
+
+    review_user = (
+        f"## Job Posting\n\n"
+        f"**Title:** {title}\n**Company:** {company}\n\n"
+        f"{job_text}\n\n"
+        f"---\n\n"
+        f"## Tailoring Brief (what the drafter was told to do)\n\n"
+        f"{brief}\n\n"
+        f"---\n\n"
+        f"## Draft LaTeX Resume (what the drafter produced)\n\n"
+        f"```latex\n{draft}\n```\n\n"
+        f"---\n\n"
+        f"## Candidate Master Resume (ground truth)\n\n"
+        f"{master}\n\n"
+        f"---\n\n"
+        f"Review the draft against the tailoring brief, job description, "
+        f"and master resume. Produce Part A (JSON edits) and Part B (narrative "
+        f"suggestions) following the reviewer prompt format."
+    )
+
+    try:
+        review_raw = reviewer.generate(review_system, review_user, temperature=0.2)
+        feedback = _parse_review_feedback(review_raw, console)
+        ctx["review_feedback"] = feedback
+
+        # Save to run dir for debugging
+        run_dir = Path(ctx["run_dir"])
+        (run_dir / f"review_feedback_{ctx['company_safe']}.md").write_text(review_raw)
+
+    except Exception as err:
+        console.print(f"  [yellow]Reviewer call failed ({err}) — continuing without review.[/yellow]")
+        ctx["review_feedback"] = None
+
+    return ctx
+
+
+def step_apply_review(ctx: dict, llm: LLMClient, console: Console) -> dict:
+    """Apply the reviewer's feedback to the LaTeX draft.
+
+    Applies Part A JSON edits via exact string replacement. Logs Part B
+    narrative suggestions. Silently skips edits whose old_string can't be
+    found. Skipped entirely if reviewer was disabled or returned no feedback.
+    """
+    feedback = ctx.get("review_feedback")
+    if feedback is None:
+        return ctx  # Reviewer was skipped or failed
+
+    console.print("\n[bold]Step 5b/10:[/bold] Applying reviewer feedback...")
+
+    edits = feedback.get("part_a", [])
+    suggestions = feedback.get("part_b", [])
+
+    applied = 0
+    skipped = 0
+    latex = ctx.get("tailored_latex", "")
+
+    for edit in edits:
+        old = edit.get("old_string", "")
+        new = edit.get("new_string", "")
+        reason = edit.get("reason", "?")
+
+        if not old:
+            skipped += 1
+            continue
+
+        if old in latex:
+            latex = latex.replace(old, new, 1)
+            applied += 1
+            console.print(f"  [green]✓[/green] {reason}")
+        else:
+            skipped += 1
+            console.print(f"  [yellow]⊙[/yellow] old_string not found (skipped): {reason}")
+
+    ctx["tailored_latex"] = latex
+
+    # Log narrative suggestions
+    if suggestions:
+        run_dir = Path(ctx["run_dir"])
+        sug_path = run_dir / f"review_suggestions_{ctx['company_safe']}.md"
+        sug_text = "\n".join(
+            f"### Suggestion {i + 1}\n{s}"
+            for i, s in enumerate(suggestions)
+        )
+        sug_path.write_text(sug_text)
+        console.print(f"  [dim]{len(suggestions)} narrative suggestion(s) saved to {sug_path.name}[/dim]")
+
+    console.print(f"  Reviewer: {applied} edit(s) applied, {skipped} skipped")
+    return ctx
+
+
+def _parse_review_feedback(raw: str, console: Console) -> dict:
+    """Parse reviewer output into Part A (JSON edits) and Part B (narrative)."""
+    import json
+
+    part_a: list[dict] = []
+    part_b: list[str] = []
+
+    # Extract Part A: JSON block
+    json_match = re.search(r"```(?:json)?\s*\n?(\[[\s\S]*?\])\s*\n?```", raw)
+    if json_match:
+        try:
+            part_a = json.loads(json_match.group(1))
+            if not isinstance(part_a, list):
+                part_a = []
+        except json.JSONDecodeError:
+            console.print("  [yellow]Failed to parse Part A JSON — no edits applied.[/yellow]")
+            part_a = []
+
+    # Extract Part B: lines starting with SUGGESTION:
+    in_part_b = False
+    current_suggestion: list[str] = []
+    for line in raw.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("## Part B") or stripped.startswith("# Part B"):
+            in_part_b = True
+            if current_suggestion:
+                part_b.append("\n".join(current_suggestion))
+                current_suggestion = []
+            continue
+        if stripped.startswith("## Part A") or stripped.startswith("# Part A"):
+            in_part_b = False
+            continue
+        if stripped.startswith("```") and in_part_b:
+            continue  # Skip code blocks in Part B
+        if in_part_b:
+            if stripped.startswith("SUGGESTION:") or stripped.startswith("CONTEXT:") or stripped.startswith("FIX:"):
+                current_suggestion.append(stripped)
+
+    if current_suggestion:
+        part_b.append("\n".join(current_suggestion))
+
+    return {"part_a": part_a, "part_b": part_b}
 
 
 # ─── Notion DB helpers ───────────────────────────────────────────
@@ -1239,6 +1523,9 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
                 f"---\n\n"
             )
 
+    # Load behavioral profile (optional — graceful empty fallback)
+    behavioral_profile = _load_behavioral_profile()
+
     # Static/semi-static content first (cached by DeepSeek prefix cache),
     # dynamic content last (changes per application, always after the cached prefix).
     user_prompt = (
@@ -1247,14 +1534,16 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         f"{templates_section}"
         f"---\n\n"
         f"{qa_ai_context_section}"
-        f"## Job Posting\n\n"
+        + (f"## Behavioral Profile\n\n{behavioral_profile}\n\n---\n\n" if behavioral_profile else "")
+        + f"## Job Posting\n\n"
         f"**Title:** {ctx['job']['title']}\n"
         f"**Company:** {ctx['job']['company']}\n\n"
         f"{ctx['job']['description'][:3000]}\n\n"
         f"---\n\n"
         f"## Company Research\n\n{company_research[:2000]}\n\n"
         f"---\n\n"
-        f"## Questions to Answer\n\n{questions_text}\n\n"
+        + (_build_salary_qa_section(ctx.get("salary_benchmark")) if ctx.get("salary_benchmark") else "")
+        + f"## Questions to Answer\n\n{questions_text}\n\n"
         f"---\n\n"
         f"{role_framing}\n\n"
         f"Generate answers for each question."

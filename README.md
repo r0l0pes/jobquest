@@ -73,16 +73,6 @@ Pi reads mode files from `modes/`:
 | Batch          | `modes/batch.md`          | Process job queue sequentially or via web UI                                   |
 | Upskill        | `modes/upskill.md`        | Skill gap analysis (hard skill diff + LLM synthesis → heatmap → learning plan) |
 
-## Resume Variants
-
-Three variants in Notion, toggled in the web UI:
-
-| Variant    | Tagline                                                    |
-| ---------- | ---------------------------------------------------------- |
-| Growth PM  | "Experiments that accelerate revenue."                     |
-| Generalist | "End-to-end ownership. Outcomes delivered."                |
-| AI PM      | "GenAI product delivery. End-to-end, governance included." |
-
 ## Setup
 
 ```bash

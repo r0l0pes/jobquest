@@ -234,7 +234,8 @@ The tracker server (`serve_tracker.py`) exposes these endpoints:
 | GET | `/api/applications` | List all applications |
 | POST | `/api/applications` | Save all applications (full replace) |
 | POST | `/api/recompile` | Rewrite .tex + regenerate PDF |
-| POST | `/api/discover` | Run job discovery (`{mode, clear}`) |
+| POST | `/api/discover` | Start job discovery (async — returns immediately, poll `/api/discover/status` for completion) |
+| GET | `/api/discover/status` | Poll discovery progress: `{running, jobs_found, error}` |
 | GET | `/api/check-url?url=...` | Check if URL exists in tracker |
 
 ## Environment

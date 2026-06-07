@@ -12,12 +12,18 @@ Usage:
 import argparse
 import json
 import sys
+import threading
+import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "data"
 APP_FILE = DATA_DIR / "applications.json"
+
+# ── Discovery background state ─────────────────────────────────────────────
+_discovery_lock = threading.Lock()
+_discovery_status = {"running": False, "started_at": 0, "jobs_found": 0, "error": None}
 
 
 class TrackerHandler(SimpleHTTPRequestHandler):
@@ -28,6 +34,11 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        # Prevent browser caching of HTML pages (tracker, discovery queue)
+        # so refreshed jobs always show instead of stale cached versions
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         super().end_headers()
 
     def do_OPTIONS(self):
@@ -39,6 +50,8 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             self._serve_json()
         elif self.path.startswith("/api/check-url"):
             self._check_url()
+        elif self.path == "/api/discover/status":
+            self._discover_status()
         elif self.path == "/" or self.path == "":
             self.path = "/data/tracker.html"
             super().do_GET()
@@ -235,11 +248,10 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         POST /api/discover
         Body: { "mode": "7d"|"24h", "clear": true|false }
 
-        Runs scripts/discover_jobs.py with the given mode.
-        If clear is true, resets the queue file before running.
+        Starts the discovery script in a background thread and returns
+        immediately. The client polls GET /api/discover/status for progress.
         """
         import subprocess
-        from io import StringIO
 
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length)
@@ -251,58 +263,104 @@ class TrackerHandler(SimpleHTTPRequestHandler):
             if mode not in ("7d", "24h"):
                 raise ValueError(f"Invalid mode: {mode}. Use '7d' or '24h'.")
 
-            # Optionally clear the queue
-            if clear:
-                _reset_queue_file()
+            # Don't allow concurrent discovery runs
+            with _discovery_lock:
+                if _discovery_status["running"]:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "ok": False,
+                        "error": "Discovery already in progress",
+                    }).encode())
+                    return
+                _discovery_status["running"] = True
+                _discovery_status["started_at"] = time.time()
+                _discovery_status["jobs_found"] = 0
+                _discovery_status["error"] = None
 
-            # Run the discovery script
-            script = PROJECT_ROOT / "scripts" / "discover_jobs.py"
-            if not script.exists():
-                raise FileNotFoundError(f"Discovery script not found: {script}")
-
-            result = subprocess.run(
-                [sys.executable, str(script), "--mode", mode],
-                capture_output=True, text=True, timeout=180,
-                cwd=str(PROJECT_ROOT),
+            thread = threading.Thread(
+                target=_run_discovery, args=(mode, clear),
+                daemon=True,
             )
-
-            if result.returncode != 0:
-                error_msg = result.stderr[:500] or result.stdout[:500] or f"Exit code {result.returncode}"
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    "ok": False,
-                    "error": error_msg,
-                }).encode())
-                return
-
-            # Count jobs by parsing the updated queue file
-            queue_file = DATA_DIR / "job_queue.html"
-            jobs_found = 0
-            if queue_file.exists():
-                import re
-                content = queue_file.read_text()
-                jobs_found = content.count('"company":')
+            thread.start()
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({
                 "ok": True,
-                "jobs_found": jobs_found,
+                "status": "running",
             }).encode())
 
         except Exception as e:
+            with _discovery_lock:
+                _discovery_status["running"] = False
             self.send_response(400)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
+    def _discover_status(self):
+        """GET /api/discover/status — returns current discovery state."""
+        with _discovery_lock:
+            status = dict(_discovery_status)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(status).encode())
+
     def log_message(self, format, *args):
         """Suppress default logging noise."""
         if "/api/" in str(args[0]):
             print(f"  {args[0]}", flush=True)
+
+
+# ── Discovery background runner ─────────────────────────────────────────────
+
+def _run_discovery(mode, clear):
+    """Run discover_jobs.py in a background daemon thread.
+
+    Updates _discovery_status under lock when complete. Designed to be
+    spawned by _discover_jobs() via threading.Thread.
+    """
+    import subprocess
+    script = PROJECT_ROOT / "scripts" / "discover_jobs.py"
+    try:
+        if clear:
+            _reset_queue_file()
+
+        result = subprocess.run(
+            [sys.executable, str(script), "--mode", mode],
+            capture_output=True, text=True, timeout=600,
+            cwd=str(PROJECT_ROOT),
+        )
+
+        if result.returncode != 0:
+            with _discovery_lock:
+                _discovery_status["error"] = (
+                    result.stderr[:500] or result.stdout[:500]
+                    or f"Exit code {result.returncode}"
+                )
+                _discovery_status["running"] = False
+            return
+
+        # Count jobs after discovery completes
+        queue_file = DATA_DIR / "job_queue.html"
+        jobs_found = 0
+        if queue_file.exists():
+            from scripts.discover_jobs import parse_existing_jobs
+            jobs_found = len(parse_existing_jobs(queue_file))
+
+        with _discovery_lock:
+            _discovery_status["jobs_found"] = jobs_found
+            _discovery_status["running"] = False
+            _discovery_status["error"] = None
+
+    except Exception as e:
+        with _discovery_lock:
+            _discovery_status["error"] = str(e)
+            _discovery_status["running"] = False
 
 
 # ── Module-level helpers (used by handlers and tests) ──
@@ -312,12 +370,537 @@ QUEUE_TEMPLATE = """<!doctype html>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>JobQuest — Discovery Queue</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 16px;
+        color: #58a6ff;
+      }
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .toolbar input,
+      .toolbar select {
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .toolbar input {
+        width: 240px;
+      }
+      .stats {
+        color: #8b949e;
+        font-size: 13px;
+        margin-left: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid #30363d;
+        color: #8b949e;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      th:hover {
+        color: #c9d1d9;
+      }
+      th .arrow {
+        font-size: 10px;
+        margin-left: 4px;
+      }
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #21262d;
+      }
+      tr:hover {
+        background: #161b22;
+      }
+      a {
+        color: #58a6ff;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-size: 11px;
+        margin-left: 4px;
+      }
+      .tag-growth {
+        background: #23863633;
+        color: #3fb950;
+        border: 1px solid #23863655;
+      }
+      .tag-ai {
+        background: #6e40c933;
+        color: #a371f7;
+        border: 1px solid #6e40c955;
+      }
+      .tag-generalist {
+        background: #9e6a0333;
+        color: #d29922;
+        border: 1px solid #9e6a0355;
+      }
+      .tag-de {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-es {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-remote {
+        background: #1f6feb33;
+        color: #79c0ff;
+        border: 1px solid #1f6feb55;
+      }
+      .empty {
+        text-align: center;
+        padding: 40px;
+        color: #484f58;
+      }
+      #move-btn {
+        background: #1f6feb;
+        border: none;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        display: none;
+      }
+      #move-btn:hover {
+        background: #388bfd;
+      }
+      #move-btn.visible {
+        display: inline-block;
+      }
+      .row-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #1f6feb;
+      }
+      .select-all-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #1f6feb;
+      }
+      .company-url-link {
+        color: #79c0ff;
+        font-size: 11px;
+        margin-left: 6px;
+        text-decoration: none;
+      }
+      .company-url-link:hover {
+        text-decoration: underline;
+      }
+    </style>
   </head>
   <body>
-    <p>Queue cleared. Run discovery again.</p>
+    <h1>🔍 Job Discovery Queue</h1>
+
+    <div class="toolbar">
+      <input
+        type="text"
+        id="search"
+        placeholder="Search..."
+        oninput="render()"
+      />
+      <select id="role-filter" onchange="render()">
+        <option value="">All roles</option>
+        <option value="growth">Growth PM</option>
+        <option value="ai">AI PM</option>
+        <option value="generalist">Generalist PM</option>
+      </select>
+      <select id="country-filter" onchange="render()">
+        <option value="">All countries</option>
+        <option value="de">🇩🇪 Germany</option>
+        <option value="es">🇪🇸 Spain</option>
+      </select>
+      <button id="move-btn" onclick="moveToTracker()">
+        📋 Move Selected to Tracker
+      </button>
+      <button id="discover-btn" onclick="showDiscoveryModal()" style="background:#238636;border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
+        🔍 Run Discovery
+      </button>
+      <span class="stats" id="stats"></span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30px">
+            <input
+              type="checkbox"
+              class="select-all-checkbox"
+              id="select-all"
+              onchange="toggleSelectAll()"
+              title="Select all visible"
+            />
+          </th>
+          <th onclick="sortBy('company')">
+            Company <span class="arrow" id="arrow-company"></span>
+          </th>
+          <th onclick="sortBy('title')">
+            Role <span class="arrow" id="arrow-title"></span>
+          </th>
+          <th onclick="sortBy('location')">
+            Location <span class="arrow" id="arrow-location"></span>
+          </th>
+          <th onclick="sortBy('date')">
+            Date <span class="arrow" id="arrow-date"></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display: none">
+      No jobs discovered yet.
+    </div>
+
+    <div id="discovery-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:24px;width:420px;max-width:90vw;">
+        <h3 style="color:#58a6ff;margin-bottom:16px;">🔍 Start Job Discovery</h3>
+        <p style="color:#8b949e;font-size:13px;margin-bottom:16px;">
+          Search for new PM job postings across the web.
+        </p>
+        <div style="margin-bottom:16px;">
+          <label style="color:#c9d1d9;font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Time range</label>
+          <label style="color:#8b949e;font-size:13px;margin-right:16px;"><input type="radio" name="discover-mode" value="7d" checked> Last 7 days</label>
+          <label style="color:#8b949e;font-size:13px;"><input type="radio" name="discover-mode" value="24h"> Last 24 hours</label>
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="color:#c9d1d9;font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Existing positions</label>
+          <label style="color:#8b949e;font-size:13px;margin-right:16px;"><input type="radio" name="discover-clear" value="keep" checked> Keep</label>
+          <label style="color:#8b949e;font-size:13px;"><input type="radio" name="discover-clear" value="remove"> Remove</label>
+        </div>
+        <div id="discover-status" style="color:#8b949e;font-size:12px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="start-btn" onclick="startDiscovery()" style="background:#238636;border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;flex:1;">Start Discovery</button>
+          <button id="cancel-btn" onclick="hideDiscoveryModal()" style="background:#30363d;border:none;color:#8b949e;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // JOBS DATA — populated by discovery, manually edited, or via agent
+      const JOBS = [
+    ];
+
+
+      let sortCol = "date";
+      let sortDir = -1;
+
+      function roleTag(type) {
+        const map = {
+          growth: "tag-growth",
+          ai: "tag-ai",
+          generalist: "tag-generalist",
+        };
+        return `<span class="tag ${map[type] || ""}">${type}</span>`;
+      }
+
+      function render() {
+        const search = document.getElementById("search").value.toLowerCase();
+        const roleFilter = document.getElementById("role-filter").value;
+        const countryFilter = document.getElementById("country-filter").value;
+
+        let filtered = JOBS;
+        if (search) {
+          filtered = filtered.filter(
+            (j) =>
+              (j.company || "").toLowerCase().includes(search) ||
+              (j.title || "").toLowerCase().includes(search) ||
+              (j.location || "").toLowerCase().includes(search),
+          );
+        }
+        if (roleFilter)
+          filtered = filtered.filter((j) => j.roleType === roleFilter);
+        if (countryFilter)
+          filtered = filtered.filter((j) => j.country === countryFilter);
+
+        filtered.sort((a, b) => {
+          let va = a[sortCol] || "",
+            vb = b[sortCol] || "";
+          if (sortCol === "date") {
+            va = va.toString();
+            vb = vb.toString();
+          }
+          return va < vb ? -1 * sortDir : va > vb ? 1 * sortDir : 0;
+        });
+
+        document
+          .querySelectorAll(".arrow")
+          .forEach((el) => (el.textContent = ""));
+        const arrow = document.getElementById("arrow-" + sortCol);
+        if (arrow) arrow.textContent = sortDir === 1 ? "▲" : "▼";
+
+        document.getElementById("stats").textContent =
+          `${filtered.length} jobs`;
+
+        const tbody = document.getElementById("tbody");
+        if (filtered.length === 0) {
+          tbody.innerHTML = "";
+          document.getElementById("empty").style.display = "block";
+          return;
+        }
+        document.getElementById("empty").style.display = "none";
+
+        tbody.innerHTML = filtered
+          .map(
+            (j) => `
+    <tr>
+      <td><input type="checkbox" class="row-checkbox" data-idx="${JOBS.indexOf(j)}" onchange="updateMoveButton()"></td>
+      <td><a href="${j.companyUrl || j.url}" target="_blank">${j.company || "?"}</a>${j.companyUrl ? `<a href="${j.url}" class="company-url-link" title="Board listing">🔗</a>` : ""} ${roleTag(j.roleType)}</td>
+      <td>${j.title || "?"}</td>
+      <td>${j.location || ""} ${j.country === "de" ? '<span class="tag tag-de">DE</span>' : ""}${j.country === "es" ? '<span class="tag tag-es">ES</span>' : ""}${(j.location || "").toLowerCase().includes("remote") ? '<span class="tag tag-remote">remote</span>' : ""}</td>
+      <td>${j.date || ""}</td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      function sortBy(col) {
+        if (sortCol === col) {
+          sortDir = -sortDir;
+        } else {
+          sortCol = col;
+          sortDir = col === "date" ? -1 : 1;
+        }
+        render();
+      }
+
+      function toggleSelectAll() {
+        const checked = document.getElementById("select-all").checked;
+        document.querySelectorAll(".row-checkbox").forEach((cb) => {
+          cb.checked = checked;
+        });
+        updateMoveButton();
+      }
+
+      function updateMoveButton() {
+        const anyChecked =
+          document.querySelectorAll(".row-checkbox:checked").length > 0;
+        const btn = document.getElementById("move-btn");
+        if (anyChecked) {
+          btn.classList.add("visible");
+          btn.textContent = `📋 Move Selected to Tracker (${document.querySelectorAll(".row-checkbox:checked").length})`;
+        } else {
+          btn.classList.remove("visible");
+        }
+      }
+
+      // Normalize URL for dedup (strip hash, trailing slash)
+      function normUrl(u) {
+        try { const p = new URL(u); p.hash = ""; if (p.pathname.endsWith("/") && p.pathname !== "/") p.pathname = p.pathname.slice(0,-1); return p.toString(); }
+        catch { return (u||"").replace(/#.*$/,"").replace(/\\/+$/,"") || u; }
+      }
+
+      async function moveToTracker() {
+        const checked = document.querySelectorAll(".row-checkbox:checked");
+        if (checked.length === 0) return;
+
+        const toMove = [];
+        const indicesToRemove = [];
+        checked.forEach((cb) => {
+          const idx = parseInt(cb.dataset.idx);
+          if (idx >= 0 && idx < JOBS.length) {
+            const job = JOBS[idx];
+            toMove.push({
+              company: job.company,
+              role: job.title,
+              url: job.companyUrl || job.url,
+              date: job.date,
+              status: "applied",
+              notes: `Source: ${job.source} | Location: ${job.location}`,
+            });
+            indicesToRemove.push(idx);
+          }
+        });
+        if (toMove.length === 0) return;
+
+        try {
+          const resp = await fetch("http://127.0.0.1:7878/api/applications");
+          let existing = [];
+          if (resp.ok) existing = await resp.json();
+
+          // Check for URL duplicates
+          const existingUrls = new Set(existing.map(a => normUrl(a.url || "")));
+          const dupes = toMove.filter(j => existingUrls.has(normUrl(j.url)));
+          if (dupes.length > 0) {
+            const names = dupes.map(j => `${j.company} — ${j.role}`).join("\n  • ");
+            const skip = !confirm(`⚠ ${dupes.length} job(s) already in tracker:\n  • ${names}\n\nSkip duplicates and save the rest?`);
+            if (skip) return;
+          }
+
+          const newEntries = toMove.filter(j => !existingUrls.has(normUrl(j.url)));
+          const merged = [...existing, ...newEntries];
+
+          if (newEntries.length === 0) {
+            alert("All selected jobs already exist in the tracker.");
+            return;
+          }
+
+          const saveResp = await fetch("http://127.0.0.1:7878/api/applications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(merged),
+          });
+
+          if (saveResp.ok) {
+            indicesToRemove.sort((a, b) => b - a);
+            indicesToRemove.forEach((idx) => JOBS.splice(idx, 1));
+            document.getElementById("select-all").checked = false;
+            updateMoveButton();
+            render();
+          } else {
+            alert("Failed to save to tracker. Is the tracker server running? (python serve_tracker.py)");
+          }
+        } catch (e) {
+          alert("Could not reach tracker server. Start it with: python serve_tracker.py");
+        }
+      }
+
+      // ── Discovery Modal ──
+      function showDiscoveryModal() {
+        document.getElementById('discovery-modal').style.display = 'flex';
+        document.getElementById('discover-status').textContent = '';
+      }
+      function hideDiscoveryModal() {
+        document.getElementById('discovery-modal').style.display = 'none';
+      }
+      async function startDiscovery() {
+        const mode = document.querySelector('input[name="discover-mode"]:checked').value;
+        const clear = document.querySelector('input[name="discover-clear"]:checked').value === 'remove';
+        const status = document.getElementById('discover-status');
+        const startBtn = document.getElementById('start-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+
+        status.textContent = '⏳ Starting discovery...';
+        status.style.color = '#8b949e';
+        startBtn.disabled = true;
+        cancelBtn.disabled = true;
+
+        try {
+          // 1. Kick off discovery (returns immediately)
+          const resp = await fetch('/api/discover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode, clear }),
+          });
+          const kickoff = await resp.json();
+
+          if (!kickoff.ok) {
+            status.textContent = `❌ ${kickoff.error || 'Discovery failed to start'}`;
+            status.style.color = '#da3633';
+            startBtn.disabled = false;
+            cancelBtn.disabled = false;
+            return;
+          }
+
+          // 2. Poll for completion
+          let pollCount = 0;
+          const poll = setInterval(async () => {
+            pollCount++;
+            try {
+              const statusResp = await fetch('/api/discover/status');
+              const s = await statusResp.json();
+
+              if (s.error) {
+                status.textContent = `❌ ${s.error}`;
+                status.style.color = '#da3633';
+                clearInterval(poll);
+                startBtn.disabled = false;
+                cancelBtn.disabled = false;
+                return;
+              }
+
+              if (s.running) {
+                const dots = '.'.repeat((pollCount % 3) + 1);
+                status.textContent = `⏳ Searching${dots} (${Math.floor((Date.now()/1000 - s.started_at)/60)}m elapsed)`;
+                return;
+              }
+
+              // Done — success
+              status.textContent = `✅ Found ${s.jobs_found} jobs! Reloading...`;
+              status.style.color = '#238636';
+              clearInterval(poll);
+              setTimeout(() => {
+                hideDiscoveryModal();
+                location.reload();
+              }, 1500);
+            } catch (e) {
+              // Polling error — keep trying a few times
+              if (pollCount > 30) {
+                status.textContent = '⚠️ Lost connection to server. Check if the tracker is still running.';
+                status.style.color = '#d29922';
+                clearInterval(poll);
+                startBtn.disabled = false;
+                cancelBtn.disabled = false;
+              }
+            }
+          }, 2000);
+        } catch (e) {
+          status.textContent = `❌ Error: ${e.message}. Is the tracker server running?`;
+          status.style.color = '#da3633';
+          startBtn.disabled = false;
+          cancelBtn.disabled = false;
+        }
+      }
+
+      // Auto-open modal on page load if query param ?discover is present, or just show the button
+      // Show modal automatically on first load
+      if (!sessionStorage.getItem('discovery-dismissed')) {
+        showDiscoveryModal();
+      }
+      // Hide modal on Cancel also sets the flag
+      const origHide = hideDiscoveryModal;
+      hideDiscoveryModal = function() {
+        sessionStorage.setItem('discovery-dismissed', 'true');
+        origHide();
+      };
+
+      render();
+    </script>
   </body>
-</html>"""
+</html>
+"""
 
 
 def _reset_queue_file():

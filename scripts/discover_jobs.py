@@ -21,7 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import requests
+import urllib.request
+import urllib.error
 
 
 EXA_SEARCH_URL = "https://api.exa.ai/search"
@@ -359,26 +360,43 @@ def extract_company_from_domain(url: str) -> str:
     return clean_company_name(base.replace("-", " ").title())
 
 
-def exa_search(query: str, num_results: int = 10) -> list[dict]:
-    """Call Exa API directly. Returns list of result dicts."""
-    headers = {
-        "x-api-key": EXA_API_KEY,
-        "Content-Type": "application/json",
-    }
+def exa_search(query: str, num_results: int = 10, mode: str = "7d") -> list[dict]:
+    """Call Exa API via stdlib urllib. Returns list of result dicts.
+
+    Args:
+        query: The search query string.
+        num_results: Max results to return per query.
+        mode: Recency filter — "24h" (last 24 hours) or "7d" (last 7 days, default).
+              When set, the API filters to results published after the cutoff date.
+    """
     payload = {
         "query": query,
         "numResults": num_results,
         "type": "auto",
         "useAutoprompt": False,
-        # Exa supports recency filtering via includeDomains or text filtering
-        # but plain semantic search is most reliable
     }
+    # Apply recency filtering based on mode
+    if mode == "24h":
+        cutoff = (date.today() - timedelta(days=1)).isoformat()
+        payload["startPublishedDate"] = cutoff
+    elif mode == "7d":
+        cutoff = (date.today() - timedelta(days=7)).isoformat()
+        payload["startPublishedDate"] = cutoff
     try:
-        resp = requests.post(EXA_SEARCH_URL, headers=headers, json=payload, timeout=45)
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("results", [])
-    except requests.RequestException as e:
+        data = json.dumps(payload).encode()
+        req = urllib.request.Request(
+            EXA_SEARCH_URL,
+            data=data,
+            headers={
+                "x-api-key": EXA_API_KEY,
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            body = json.loads(resp.read())
+            return body.get("results", [])
+    except (urllib.error.URLError, OSError, json.JSONDecodeError) as e:
         print(f"  [Exa error] {query[:50]}... → {e}", file=sys.stderr)
         return []
 
@@ -448,40 +466,12 @@ def result_to_job(result: dict, role_type: str, country_hint: str, expected_sour
     }
 
 
-# ── URL verification (added 2026-05-24) ──────────────────────────────────────
-# Revert note: if this causes jobs to be lost or slows discovery too much,
-# delete the verify_job_urls() function and remove the call in main().
-# The pipeline worked fine without it — Exa just returns some stale URLs.
-
-def verify_job_urls(jobs: list[dict], timeout: int = 5) -> list[dict]:
-    """HEAD-check each job URL and return only jobs that are still alive.
-
-    Keeps URLs that return 200, 301, or 302. Skips 404, 410, 5xx,
-    and connection failures (including SSLError/timeout).
-    """
-    live = []
-    dead = 0
-    session = requests.Session()
-    session.headers["User-Agent"] = (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko)"
-    )
-    for job in jobs:
-        url = job["url"]
-        try:
-            resp = session.head(url, timeout=timeout, allow_redirects=True)
-            if resp.status_code < 400:
-                live.append(job)
-            else:
-                dead += 1
-                print(f"  [dead {resp.status_code}] {url[:80]}", file=sys.stderr)
-        except requests.RequestException:
-            dead += 1
-            print(f"  [dead conn-err] {url[:80]}", file=sys.stderr)
-    if dead:
-        print(f"  → Skipped {dead} dead/stale URLs", file=sys.stderr)
-    print(f"  → {len(live)} jobs verified alive", file=sys.stderr)
-    return live
+# ── URL verification (removed 2026-06-07) ──────────────────────────────────
+# The verify_job_urls() function was removed because it:
+# - Killed 86% of valid URLs (LinkedIn, StepStone, Join.com block HEAD requests)
+# - Bottlenecked first-run discovery (350 URLs × 5s timeout blocked the subprocess)
+# - Was defensive over-filtering — Exa's startPublishedDate already constrains recency
+# The pipeline worked fine without it (Exa just returns some stale URLs occasionally).
 
 
 def deduplicate_jobs(jobs: list[dict], existing: list[dict]) -> list[dict]:
@@ -511,11 +501,17 @@ def deduplicate_jobs(jobs: list[dict], existing: list[dict]) -> list[dict]:
 
 
 def group_jobs_for_output(jobs: list[dict]) -> str:
-    """Format new jobs as JS array entries with section comments."""
+    """Format new jobs as JS array entries with section comments.
+
+    Uses JS object notation (unquoted keys) instead of JSON so that
+    parse_existing_jobs() can read back the entries on subsequent runs.
+    """
     lines = []
     # Group by country then role
     countries = [("de", "🇩🇪 Germany"), ("es", "🇪🇸 Spain"), ("remote", "🌍 Remote")]
     roles = [("growth", "Growth PM"), ("ai", "AI PM"), ("generalist", "Generalist PM")]
+    JS_KEYS = ["company", "title", "url", "companyUrl", "location",
+               "country", "roleType", "date", "source"]
     for ccode, clabel in countries:
         country_jobs = [j for j in jobs if j["country"] == ccode]
         if not country_jobs:
@@ -527,8 +523,11 @@ def group_jobs_for_output(jobs: list[dict]) -> str:
                 continue
             lines.append(f"    // {clabel} — {rlabel}")
             for j in role_jobs:
-                entry = json.dumps(j, ensure_ascii=False)
-                lines.append(f"    {entry},")
+                parts = []
+                for k in JS_KEYS:
+                    v = j.get(k, "")
+                    parts.append(f"{k}: {json.dumps(v, ensure_ascii=False)}")
+                lines.append(f"    {{{', '.join(parts)}}},")
         lines.append("")
     return "\n".join(lines)
 
@@ -579,7 +578,7 @@ def main():
 
     for idx, (query, role_type, country_hint, expected_source) in enumerate(queries, 1):
         print(f"\n[{idx}/{len(queries)}] Searching: {query}", file=sys.stderr)
-        results = exa_search(query, num_results=args.max_per_query)
+        results = exa_search(query, num_results=args.max_per_query, mode=args.mode)
         print(f"  → {len(results)} raw results", file=sys.stderr)
         for r in results:
             job = result_to_job(r, role_type, country_hint, expected_source)
@@ -590,9 +589,6 @@ def main():
     deduped = deduplicate_jobs(all_new_jobs, existing)
     print(f"New after dedup: {len(deduped)}", file=sys.stderr)
 
-    if deduped:
-        print(f"\nVerifying {len(deduped)} job URLs are still active...", file=sys.stderr)
-        deduped = verify_job_urls(deduped)
     if deduped:
         append_to_queue(QUEUE_PATH, deduped)
         print(f"\n✅ Added {len(deduped)} new jobs to {QUEUE_PATH}", file=sys.stderr)

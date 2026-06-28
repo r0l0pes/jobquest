@@ -246,15 +246,15 @@ class TestExtractCompanyFromDomain:
 class TestExtractCompanyFromTitle:
     """U6: extract_company_from_title() characterization."""
 
-    def test_english_at_company(self):
-        # Pre-existing: regex truncates company names to 2 chars (known bug)
+    def test_english_at_company_full_name(self):
+        """Fix: lazy quantifier truncates to 2 chars. Should extract full name."""
         result = extract_company_from_title("Senior PM at Acme Corp")
-        assert len(result) >= 1  # extracts something, but truncation is a known issue
+        assert result == "Acme Corp", f"got {repr(result)}"
 
-    def test_german_bei_company(self):
-        # German pattern also affected by truncation
+    def test_german_bei_company_full_name(self):
+        """German bei pattern should extract full name (clean_company_name strips GmbH)."""
         result = extract_company_from_title("Senior PM bei Acme GmbH")
-        assert len(result) >= 1
+        assert result == "Acme", f"got {repr(result)}"
 
     def test_no_company_in_title(self):
         assert extract_company_from_title("Senior Product Manager") == ""
@@ -297,14 +297,12 @@ class TestResultToJobIntegration:
         base.update(overrides)
         return base
 
-    def test_valid_job_returns_dict(self):
-        r = self._valid_result()
-        # Company extracted from title (regex truncation) + garbage check may reject.
-        # This is pre-existing behavior; the test verifies the pipeline runs.
+    def test_valid_job_with_company_in_title_passes(self):
+        """Fix: greedy regex extracts full company name, so 'Unknown' fallback avoided."""
+        r = self._valid_result(title="Senior PM at Acme Corp")
         job = result_to_job(r, "growth", "de", "linkedin")
-        # Characterize: currently returns None due to company extraction truncation
-        # + garbage filter interaction
-        assert job is None or isinstance(job, dict)
+        assert job is not None, "job should pass with Acme Corp from title"
+        assert job["company"] == "Acme Corp"
 
     def test_short_title_returns_none(self):
         r = self._valid_result(title="PM")
@@ -331,21 +329,20 @@ class TestResultToJobIntegration:
 
     def test_berlin_location_is_extracted(self):
         r = self._valid_result(title="Senior PM Growth Berlin")
-        # Pre-existing: company extraction falls back to "Unknown" which is
-        # in the garbage_companies filter → job rejected. Captures real behavior.
         job = result_to_job(r, "growth", "de", "linkedin")
-        assert job is None  # company "Unknown" triggers garbage filter
+        assert job is not None
+        assert job["location"] == "Berlin"
+        assert job["country"] == "de"
 
     def test_remote_europe_is_detected(self):
         r = self._valid_result(
             title="Senior Product Manager remote europe",
             url="https://weworkremotely.com/job/123",
         )
-        # Pre-existing: company extraction falls back to "Unknown" for known
-        # job board domains → garbage filter rejects. The EU-remote signal IS
-        # detected by infer_location() but the job doesn't reach that stage.
         job = result_to_job(r, "growth", "remote", "weworkremotely")
-        assert job is None  # blocked by garbage company filter, not location
+        assert job is not None
+        assert job["country"] == "remote"
+        assert job["company"] == "Unknown"  # Known board with no company in URL
 
 
 class TestCleanTitle:

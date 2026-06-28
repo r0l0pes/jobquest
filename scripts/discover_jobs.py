@@ -411,11 +411,11 @@ def extract_company_from_url(url: str) -> str:
 def extract_company_from_title(title: str) -> str:
     """Try to extract company name from title using common patterns."""
     # English: "at Company" or "| Company"
-    m = re.search(r"at\s+([A-Z][A-Za-z0-9\s&]+?)(?:\s*[,-•]|\s*$)", title)
+    m = re.search(r"at\s+([A-Z][A-Za-z0-9\s&]+)(?:\s*[,-•]|\s*$)", title)
     if m:
         return clean_company_name(m.group(1))
     # German: "bei Company"
-    m = re.search(r"bei\s+([A-Z][A-Za-z0-9\s&]+?)(?:\s*[,-]|\s*$)", title)
+    m = re.search(r"bei\s+([A-Z][A-Za-z0-9\s&]+)(?:\s*[,-]|\s*$)", title)
     if m:
         return clean_company_name(m.group(1))
     return ""
@@ -604,7 +604,7 @@ def result_to_job(result: dict, role_type: str, country_hint: str, expected_sour
     # Reject if company name is garbage (generic words, too short, or clearly not a company)
     company = company or "Unknown"
     garbage_companies = {
-        "unknown", "remote", "tech", "ai", "ml", "sr", "br", "rh", "on", "fo",
+        "remote", "tech", "ai", "ml", "sr", "br", "rh", "on", "fo",
         "kn", "la", "te", "ne", "qu", "as", "pr", "ko", "ze", "ke",
         "prompt", "technical", "careersync", "experienced", "marketplace",
         "business development", "conversion rate optimization cro",

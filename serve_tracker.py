@@ -5,7 +5,7 @@ Serves tracker.html and handles applications.json read/write.
 Zero dependencies beyond Python stdlib. No Flask, no FastAPI.
 
 Usage:
-    python serve_tracker.py          → http://localhost:7878
+    python serve_tracker.py          → http://localhost:7880
     python serve_tracker.py --port 9000
 """
 
@@ -31,7 +31,12 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(PROJECT_ROOT), **kwargs)
 
     def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        # Localhost-only server: reflect request origin when available
+        origin = self.headers.get("Origin", "http://127.0.0.1:7880")
+        if origin in ("http://127.0.0.1:7880", "http://localhost:7880", "http://127.0.0.1:7878", "http://localhost:7878"):
+            self.send_header("Access-Control-Allow-Origin", origin)
+        else:
+            self.send_header("Access-Control-Allow-Origin", "http://127.0.0.1:7880")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         # Prevent browser caching of HTML pages (tracker, discovery queue)
@@ -756,7 +761,7 @@ QUEUE_TEMPLATE = """<!doctype html>
         if (toMove.length === 0) return;
 
         try {
-          const resp = await fetch("http://127.0.0.1:7878/api/applications");
+          const resp = await fetch("/api/applications");
           let existing = [];
           if (resp.ok) existing = await resp.json();
 
@@ -764,8 +769,8 @@ QUEUE_TEMPLATE = """<!doctype html>
           const existingUrls = new Set(existing.map(a => normUrl(a.url || "")));
           const dupes = toMove.filter(j => existingUrls.has(normUrl(j.url)));
           if (dupes.length > 0) {
-            const names = dupes.map(j => `${j.company} — ${j.role}`).join("\n  • ");
-            const skip = !confirm(`⚠ ${dupes.length} job(s) already in tracker:\n  • ${names}\n\nSkip duplicates and save the rest?`);
+            const names = dupes.map(j => `${j.company} — ${j.role}`).join("\\n  • ");
+            const skip = !confirm(`⚠ ${dupes.length} job(s) already in tracker:\\n  • ${names}\\n\\nSkip duplicates and save the rest?`);
             if (skip) return;
           }
 
@@ -777,7 +782,7 @@ QUEUE_TEMPLATE = """<!doctype html>
             return;
           }
 
-          const saveResp = await fetch("http://127.0.0.1:7878/api/applications", {
+          const saveResp = await fetch("/api/applications", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(merged),
@@ -853,7 +858,8 @@ QUEUE_TEMPLATE = """<!doctype html>
 
               if (s.running) {
                 const dots = '.'.repeat((pollCount % 3) + 1);
-                status.textContent = `⏳ Searching${dots} (${Math.floor((Date.now()/1000 - s.started_at)/60)}m elapsed)`;
+                const elapsedMin = Math.floor((Date.now()/1000 - s.started_at)/60);
+                status.textContent = `⏳ Searching${dots} (${elapsedMin}m elapsed — full run ~2min)`;
                 return;
               }
 
@@ -866,13 +872,12 @@ QUEUE_TEMPLATE = """<!doctype html>
                 location.reload();
               }, 1500);
             } catch (e) {
-              // Polling error — keep trying a few times
-              if (pollCount > 30) {
-                status.textContent = '⚠️ Lost connection to server. Check if the tracker is still running.';
+              // Polling error — keep trying; full discovery takes ~2 min for 58 queries
+              // Don't give up too early — 30 polls * 2s = 60s is too short
+              if (pollCount > 600) {
+                status.textContent = '⚠️ Still waiting for results. Check tracker terminal for errors.';
                 status.style.color = '#d29922';
-                clearInterval(poll);
-                startBtn.disabled = false;
-                cancelBtn.disabled = false;
+                // Don't stop polling — continue trying
               }
             }
           }, 2000);
@@ -911,7 +916,7 @@ def _reset_queue_file():
 
 def main():
     parser = argparse.ArgumentParser(description="JobQuest Tracker Server")
-    parser.add_argument("--port", type=int, default=7878, help="Port to listen on (default: 7878)")
+    parser.add_argument("--port", type=int, default=7880, help="Port to listen on (default: 7880)")
     args = parser.parse_args()
 
     if not APP_FILE.exists():

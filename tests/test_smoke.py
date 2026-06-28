@@ -187,6 +187,24 @@ class TestPipelineHelpers:
         cache_b = _resume_cache_file("eeee-ffff-gggg-hhhh")
         assert cache_a != cache_b
 
+    def test_ai_pm_context_has_builder_evidence(self):
+        """Verify ai_pm_context.md includes builder section."""
+        from modules.pipeline import _load_ai_pm_context
+
+        ctx = _load_ai_pm_context()
+        assert ctx != ""
+        assert "Builder Evidence" in ctx
+        assert "AI-powered message optimization loop" in ctx
+        assert "AgenticHealth" in ctx
+        assert "JobQuest" in ctx
+
+    def test_ai_pm_tagline(self):
+        """Verify AI-PM tagline foregrounds builder capability."""
+        from modules.pipeline import TAGLINES
+
+        assert "AI products shipped" in TAGLINES["ai_pm"]
+        assert "Prototypes to production" in TAGLINES["ai_pm"]
+
 
 class TestJobScraperPatterns:
     """Verify URL pattern matching for known ATS platforms."""

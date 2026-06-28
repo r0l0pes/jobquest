@@ -693,7 +693,7 @@ def _display_fit_evaluation(console: Console, evaluation: dict, score: int, labe
 TAGLINES = {
     "growth_pm": "Experiments that accelerate revenue.",
     "generalist": "End-to-end ownership. Outcomes delivered.",
-    "ai_pm": "AI products, from 0 to 1.",
+    "ai_pm": "AI products shipped. Prototypes to production.",
 }
 
 

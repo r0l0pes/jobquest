@@ -22,7 +22,7 @@ Score each dimension 0-100, providing a 1-2 sentence justification.
 
 ### 1. Technical Skills Match (weight: 30%)
 How well do the candidate's technical skills and tools match the JD requirements?
-Consider: AI/ML tools, product analytics, SQL, experimentation platforms, prompt engineering, API design, technical depth.
+Consider: AI/ML tools, agentic systems design, MCP, product analytics, SQL, experimentation platforms, prompt engineering, API design, AI-native workflows, technical depth.
 
 ### 2. Experience Match (weight: 25%)
 Does the candidate's work history align with the role's level, domain, and scope?

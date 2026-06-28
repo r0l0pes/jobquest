@@ -85,6 +85,18 @@ QUERY_CATALOG = [
     # PLG / Monetisation
     ("Senior Product Manager product-led growth Germany", "growth", "de", "linkedin"),
     ("Senior PM pricing packaging monetisation", "growth", "de", "linkedin"),
+    # Product Builder / Agentic AI
+    ("Product Builder AI Germany", "ai", "de", "linkedin"),
+    ("Senior Product Manager Builder AI Germany", "ai", "de", "linkedin"),
+    ("AI-native Product Manager Germany", "ai", "de", "linkedin"),
+    ("Agentic AI Product Manager Germany", "ai", "de", "linkedin"),
+    ("Product Manager Agentic AI Germany", "ai", "de", "linkedin"),
+    ("Product Builder AI Spain", "ai", "es", "linkedin"),
+    ("AI Growth Automation Manager Germany", "growth", "de", "linkedin"),
+    ("AI Growth Automation Manager Spain", "growth", "es", "linkedin"),
+    ("AI Automation Manager Berlin", "growth", "de", "linkedin"),
+    ("Product Manager AI Interfaces Germany", "ai", "de", "linkedin"),
+    ("AI Interfaces Product Manager Berlin", "ai", "de", "linkedin"),
     # ── New remote job boards ──
     ("Senior Product Manager 4dayweek remote Europe", "generalist", "remote", "4dayweek"),
     ("Senior Growth PM 4dayweek remote Europe", "growth", "remote", "4dayweek"),
@@ -106,6 +118,20 @@ QUERY_CATALOG = [
     ("Senior Growth PM dailyremote", "growth", "remote", "dailyremote"),
     ("Senior PM remotely de Germany", "generalist", "de", "remotely.de"),
     ("Product Manager eu remote jobs Europe", "generalist", "remote", "euremotejobs"),
+    # ── ES query rebalance (2026-06-28) ──
+    # Growth PM — Spain
+    ("Senior PM Growth B2B SaaS España", "growth", "es", "linkedin"),
+    ("Product Manager Growth monetisation Spain remote", "growth", "es", "linkedin"),
+    ("Senior PM activación retención España startup", "growth", "es", "infojobs"),
+    # AI PM — Spain
+    ("AI Product Manager Barcelona startup 2026", "ai", "es", "linkedin"),
+    ("Senior PM AI ML España Madrid Valencia", "ai", "es", "linkedin"),
+    ("Product Manager Generative AI Spain hiring", "ai", "es", "linkedin"),
+    # Generalist PM — Spain
+    ("Senior Product Manager SaaS España startup", "generalist", "es", "linkedin"),
+    ("Senior Product Manager España fintech Barcelona", "generalist", "es", "linkedin"),
+    ("Senior PM B2B Spain remote startup", "generalist", "es", "linkedin"),
+    ("Product Manager ecommerce marketplace España", "generalist", "es", "infojobs"),
 ]
 
 
@@ -222,29 +248,72 @@ def infer_source(url: str, expected: str) -> str:
     return expected
 
 
-def infer_location(title: str, url: str, country_hint: str) -> tuple[str, str]:
-    """Try to extract location from title/URL. Returns (location, country)."""
+def infer_location(title: str, url: str, country_hint: str) -> tuple[str | None, str | None]:
+    """Try to extract location from title/URL. Returns (location, country).
+    Returns (None, None) if the location is outside DE/ES/EU-remote.
+    Uses a WHITELIST approach: only DE cities, ES cities, or explicit EU-remote signals.
+    Anything else (US, India, LATAM, APAC, generic remote without EU signal) is rejected."""
     text = (title + " " + url).lower()
-    # Check for remote markers
-    if any(r in text for r in ["remote", "fully remote", "100% remote", "home office"]):
-        return ("Remote", "remote")
-    # Country-specific cities
+    # ── Whitelist: DE cities ──
     de_cities = ["berlin", "munich", "münchen", "hamburg", "cologne", "köln",
                  "frankfurt", "stuttgart", "düsseldorf", "leipzig", "dresden",
                  "nuremberg", "nürnberg", "heidelberg", "karlsruhe", "mannheim",
                  "bonn", "essen", "dortmund", "bremen"]
-    es_cities = ["barcelona", "madrid", "valencia", "seville", "sevilla", "bilbao",
-                 "málaga", "malaga", "zaragoza", "palma", "las palmas", "murcia",
-                 "alicante", "granada", "valladolid", "san sebastián", "pamplona"]
     for city in de_cities:
         if city in text:
             return (city.title(), "de")
+    # ── Whitelist: ES cities ──
+    es_cities = ["barcelona", "madrid", "valencia", "seville", "sevilla", "bilbao",
+                 "málaga", "malaga", "zaragoza", "palma", "las palmas", "murcia",
+                 "alicante", "granada", "valladolid", "san sebastián", "pamplona"]
     for city in es_cities:
         if city in text:
             return (city.title(), "es")
-    # Default to country hint
-    loc = "Germany" if country_hint == "de" else "Spain" if country_hint == "es" else "Remote"
-    return (loc, country_hint)
+    # ── Explicit EU/EMEA remote signals (whitelist) ──
+    eu_remote_signals = [
+        "remote europe", "remote eu", "europe remote",
+        "emea", "european time", "eu timezone",
+        "cet", "gmt+1", "gmt+2", "utc+1", "utc+2",
+        "emea remote", "remote dach", "remote de",
+        "remote germany", "remote spain", "remote españa",
+        "remote deutschland", "remote spanien",
+        "remote in europe", "europe based",
+    ]
+    for sig in eu_remote_signals:
+        if sig in text:
+            return ("Remote", "remote")
+    # ── Non-target location exclusion ──
+    # Reject jobs from clearly non-DE/ES/EU locations before the country_hint
+    # fallback can accept them. Only fires when no DE/ES city or EU-remote
+    # signal matched above.
+    non_target_signals = [
+        "united states", "usa", "new york", "los angeles", "chicago",
+        "san francisco", "boston", "seattle", "austin", "miami",
+        "london", "uk", "united kingdom", "england", "manchester",
+        "canada", "toronto", "vancouver", "montreal",
+        "argentina", "buenos aires",
+        "brazil", "brasil", "são paulo", "sao paulo", "rio de janeiro",
+        "india", "mumbai", "bangalore", "delhi", "hyderabad",
+        "singapore", "australia", "sydney", "melbourne",
+        "japan", "tokyo", "mexico",
+        "latam", "apac", "latin america",
+        "middle east", "dubai", "uae",
+    ]
+    for sig in non_target_signals:
+        if sig in text:
+            return (None, None)
+    # ── Remote fallback: if the query targeted remote roles and no non-target
+    #    location was found above, accept as remote. The non-target exclusion list
+    #    (just above) ensures non-EU jobs are still rejected.
+    if country_hint == "remote":
+        return ("Remote", "remote")
+    # ── Country hint fallback (only DE/ES) ──
+    if country_hint == "de":
+        return ("Germany", "de")
+    if country_hint == "es":
+        return ("Spain", "es")
+    # ── Everything else: reject ──
+    return (None, None)
 
 
 def clean_company_name(raw: str) -> str:
@@ -323,12 +392,15 @@ def extract_company_from_url(url: str) -> str:
             "remote", "hybrid", "berlin", "munich", "hamburg", "madrid",
             "barcelona", "full", "time", "part", "intern", "entry",
             "dach", "europe", "emea", "apac", "global", "worldwide",
+            "builder", "agentic", "automation", "interfaces",
         }
         parts = slug.split("-")
         company_parts = []
         for p in parts:
             if p.lower() in title_words:
                 break
+            if p.isdigit():
+                continue
             company_parts.append(p)
         if company_parts:
             name = " ".join(company_parts).title()
@@ -388,7 +460,7 @@ def exa_search(query: str, num_results: int = 10, mode: str = "7d") -> list[dict
             EXA_SEARCH_URL,
             data=data,
             headers={
-                "x-api-key": EXA_API_KEY,
+                "x-api-key": EXA_API_KEY or "",
                 "Content-Type": "application/json",
             },
             method="POST",
@@ -409,6 +481,61 @@ def result_to_job(result: dict, role_type: str, country_hint: str, expected_sour
         return None
     # Skip very short titles (likely person names or generic pages, not jobs)
     if len(title) < 12:
+        return None
+    # ── Title-based filtering: must look like a Product Manager role ──
+    title_lower = title.lower()
+    # Must contain PM-related signal
+    pm_signals = [
+        "product manager", "product owner", "produktmanager", "product lead",
+        "head of product", "vp product", "director of product",
+        "product management", "produkt management", "product director",
+        "growth product", "ai product", "product growth",
+        "senior pm", "lead pm", "principal pm", "group product",
+        "sr. product", "sr product", "product managerin",
+        "produktmanagerin", "product management",
+        "product builder", "ai interfaces", "ai growth",
+        "agentic ai", "ai-native", "ai native",
+    ]
+    if not any(sig in title_lower for sig in pm_signals):
+        return None
+    # Exclude non-PM roles that still matched (e.g. "Backend Engineer" in a PM team page)
+    exclude_title_signals = [
+        "backend engineer", "frontend engineer", "software engineer",
+        "devops", "data engineer", "qa engineer", "sre", "sales",
+        "customer success manager", "customer success", "customer support",
+        "account manager", "account executive", "business development",
+        "marketing manager", "content manager", "social media",
+        "recruiter", "talent acquisition", "hr manager",
+        "sap", "consultant", "analyst", "data scientist",
+        "prompt engineer", "community manager", "office manager",
+        "full stack", "fullstack", "java developer", "python developer",
+        "backend developer", "frontend developer", "ios developer",
+        "android developer", "ux designer", "ui designer",
+        "project manager", "program manager", "delivery manager",
+        "scrum master", "agile coach", "implementation",
+        "support engineer", "solutions engineer", "sales engineer",
+        "partner manager", "alliance manager", "operation manager",
+        "supply chain", "logistics", "finance manager",
+        "legal counsel", "compliance", "security analyst",
+    ]
+    for bad in exclude_title_signals:
+        if bad in title_lower:
+            return None
+    # Exclude news-like titles (long, descriptive, Spanish/German article headlines)
+    news_indicators = [
+        "claves", "lidera", "ofensiva", "aprueba", "convierte",
+        "nueva era", "el poder de", "la verdad", "los que",
+        "vamos a", "todos por", "subir márgenes", "captar inversión",
+        "levanta", "seed:", "nombra a", "experto en",
+        "oferta de", "oferta del", "consejo asesor",
+        "para domar", "fomento de", "balance entre",
+        "nadie le gusta", "1999", "2024", "2023", "2025",
+    ]
+    for ind in news_indicators:
+        if ind in title_lower:
+            return None
+    # Exclude clickbait / generic listicles
+    if re.search(r'^\d+\s', title) or "+" in title and "jobs" in title_lower:
         return None
     # Skip non-job results (blogs, news, generic pages, personal profiles)
     skip_patterns = [
@@ -438,6 +565,25 @@ def result_to_job(result: dict, role_type: str, country_hint: str, expected_sour
         r"jaabz\.com", r"habooz\.com", r"jobleads\.com", r"mypivot\.work",
         r"sercanto\.com", r"simplyhired\.", r"freelancermap\.de",
         r"gulp\.de",
+        # Scraper farms / spam job sites
+        r"hirequorum\.liveblog365\.com", r"wfh\.hstn\.me",
+        r"liveblog365\.com", r"likesyou\.org",
+        r"wfhforgeon\.byethost7\.com", r"infinityfree\.me",
+        r"quickswoop", r"careersync", r"zerogtalent", r"libertyloomtalent",
+        r"jobradar24", r"adzuna", r"searchremotely",
+        r"remotefront\.com", r"remotejobs\.iceiy",
+        r"vibecodecareers", r"emploi\.strategies",
+        # Spanish news / content aggregators posing as job boards
+        r"noticiastrabajo", r"entornointeligente", r"telecombol",
+        r"ecosistemastartup", r"murciastartup", r"mercado2",
+        r"espanaesvoz", r"negocios", r"puestos.vacantes",
+        # Generic news / content sites
+        r"localnews\.com", r"erasmusforentrepreneurs",
+        r"sarasatenea", r"montenegrobusiness", r"eventbrite",
+        r"instagram\.com", r"facebook\.com", r"twitter\.com",
+        # Events / talks / conferences
+        r"/events/", r"/event/", r"/webinar", r"/conference",
+        r"/talk/", r"/speaker/", r"/summit/",
     ]
     url_lower = url.lower()
     for pat in skip_patterns:
@@ -452,6 +598,25 @@ def result_to_job(result: dict, role_type: str, country_hint: str, expected_sour
         company = extract_company_from_domain(url)
     clean = clean_title(title)
     location, country = infer_location(title, url, country_hint)
+    # Reject if location is outside DE/ES/EU-remote
+    if location is None or country is None:
+        return None
+    # Reject if company name is garbage (generic words, too short, or clearly not a company)
+    company = company or "Unknown"
+    garbage_companies = {
+        "unknown", "remote", "tech", "ai", "ml", "sr", "br", "rh", "on", "fo",
+        "kn", "la", "te", "ne", "qu", "as", "pr", "ko", "ze", "ke",
+        "prompt", "technical", "careersync", "experienced", "marketplace",
+        "business development", "conversion rate optimization cro",
+        "gtm partnerships", "alfatraining", "freelance it",
+        "puestos vacantes consultor a sap sd mm retail",
+        "produktmanager ki software m w d",
+    }
+    if company.lower() in garbage_companies:
+        return None
+    # Reject company names that are just 1-2 chars or look like fragments
+    if len(company) <= 2 and company.lower() not in ("ibm", "hp", "ge", "bp"):
+        return None
     source = infer_source(url, expected_source)
     return {
         "company": company or "Unknown",

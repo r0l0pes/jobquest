@@ -1,140 +1,84 @@
-# Session Handoff — June 4, 2026
+# Session Handoff — July 9, 2026
 
-## Previous Session (May 27)
+## Session Duration: ~30 min (LLM model recommendation challenge)
 
-See commit history and specs/005-pipeline-token-crisis.md for the token crisis fix.
+## What This Session Was
 
-**Branch then:** `feat/pipeline-quality-gates`
-**Tests then:** 108 passing
+User challenged the top recommendation in `docs/plans/llm-model-comparison-for-pipeline.md` (dated 2026-07-05): "use Anthropic for high-level tasks." Two questions:
+
+1. Can the latest Anthropic model still handle the high-level tasks?
+2. Could GPT handle the "other" (structured/analytical) tasks instead?
+
+Research re-run as of today, 2026-07-09. **Findings only — no code changes made.**
 
 ---
 
-## This Session (June 4, 2026)
+## TL;DR Verdict
 
-### What Was Done
+- **Anthropic for high-level tasks: HOLDS.** Fabrication rule ("never fabricate resume content") + Opus 4.8's honesty/prose quality + GPT's documented metric-invention tendency make Claude the right call for Step 3 (tailoring) and Step 5 (review). Fable 5 ($10/$50, GA July 1) is overkill for 1-2 page resumes.
+- **GPT for the other tasks: VIABLE, and the July 5 doc is stale here.** GPT-5.6 Sol/Terra/Luna went GA **today** (July 9). Luna ($1/$6) is a legitimate replacement for DeepSeek V4-Pro on fit eval (Step 2b) and ATS check (Step 8). Terra ($2.50/$15) is a value cut for Q&A/interview prep.
+- **Cross-family adversarial gap exposed.** The July 5 chosen config (Opus writing + Sonnet review) is both-Anthropic — violates the project's own cross-family adversarial principle from the refactor plan. Option X (GPT writes + Claude reviews) is the true adversarial alternative, at the cost of higher upstream fabrication risk.
 
-**Implemented 4 specs (005-008) on `feat/pipeline-quality-gates`:**
+---
 
-| Spec | ICE | Files | Tests |
-|------|-----|-------|-------|
-| **005 Drafter-Reviewer** | 6.7 | `prompts/reviewer.md`, `llm_client.py` (+create_reviewer_client), `pipeline.py` (+step_review_drafts, +step_apply_review), `apply.py` (--skip-reviewer) | 18 |
-| **006 Behavioral Profile** | 6.3 | `prompts/behavioral_profile.md`, `prompts/fit_evaluation.md`, `prompts/qa_generator.md`, `pipeline.py` (+_load_behavioral_profile) | 14 |
-| **007 Salary Benchmarking** | 6.0 | `scripts/salary_lookup.py`, `salary_data.json`, `pipeline.py` (+_get_salary_benchmark) | 20 |
-| **008 Upskill Gap Analysis** | 4.7 | `modules/upskill.py`, `apply.py` (--upskill flag), `modes/upskill.md`, `upskill/` dir | 26 |
+## What Changed Since the July 5 Doc (4 days)
 
-**Total tests: 186 passing** (was 108, +78 new tests)
+| Event | Date | Impact |
+|-------|------|--------|
+| GPT-5.6 Sol/Terra/Luna public GA | July 9, 2026 | Overturns "wait, not usable yet" — Luna/Terra now usable for structured tasks |
+| Claude Fable 5 restored to global API | July 1, 2026 | New top tier above Opus ($10/$50), but overkill for resumes |
+| Sonnet 5 cost twist (Artificial Analysis) | early July | Sonnet 5 burns ~40% more output tokens + 3× agent loops → ~$2.29/task vs Opus $1.97/task on agentic work. "40% cheaper" framing overstated for agentic loads; less impactful for this pipeline's single-shot calls. |
 
-**Docs updated:** `AGENTS.md`, `README.md` — pipeline steps 11→15, test count 32→186, new features table, project structure expanded
+GPT-5.6 caveat: METR flagged the highest detected-cheating rate of any public model on its Time Horizon 1.1 suite — autonomous-coding concern, not a resume-writing one.
 
-**Cleanup:**
-- Deleted stale root-level spec-001..spec-004 implementation summaries
-- Added `.gitignore` entries: `.pi-lens/cache/`, `scripts/update_certs.py`, `salary_data.json`, `PI_SCREENSHOT_ISSUE_FIX.md`
-- Removed Resume Variants section from README
+---
 
-### Commits
-```
-548b903 chore: gitignore PI_SCREENSHOT_ISSUE_FIX.md
-072fbcc docs: remove Resume Variants section from README
-d9107ed chore: gitignore .pi-lens/cache/ and scripts/update_certs.py
-cf5b70b feat: wire behavioral profile into reviewer step
-df5e41c docs: update AGENTS.md and README.md for specs 005-008
-539ac32 feat: implement specs 005-008
-```
+## Revised Per-Step Model Table (proposed, not yet implemented)
 
-### Current State
-- **Branch:** `feat/pipeline-quality-gates`
-- **HEAD:** `548b903`
-- **Tests:** 186 passing (`pytest tests/ -v`)
-- **Test files:** 10 (test_cover_letter, test_fit_evaluation, test_interview_prep, test_pdf_inspect, test_reviewer, test_behavioral_profile, test_salary_benchmarking, test_upskill, test_smoke, test_tracker)
-- **Pipeline steps:** 15
-- **Uncommitted:** specs/ directory (spec docs — untracked)
+| Step | Task | July 5 pick | July 9 challenge | Recommended |
+|------|------|-------------|-------------------|-------------|
+| 2b | Fit Evaluation | DeepSeek V4-Pro | GPT-5.6 Luna ($1/$6) | GPT-5.6 Luna or keep DeepSeek (both fine) |
+| 3 | Tailor Resume | Claude Opus 4.8 | (challenged, holds) | **Claude Opus 4.8** (fabrication rule) |
+| 5 | Adversarial Review | Claude Sonnet 5 | cross-family principle | **Claude Opus 4.8 or Sonnet 5** (see adversarial note) |
+| 8 | ATS Check | DeepSeek V4-Pro | GPT-5.6 Luna | GPT-5.6 Luna or keep DeepSeek |
+| 8 | Q&A + Cover | Claude Opus 4.8 | GPT-5.6 Terra | Claude Opus 4.8 if budget; Terra = value cut |
+| 8b | Interview Prep | Kimi K2.6 | GPT-5.6 Terra | Keep Kimi (cheaper, templated output tolerates it) |
 
-**This session's work:**
-- Kimi (K2.6) diagnosed the root cause: commit `e73987a` removed free providers from WRITING_CHAIN.
-- Kimi traced actual pipeline failures from May 26-27 output files.
-- Kimi discovered targeted edits mode was disabled by default — the 10x token savings was already in the codebase but turned off.
-- DeepSeek (V4 Pro) implemented the fix.
+---
 
-## What Was Broken
+## Code Blocker (not addressed this session)
 
-Commit `e73987a` (May 26, 22:07) removed Groq, SambaNova, OpenRouter from `WRITING_CHAIN`.
+`modules/llm_client.py` has **no `OpenAIClient` class** and `.env` has **no `OPENAI_API_KEY`**. Per-step factory functions already exist and support env-var routing (`create_fit_client_v2`, `create_ats_client`, `create_reviewer_client_v2`, `create_qa_client`, `create_interview_client`), but they can only route to providers that exist in the provider map.
 
-**Before:** Gemini 2.5 Pro → Groq → SambaNova → OpenRouter → Kimi → DeepSeek
-**After (broken):** Gemini 2.5 Pro → Kimi K2.6 (paid) → DeepSeek V4 Flash (paid)
+**To use GPT-5.6:**
 
-When Gemini's 25 RPD quota exhausted, pipeline jumped straight to paid providers.
+- **Direct (new code):** Add `OpenAIClient(LLMClient)` class, register `"openai"` in provider map, add `OPENAI_API_KEY` to `.env`, set `FIT_PROVIDER=openai FIT_MODEL=gpt-5.6-luna` etc.
+- **Zero-code path:** GPT-5.6 is reachable via OpenRouter today (`OPENROUTER_API_KEY` already in `.env`). Route to `openrouter/gpt-5.6-luna` to trial immediately without a new client class.
 
-## What Was Fixed
+---
 
-### P0 — Implemented Today
+## Files Touched
 
-1. **Restored free providers to WRITING_CHAIN** (`modules/llm_client.py`)
-   - Chain now: Gemini Pro → Flash Lite → Groq → SambaNova → OpenRouter → Kimi → DeepSeek
-   - Added `max_input_chars` per provider for prompt-size awareness
-   - Added `_condense_prompt()` helper — truncates resume/JD for small-context providers (Groq 12K, SambaNova 24K)
+| File | Change |
+|------|--------|
+| `docs/plans/llm-model-comparison-for-pipeline.md` | Appended "Challenge Update — 2026-07-09" section: what changed, Anthropic-holds analysis, GPT-for-other-tasks analysis, cross-family adversarial options (X/Y/Z), code blocker, verdict table |
 
-2. **Made targeted edits the default** (`modules/pipeline.py`)
-   - Changed `TARGETED_EDITS` default from `"0"` to `"1"`
-   - All providers now use JSON patch mode by default
-   - 10x token reduction: ~4,000 chars LaTeX output → ~400 chars JSON output
+No code changes. No tests run. No `.env` changes.
 
-3. **Updated web UI** (`web_ui.py`)
-   - Restored free provider options: Groq, SambaNova, OpenRouter, Gemini Flash Lite
-   - Fixed stats display to show actual chain
-   - Removed TARGETED_EDITS conditional (always on)
+---
 
-4. **Updated CLI** (`apply.py`)
-   - Fixed `--writing-model` choices to include all free providers
-   - Fixed `_WRITING_MODEL_TO_PROVIDER` mappings
+## Open Decisions for Next Session
 
-### Spec Document
+1. **Trial GPT-5.6 Luna via OpenRouter** for fit eval + ATS (zero code change) — compare output quality vs DeepSeek V4-Pro on a real job run.
+2. **Decide on the cross-family adversarial question:** keep same-family Claude+Claude (safe, status quo) or trial Option X (GPT writes + Claude reviews, true adversarial, higher fabrication risk upstream).
+3. **If GPT trial is positive:** add `OpenAIClient` class + `OPENAI_API_KEY`, or standardize on the OpenRouter route.
+4. **Sonnet 5 vs Opus 4.8 for review:** factor in the token-bloat cost finding if this pipeline ever moves to multi-loop agents (it currently uses single-shot calls, so the penalty is small).
 
-Full diagnosis and prioritization written to:
-- `specs/005-pipeline-token-crisis.md`
+---
 
-## Test Results
+## Context for the Next Agent
 
-```
-pytest tests/ -v
-==============================
-22 passed in 0.26s
-```
-
-Dry-run verified:
-```
-python apply.py "URL" --dry-run
-→ 11 steps planned, all green
-```
-
-## Token Impact
-
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Output tokens per job | ~12,000 | ~4,000 | -67% |
-| Jobs/day on Gemini 25 RPD | 3-4 | 6-8 | +100% |
-| Free fallback providers | 1 (Gemini only) | 5 | +400% |
-| Paid fallback triggers | Daily | Rarely | -90% |
-
-## Files Changed
-
-- `modules/llm_client.py` — WRITING_CHAIN restored, prompt condensation added
-- `modules/pipeline.py` — TARGETED_EDITS default = 1
-- `web_ui.py` — free provider options restored, stats fixed
-- `apply.py` — CLI choices and mappings fixed
-- `specs/005-pipeline-token-crisis.md` — diagnosis + prioritization doc
-
-## Architecture Questions for Future Sessions
-
-See `specs/005-pipeline-token-crisis.md` Section "Open Questions for Future Sessions":
-
-1. Job discovery without LLM tokens? (pure scraping)
-2. A/B test Flash vs Pro for targeted edits quality?
-3. Local model (llama.cpp) for JSON patches?
-4. Actual dollar cost when paid fallbacks trigger?
-5. Cache tailoring briefs by (JD hash + variant)?
-
-## Next Steps
-
-1. **Apply for jobs today** — pipeline is fixed and tested
-2. **Monitor provider health** — watch for 413/429/402 patterns in output
-3. **Consider P2 fixes later** — telemetry, local model, HTML output format
+- Read `docs/plans/llm-model-comparison-for-pipeline.md` (the "Challenge Update — 2026-07-09" section is the current truth; the July 5 sections above it are preserved as history).
+- Read `docs/plans/2026-07-05-002-refactor-scraping-llm-seams-plan.md` for the per-step client factory work that already landed (`create_tailor_client`, `create_reviewer_client_v2`, `create_ats_client`, `create_qa_client`, `create_interview_client`, `create_fit_client_v2` all exist in `modules/llm_client.py`).
+- The July 5 "Session Decisions" config table in the same doc is the currently-intended setup; the July 9 challenge proposes GPT-5.6 for the structured steps but does not override it until trialed.
+- `.env` keys present: `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENCODE_API_KEY`, `OPENROUTER_API_KEY`, `SAMBANOVA_API_KEY`. Missing: `OPENAI_API_KEY`.

@@ -130,9 +130,11 @@ class TestReviewDraftsHappy:
 
     def test_review_drafts_produces_feedback(self, ctx, mock_reviewer_output):
         """Reviewer should parse output into structured feedback."""
-        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+        with patch("modules.pipeline._get_reviewer_client") as mock_get, \
+             patch("modules.pipeline.create_reviewer_client_v2") as mock_rev_v2:
             mock_get.return_value.generate.return_value = mock_reviewer_output
             mock_get.return_value.model_name.return_value = "fallback/gemini"
+            mock_rev_v2.return_value = mock_get.return_value
 
             from modules.pipeline import step_review_drafts
             from rich.console import Console
@@ -252,9 +254,11 @@ class TestReviewDraftsEdgeCases:
             "FIX: Rewrite to lead with impact numbers\n"
         )
 
-        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+        with patch("modules.pipeline._get_reviewer_client") as mock_get, \
+             patch("modules.pipeline.create_reviewer_client_v2") as mock_rev_v2:
             mock_get.return_value.generate.return_value = mock_output
             mock_get.return_value.model_name.return_value = "fallback/gemini"
+            mock_rev_v2.return_value = mock_get.return_value
 
             from modules.pipeline import step_review_drafts, step_apply_review
             from rich.console import Console
@@ -327,9 +331,11 @@ class TestReviewDraftsErrors:
 
     def test_reviewer_llm_failure_continues(self, ctx):
         """When reviewer LLM call fails, pipeline continues without review."""
-        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+        with patch("modules.pipeline._get_reviewer_client") as mock_get, \
+             patch("modules.pipeline.create_reviewer_client_v2") as mock_rev_v2:
             mock_get.return_value.generate.side_effect = RuntimeError("API quota exhausted")
             mock_get.return_value.model_name.return_value = "fallback/gemini"
+            mock_rev_v2.return_value = mock_get.return_value
 
             from modules.pipeline import step_review_drafts, step_apply_review
             from rich.console import Console
@@ -359,9 +365,11 @@ class TestReviewDraftsErrors:
             "FIX: Make it better\n"
         )
 
-        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+        with patch("modules.pipeline._get_reviewer_client") as mock_get, \
+             patch("modules.pipeline.create_reviewer_client_v2") as mock_rev_v2:
             mock_get.return_value.generate.return_value = mock_output
             mock_get.return_value.model_name.return_value = "fallback/gemini"
+            mock_rev_v2.return_value = mock_get.return_value
 
             from modules.pipeline import step_review_drafts, step_apply_review
             from rich.console import Console

@@ -19,7 +19,18 @@ from rich.prompt import Confirm
 from rich.table import Table
 from rich import box
 
-from modules.llm_client import LLMClient, create_client, create_writing_client, create_reviewer_client
+from modules.llm_client import (
+    LLMClient,
+    create_client,
+    create_writing_client,
+    create_reviewer_client,
+    create_tailor_client,
+    create_reviewer_client_v2,
+    create_ats_client,
+    create_qa_client,
+    create_interview_client,
+    create_fit_client_v2,
+)
 from modules.job_scraper import scrape_job_posting, research_company
 from modules.parsers import extract_latex, fix_markdown_lists, parse_ats_report, parse_qa_answers, parse_resume_edits, apply_resume_edits
 from scripts.render_pdf import compile_and_inspect
@@ -47,11 +58,19 @@ _writing_client_cache: dict[str, LLMClient] = {}
 
 
 def _get_writing_client() -> LLMClient:
-    """Return the cached writing LLM client, creating it on first call.
+    """DEPRECATED: Use create_tailor_client() instead.
 
-    Uses the user's selected model (WRITING_PROVIDER / GEMINI_WRITING_MODEL env vars)
-    with automatic free-first fallback across Gemini → OpenCode → OpenRouter → Groq → SambaNova.
+    This shim exists for backward compatibility. It delegates to the new
+    per-step factory with the same cache semantics.
     """
+    import warnings
+    warnings.warn(
+        "_get_writing_client() is deprecated. Use create_tailor_client() "
+        "for Step 3, create_qa_client() for Step 8, or "
+        "create_interview_client() for Step 8b.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     cache_key = "_singleton"
     if cache_key not in _writing_client_cache:
         _writing_client_cache[cache_key] = create_writing_client()
@@ -71,21 +90,19 @@ _fit_client_cache: dict[str, LLMClient] = {}
 
 
 def _get_fit_client() -> LLMClient:
-    """Return a lightweight Gemini 3.1 Flash-Lite client for fit evaluation.
+    """DEPRECATED: Use create_fit_client_v2() instead.
 
-    Fit scoring doesn't need the full writing chain — it's a short,
-    low-temperature classification task. Using Flash-Lite saves a
-    Gemini 2.5 Pro request per job, keeping capacity at 4-6 jobs/day.
-
-    To revert to the writing chain: change this function to return
-    _get_writing_client().
+    This shim exists for backward compatibility. It delegates to the new
+    per-step factory which supports FIT_PROVIDER/FIT_MODEL env vars.
+    To revert to the writing chain: call create_tailor_client() instead.
     """
-    cache_key = "_fit"
-    if cache_key not in _fit_client_cache:
-        _fit_client_cache[cache_key] = create_client(
-            provider="gemini", model="gemini-3.1-flash-lite", fallback=False
-        )
-    return _fit_client_cache[cache_key]
+    import warnings
+    warnings.warn(
+        "_get_fit_client() is deprecated. Use create_fit_client_v2().",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return create_fit_client_v2()
 
 
 # Reviewer client cache (separate from writing chain and fit client)
@@ -94,15 +111,18 @@ _reviewer_client_cache: dict[str, LLMClient] = {}
 
 
 def _get_reviewer_client() -> LLMClient:
-    """Return a cached reviewer LLM client for adversarial draft review.
+    """DEPRECATED: Use create_reviewer_client_v2() instead.
 
-    Uses a different model chain than the drafter to prevent the same biases
-    from passing through unnoticed. Gemini 3 Flash primary with Flash-Lite fallback.
+    This shim exists for backward compatibility. It delegates to the new
+    per-step factory which supports REVIEWER_PROVIDER/REVIEWER_MODEL env vars.
     """
-    cache_key = "_reviewer"
-    if cache_key not in _reviewer_client_cache:
-        _reviewer_client_cache[cache_key] = create_reviewer_client()
-    return _reviewer_client_cache[cache_key]
+    import warnings
+    warnings.warn(
+        "_get_reviewer_client() is deprecated. Use create_reviewer_client_v2().",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return create_reviewer_client_v2()
 
 
 def _load_behavioral_profile() -> str:
@@ -278,6 +298,22 @@ def step_scrape_job(ctx: dict, llm: LLMClient, console: Console) -> dict:
     user_qs = ctx.get("questions", [])
     all_qs = list(dict.fromkeys(scraped_qs + user_qs))  # dedupe, keep order
     ctx["all_questions"] = all_qs
+
+    # Enrich with structured fields (salary, skills, remote policy, etc.)
+    try:
+        from modules.scrapers.sources.structured_extractor import StructuredExtractor
+        extractor = StructuredExtractor()
+        job = extractor.enrich(job)
+        ctx["job"] = job
+        skills = job.get("required_skills", [])
+        nice_skills = job.get("nice_to_have_skills", [])
+        if skills or nice_skills:
+            console.print(
+                f"  [dim]Structured extraction: {len(skills)} required skills, "
+                f"{len(nice_skills)} nice-to-have[/dim]"
+            )
+    except Exception:
+        pass  # Graceful degradation — never block the pipeline
 
     console.print(
         f"  Job: [bold]{job.get('title', '?')}[/bold] "
@@ -496,7 +532,7 @@ def step_evaluate_fit(
     # The full writing chain (Gemini 2.5 Pro) is overkill here and would
     # waste one of the 25 daily Pro requests.
     # If fit quality degrades: switch to _get_writing_client().
-    fit_llm = _get_fit_client()
+    fit_llm = create_fit_client_v2()
 
     try:
         raw = fit_llm.generate(
@@ -698,7 +734,7 @@ TAGLINES = {
 
 
 def step_tailor_resume(ctx: dict, llm: LLMClient, console: Console) -> dict:
-    writing_llm = _get_writing_client()
+    writing_llm = create_tailor_client()
     console.print("\n[bold]Step 3/9:[/bold] Tailoring resume...")
 
     from config import ROLE_VARIANT
@@ -930,7 +966,7 @@ def step_review_drafts(ctx: dict, llm: LLMClient, console: Console) -> dict:
 
     console.print("\n[bold]Step 5/10:[/bold] Reviewing drafts (adversarial review)...")
 
-    reviewer = _get_reviewer_client()
+    reviewer = create_reviewer_client_v2()
     console.print(f"  Reviewer model: {reviewer.model_name()}")
 
     # Build review prompt with full context
@@ -1359,7 +1395,7 @@ def step_apply_ats_edits(
         return ctx
 
     # Apply edits via LLM (safer than regex on LaTeX)
-    writing_llm = _get_writing_client()
+    writing_llm = create_tailor_client()
     system_prompt = (
         "You are a LaTeX editor. Apply the following edits to the resume. "
         "Output ONLY the complete modified LaTeX between ```latex and ``` markers. "
@@ -1504,7 +1540,7 @@ def step_generate_qa(ctx: dict, llm: LLMClient, console: Console) -> dict:
         ),
     }.get(ROLE_VARIANT, "")
 
-    writing_llm = _get_writing_client()
+    writing_llm = create_qa_client()
     system_prompt = _load_voice_prefix() + _load_prompt("qa_generator")
     questions_text = "\n".join(
         f"{i + 1}. {q.strip()}" for i, q in enumerate(questions)
@@ -1621,7 +1657,7 @@ def step_generate_interview_prep(ctx: dict, llm: LLMClient, console: Console) ->
         console.print("  [dim]No story bank found — skipping STAR matching.[/dim]")
 
     # Build prompt with all available context
-    writing_llm = _get_writing_client()
+    writing_llm = create_interview_client()
     system_prompt = _load_prompt("interview_prep")
 
     company_research = ctx.get("company_research", "")

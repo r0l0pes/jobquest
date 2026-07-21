@@ -633,11 +633,34 @@ def scrape_job_posting(
     """Scrape a job posting URL. Tries ATS APIs first, then HTML,
     then Playwright.
 
+    ATS API resolution is delegated to the JobSourceRegistry.
+    New ATS adapters register themselves at import time — no code
+    changes needed in this function when adding a new ATS.
+
     Returns dict: title, company, description, url, source, questions
     """
     log = console.print if console else print
 
-    # Check for known ATS API patterns
+    # ── Try registry for known ATS API patterns ──
+    # Import inside function to avoid circular imports at module level.
+    # The sources package registers adapters on import.
+    try:
+        from modules.scrapers.sources.registry import JobSourceRegistry
+        # Trigger registration of ATS adapters and Firecrawl adapter
+        import modules.scrapers.sources.ats_api  # noqa: F401
+        import modules.scrapers.sources.firecrawl  # noqa: F401
+
+        adapter = JobSourceRegistry.resolve(url)
+        if adapter is not None:
+            log(f"  [dim]{adapter.name} detected — using adapter...[/dim]")
+            try:
+                return adapter.fetch(url)
+            except Exception as e:
+                log(f"  [yellow]{adapter.name} failed: {e}. Falling through to generic.[/yellow]")
+    except Exception:
+        pass  # Registry unavailable, fall through to manual checks
+
+    # ── Manual ATS fallback (if registry unavailable) ──
     gh = _GREENHOUSE_PATTERN.search(url)
     if gh:
         log("  [dim]Greenhouse detected — using API...[/dim]")

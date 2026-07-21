@@ -983,3 +983,112 @@ def create_reviewer_client() -> LLMClient:
     prevents the same biases from passing through unnoticed.
     """
     return FallbackClient(primary_provider="gemini")
+
+
+# ── Per-step LLM client factories (U1) ──
+# Each pipeline step gets its own factory function so model assignment
+# can be controlled independently via env vars. See Key Technical Decision 3
+# in docs/plans/2026-07-05-002-refactor-scraping-llm-seams-plan.md.
+
+
+def create_tailor_client() -> LLMClient:
+    """Create a client for resume tailoring (Step 3).
+
+    Uses TAILOR_PROVIDER / TAILOR_MODEL env vars, falls back to the
+    writing chain. Respects legacy GEMINI_WRITING_MODEL for backward compat.
+    """
+    provider = os.getenv("TAILOR_PROVIDER", "")
+    model = os.getenv("TAILOR_MODEL", os.getenv("GEMINI_WRITING_MODEL", ""))
+    if provider and model:
+        try:
+            return _create_single_client(provider, model=model)
+        except ValueError:
+            pass
+    return create_writing_client()
+
+
+def create_reviewer_client_v2() -> LLMClient:
+    """Create a client for adversarial review (Step 5).
+
+    Uses REVIEWER_PROVIDER / REVIEWER_MODEL env vars, falls back to
+    the Gemini-based reviewer chain. The reviewer should use a different
+    model family from the drafter (adversarial principle).
+    """
+    provider = os.getenv("REVIEWER_PROVIDER", "")
+    model = os.getenv("REVIEWER_MODEL", "")
+    if provider and model:
+        try:
+            return _create_single_client(provider, model=model)
+        except ValueError:
+            pass
+    return create_reviewer_client()
+
+
+def create_ats_client() -> LLMClient:
+    """Create a client for ATS keyword check (Step 5/9).
+
+    Uses ATS_PROVIDER / ATS_MODEL env vars, falls back to Gemini fallback.
+    ATS checks are structured JSON extraction — cheap models work fine.
+    """
+    provider = os.getenv("ATS_PROVIDER", "")
+    model = os.getenv("ATS_MODEL", "")
+    if provider and model:
+        try:
+            return _create_single_client(provider, model=model)
+        except ValueError:
+            pass
+    return FallbackClient(primary_provider="gemini")
+
+
+def create_qa_client() -> LLMClient:
+    """Create a client for Q&A + cover letter generation (Step 8).
+
+    Uses QA_PROVIDER / QA_MODEL env vars, falls back to the writing chain.
+    Q&A generation needs the same quality as resume tailoring.
+    """
+    provider = os.getenv("QA_PROVIDER", "")
+    model = os.getenv("QA_MODEL", "")
+    if provider and model:
+        try:
+            return _create_single_client(provider, model=model)
+        except ValueError:
+            pass
+    return create_writing_client()
+
+
+def create_interview_client() -> LLMClient:
+    """Create a client for interview prep (Step 8b).
+
+    Uses INTERVIEW_PROVIDER / INTERVIEW_MODEL env vars, falls back to
+    Kimi K2.6 via OpenCode (cheap, good enough for STAR generation).
+    """
+    provider = os.getenv("INTERVIEW_PROVIDER", "")
+    model = os.getenv("INTERVIEW_MODEL", "")
+    if provider and model:
+        try:
+            return _create_single_client(provider, model=model)
+        except ValueError:
+            pass
+    # Default: Kimi K2.6 via OpenCode — cheap, strong long-context for STAR matching
+    try:
+        return _create_single_client("opencode", model="kimi-k2.6")
+    except ValueError:
+        pass
+    return create_writing_client()
+
+
+def create_fit_client_v2() -> LLMClient:
+    """Create a client for fit evaluation (Step 2b).
+
+    Uses FIT_PROVIDER / FIT_MODEL env vars, falls back to Gemini 3.1 Flash-Lite.
+    Fit evaluation is a short classification task (~500 output tokens, temp 0.2).
+    """
+    provider = os.getenv("FIT_PROVIDER", "")
+    model = os.getenv("FIT_MODEL", "")
+    if provider and model:
+        try:
+            return _create_single_client(provider, model=model)
+        except ValueError:
+            pass
+    # Default: lightweight Gemini Flash-Lite (fit eval is simple classification)
+    return create_client(provider="gemini", model="gemini-3.1-flash-lite", fallback=False)

@@ -185,6 +185,29 @@ def research_company(
     log = console.print if console else print
     log(f"  [dim]Researching {company_name}...[/dim]")
 
+    # Try the CompanyIntelligenceRegistry first (new seam).
+    # Sources self-register on import — website crawlers first (priority 10),
+    # then search aggregators (priority 50). The registry merges results
+    # across all matching sources, with lower-priority sources only filling
+    # gaps not already covered.
+    try:
+        from modules.scrapers.sources.base import CompanyIntelligenceRegistry
+        sections = CompanyIntelligenceRegistry.research(
+            company_name, company_url, query_types=["profile", "news"]
+        )
+        if sections:
+            result_parts = []
+            if "profile" in sections and sections["profile"]:
+                result_parts.append(f"## Company Profile\n\n{sections['profile']}")
+            if "news" in sections and sections["news"]:
+                result_parts.append(f"## Recent News\n\n{sections['news']}")
+            if result_parts:
+                text = "\n\n---\n\n".join(result_parts)
+                log(f"  [green]✓ Registry research: {len(sections)} queries matched[/green]")
+                return text
+    except Exception as e:
+        log(f"  [dim]Registry unavailable ({e}), falling back to legacy path[/dim]")
+
     results_text = []
 
     if company_url:

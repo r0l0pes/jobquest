@@ -108,10 +108,12 @@ class TestBehavioralInFitEval:
             "master_resume": "### Experience\n\n**Acme Inc.** — Built products."
         }
 
-        with patch("modules.pipeline._get_fit_client") as mock_get:
+        with patch("modules.pipeline._get_fit_client") as mock_get, \
+             patch("modules.pipeline.create_fit_client_v2") as mock_fit_v2:
             mock = MagicMock()
             mock.generate.return_value = '{"dimensions": {"technical_skills": {"score": 70, "note": "Good"}, "experience_match": {"score": 70, "note": "Good"}, "behavioral_fit": {"score": 75, "note": "Profile used"}, "career_alignment": {"score": 70, "note": "Good"}, "location": {"status": "PASS", "note": "OK"}}, "strengths": ["Strength"], "gaps": ["Gap"], "recommendation": "Good fit."}'
             mock_get.return_value = mock
+            mock_fit_v2.return_value = mock
 
             result = step_evaluate_fit(ctx, None, c)
 
@@ -143,14 +145,16 @@ class TestBehavioralInFitEval:
             "master_resume": "### Experience\n\n**Firm** — Products."
         }
 
-        with patch("modules.pipeline._get_fit_client") as mock_get:
-            with patch("modules.pipeline._load_behavioral_profile", return_value=""):
-                mock = MagicMock()
-                mock.generate.return_value = '{"dimensions": {"technical_skills": {"score": 60, "note": "OK"}, "experience_match": {"score": 60, "note": "OK"}, "behavioral_fit": {"score": 50, "note": "No behavioral profile configured."}, "career_alignment": {"score": 60, "note": "OK"}, "location": {"status": "PASS", "note": "OK"}}, "strengths": ["S"], "gaps": ["G"], "recommendation": "OK."}'
-                mock_get.return_value = mock
+        with patch("modules.pipeline._get_fit_client") as mock_get, \
+             patch("modules.pipeline.create_fit_client_v2") as mock_fit_v2, \
+             patch("modules.pipeline._load_behavioral_profile", return_value=""):
+            mock = MagicMock()
+            mock.generate.return_value = '{"dimensions": {"technical_skills": {"score": 60, "note": "OK"}, "experience_match": {"score": 60, "note": "OK"}, "behavioral_fit": {"score": 50, "note": "No behavioral profile configured."}, "career_alignment": {"score": 60, "note": "OK"}, "location": {"status": "PASS", "note": "OK"}}, "strengths": ["S"], "gaps": ["G"], "recommendation": "OK."}'
+            mock_get.return_value = mock
+            mock_fit_v2.return_value = mock
 
-                result = step_evaluate_fit(ctx, None, c)
-                assert result["fit_score"] is not None
+            result = step_evaluate_fit(ctx, None, c)
+            assert result["fit_score"] is not None
 
 
 # ─── Q&A integration ─────────────────────────────────────────────
@@ -181,12 +185,14 @@ class TestBehavioralInQA:
             "company_url": None,
         }
 
-        with patch("modules.pipeline._get_writing_client") as mock_get:
+        with patch("modules.pipeline._get_writing_client") as mock_get, \
+             patch("modules.pipeline.create_qa_client") as mock_qa:
             with patch("modules.pipeline.research_company", return_value="Company research text."):
                 mock = MagicMock()
                 mock.generate.return_value = "### Q: Why do you want to work here?\n\n### A: Because I am a good fit.\n\n_Used: Acme | metric | research point_"
                 mock.model_name.return_value = "gemini-3.1-flash-lite"
                 mock_get.return_value = mock
+                mock_qa.return_value = mock
 
                 from modules.pipeline import _load_voice_prefix
                 with patch("modules.pipeline._load_voice_prefix", return_value=""):
@@ -225,13 +231,15 @@ class TestBehavioralInQA:
             "company_url": None,
         }
 
-        with patch("modules.pipeline._get_writing_client") as mock_get:
+        with patch("modules.pipeline._get_writing_client") as mock_get, \
+             patch("modules.pipeline.create_qa_client") as mock_qa:
             with patch("modules.pipeline.research_company", return_value=""):
                 with patch("modules.pipeline._load_behavioral_profile", return_value=""):
                     mock = MagicMock()
                     mock.generate.return_value = "### Q: Tell me about yourself.\n\n### A: I build products."
                     mock.model_name.return_value = "gemini-3.1-flash-lite"
                     mock_get.return_value = mock
+                    mock_qa.return_value = mock
 
                     with patch("modules.pipeline._load_voice_prefix", return_value=""):
                         with patch("modules.pipeline._load_qa_templates", return_value=""):
@@ -273,11 +281,13 @@ class TestBehavioralInReviewer:
             "tailoring_brief": "Themes: data-driven, execution speed.",
         }
 
-        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+        with patch("modules.pipeline._get_reviewer_client") as mock_get, \
+             patch("modules.pipeline.create_reviewer_client_v2") as mock_rev:
             mock = MagicMock()
             mock.model_name.return_value = "gemini-3-flash-preview"
             mock.generate.return_value = 'SUGGESTION: No issues found.'
             mock_get.return_value = mock
+            mock_rev.return_value = mock
 
             result = step_review_drafts(ctx, None, c)
 
@@ -310,12 +320,14 @@ class TestBehavioralInReviewer:
             "tailoring_brief": "Theme: general PM.",
         }
 
-        with patch("modules.pipeline._get_reviewer_client") as mock_get:
+        with patch("modules.pipeline._get_reviewer_client") as mock_get, \
+             patch("modules.pipeline.create_reviewer_client_v2") as mock_rev:
             with patch("modules.pipeline._load_behavioral_profile", return_value=""):
                 mock = MagicMock()
                 mock.model_name.return_value = "gemini-3-flash-preview"
                 mock.generate.return_value = 'SUGGESTION: No issues.'
                 mock_get.return_value = mock
+                mock_rev.return_value = mock
 
                 result = step_review_drafts(ctx, None, c)
 

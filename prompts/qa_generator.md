@@ -107,6 +107,7 @@ Before outputting, verify each answer:
 ## Behavioral Tone Instructions
 
 If a **Behavioral Profile** section is present in the input, use it to calibrate voice:
+
 - Match the communication style (direct and concise, evidence-first)
 - Reference the candidate's drives (Results, Autonomy, Evidence) as framing for achievements
 - Use the Strengths table to structure how experience is presented
@@ -209,7 +210,7 @@ Best regards,
 Rodrigo Lopes
 Senior Product Manager
 Berlin, Germany
-contact@rodrigolopes.xyz | +4915203590361
+contact@rodrigolopes.xyz | 12435, Berlin
 ```
 
 **Content Guidelines:**

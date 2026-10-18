@@ -353,6 +353,8 @@
       />
       <select id="status-filter" onchange="render()">
         <option value="">All statuses</option>
+        <option value="generated">Generated</option>
+        <option value="ready_to_apply">Ready to Apply</option>
         <option value="applied">Applied</option>
         <option value="screening">Screening</option>
         <option value="interview">Interview</option>
@@ -449,6 +451,8 @@
                 flex: 1;
               "
             >
+              <option value="generated">Generated</option>
+              <option value="ready_to_apply">Ready to Apply</option>
               <option value="applied">Applied</option>
               <option value="screening">Screening</option>
               <option value="interview">Interview</option>
@@ -558,6 +562,8 @@
       let dirty = false;
 
       const STATUS_OPTIONS = [
+        "generated",
+        "ready_to_apply",
         "applied",
         "screening",
         "interview",

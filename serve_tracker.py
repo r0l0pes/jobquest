@@ -46,6 +46,23 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         self.send_header("Expires", "0")
         super().end_headers()
 
+    def _read_applications(self) -> list[dict]:
+        """Read tracker data without letting a malformed file crash a request."""
+        try:
+            if not APP_FILE.exists():
+                return []
+            data = json.loads(APP_FILE.read_text(encoding="utf-8"))
+            return data if isinstance(data, list) else []
+        except (OSError, json.JSONDecodeError):
+            return []
+
+    def _content_length(self) -> int:
+        """Return a safe request-body length for malformed HTTP headers."""
+        try:
+            return max(0, int(self.headers.get("Content-Length", 0)))
+        except (TypeError, ValueError):
+            return 0
+
     def do_OPTIONS(self):
         self.send_response(200)
         self.end_headers()
@@ -102,9 +119,8 @@ class TrackerHandler(SimpleHTTPRequestHandler):
 
         target_norm = normalize(target)
         result = {"exists": False, "matched": None}
-        if APP_FILE.exists():
-            apps = json.loads(APP_FILE.read_text())
-            for a in apps:
+        apps = self._read_applications()
+        for a in apps:
                 if normalize(a.get("url", "")) == target_norm:
                     result = {
                         "exists": True,
@@ -122,17 +138,14 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(result).encode())
 
     def _serve_json(self):
-        if APP_FILE.exists():
-            data = json.loads(APP_FILE.read_text())
-        else:
-            data = []
+        data = self._read_applications()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
     def _save_json(self):
-        length = int(self.headers.get("Content-Length", 0))
+        length = self._content_length()
         body = self.rfile.read(length)
         try:
             data = json.loads(body)
@@ -157,7 +170,7 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         import subprocess
         from io import StringIO
         
-        length = int(self.headers.get("Content-Length", 0))
+        length = self._content_length()
         body = self.rfile.read(length)
         try:
             data = json.loads(body)
@@ -253,12 +266,12 @@ class TrackerHandler(SimpleHTTPRequestHandler):
         POST /api/discover
         Body: { "mode": "7d"|"24h", "clear": true|false }
 
-        Starts the discovery script in a background thread and returns
+            Starts the discovery script in a background thread and returns
         immediately. The client polls GET /api/discover/status for progress.
         """
         import subprocess
 
-        length = int(self.headers.get("Content-Length", 0))
+        length = self._content_length()
         body = self.rfile.read(length)
         try:
             data = json.loads(body)
@@ -487,6 +500,14 @@ QUEUE_TEMPLATE = """<!doctype html>
         background: #30363d;
         color: #8b949e;
       }
+      .tag-dk {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-fr {
+        background: #30363d;
+        color: #8b949e;
+      }
       .tag-remote {
         background: #1f6feb33;
         color: #79c0ff;
@@ -556,6 +577,8 @@ QUEUE_TEMPLATE = """<!doctype html>
         <option value="">All countries</option>
         <option value="de">🇩🇪 Germany</option>
         <option value="es">🇪🇸 Spain</option>
+        <option value="dk">🇩🇰 Denmark</option>
+        <option value="fr">🇫🇷 France</option>
       </select>
       <button id="move-btn" onclick="moveToTracker()">
         📋 Move Selected to Tracker
@@ -640,6 +663,56 @@ QUEUE_TEMPLATE = """<!doctype html>
         return `<span class="tag ${map[type] || ""}">${type}</span>`;
       }
 
+      function createTag(className, label) {
+        const tag = document.createElement("span");
+        tag.className = `tag ${className}`;
+        tag.textContent = label;
+        return tag;
+      }
+
+      function createJobRow(j) {
+        const tr = document.createElement("tr");
+        const checkboxCell = document.createElement("td");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "row-checkbox";
+        checkbox.dataset.idx = JOBS.indexOf(j);
+        checkbox.addEventListener("change", updateMoveButton);
+        checkboxCell.appendChild(checkbox);
+
+        const companyCell = document.createElement("td");
+        const companyLink = document.createElement("a");
+        companyLink.href = j.companyUrl || j.url || "#";
+        companyLink.target = "_blank";
+        companyLink.rel = "noopener noreferrer";
+        companyLink.textContent = j.company || "?";
+        companyCell.appendChild(companyLink);
+        if (j.companyUrl) {
+          const boardLink = document.createElement("a");
+          boardLink.href = j.url || "#";
+          boardLink.target = "_blank";
+          boardLink.rel = "noopener noreferrer";
+          boardLink.className = "company-url-link";
+          boardLink.title = "Board listing";
+          boardLink.textContent = "🔗";
+          companyCell.appendChild(boardLink);
+        }
+        const roleClass = { growth: "tag-growth", ai: "tag-ai", generalist: "tag-generalist" };
+        companyCell.append(" ", createTag(roleClass[j.roleType] || "", j.roleType || ""));
+
+        const titleCell = document.createElement("td");
+        titleCell.textContent = j.title || "?";
+        const locationCell = document.createElement("td");
+        locationCell.append(j.location || "", " ");
+        const countryTags = { de: ["tag-de", "DE"], es: ["tag-es", "ES"], dk: ["tag-dk", "DK"], fr: ["tag-fr", "FR"] };
+        if (countryTags[j.country]) locationCell.appendChild(createTag(...countryTags[j.country]));
+        if ((j.location || "").toLowerCase().includes("remote")) locationCell.appendChild(createTag("tag-remote", "remote"));
+        const dateCell = document.createElement("td");
+        dateCell.textContent = j.date || "";
+        tr.append(checkboxCell, companyCell, titleCell, locationCell, dateCell);
+        return tr;
+      }
+
       function render() {
         const search = document.getElementById("search").value.toLowerCase();
         const roleFilter = document.getElementById("role-filter").value;
@@ -680,25 +753,13 @@ QUEUE_TEMPLATE = """<!doctype html>
 
         const tbody = document.getElementById("tbody");
         if (filtered.length === 0) {
-          tbody.innerHTML = "";
+          tbody.replaceChildren();
           document.getElementById("empty").style.display = "block";
           return;
         }
         document.getElementById("empty").style.display = "none";
 
-        tbody.innerHTML = filtered
-          .map(
-            (j) => `
-    <tr>
-      <td><input type="checkbox" class="row-checkbox" data-idx="${JOBS.indexOf(j)}" onchange="updateMoveButton()"></td>
-      <td><a href="${j.companyUrl || j.url}" target="_blank">${j.company || "?"}</a>${j.companyUrl ? `<a href="${j.url}" class="company-url-link" title="Board listing">🔗</a>` : ""} ${roleTag(j.roleType)}</td>
-      <td>${j.title || "?"}</td>
-      <td>${j.location || ""} ${j.country === "de" ? '<span class="tag tag-de">DE</span>' : ""}${j.country === "es" ? '<span class="tag tag-es">ES</span>' : ""}${(j.location || "").toLowerCase().includes("remote") ? '<span class="tag tag-remote">remote</span>' : ""}</td>
-      <td>${j.date || ""}</td>
-    </tr>
-  `,
-          )
-          .join("");
+        tbody.replaceChildren(...filtered.map(createJobRow));
       }
 
       function sortBy(col) {
@@ -752,7 +813,7 @@ QUEUE_TEMPLATE = """<!doctype html>
               role: job.title,
               url: job.companyUrl || job.url,
               date: job.date,
-              status: "applied",
+              status: "generated",
               notes: `Source: ${job.source} | Location: ${job.location}`,
             });
             indicesToRemove.push(idx);

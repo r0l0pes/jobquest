@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest  # pyright: ignore[reportMissingImports]
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -180,7 +180,7 @@ class TestSalaryInFitEval:
     def test_salary_data_in_fit_eval_context(self, tmp_path):
         """step_evaluate_fit should add salary_benchmark to ctx when data found."""
         from modules.pipeline import step_evaluate_fit
-        from rich.console import Console
+        from rich.console import Console  # pyright: ignore[reportMissingImports]
 
         run_dir = tmp_path / "TestSalaryFit"
         run_dir.mkdir(parents=True)
@@ -198,7 +198,7 @@ class TestSalaryInFitEval:
             "master_resume": "### Experience\n\n**Acme** — Products.",
         }
 
-        with patch("modules.pipeline._get_fit_client") as mock_get:
+        with patch("modules.pipeline.create_fit_client_v2") as mock_fit:
             with patch("modules.pipeline._load_behavioral_profile", return_value=""):
                 with patch("modules.pipeline._get_salary_benchmark") as mock_salary:
                     mock_salary.return_value = {
@@ -213,7 +213,7 @@ class TestSalaryInFitEval:
                     }
                     mock = MagicMock()
                     mock.generate.return_value = '{"dimensions": {"technical_skills": {"score": 70, "note": "Good"}, "experience_match": {"score": 70, "note": "Good"}, "behavioral_fit": {"score": 60, "note": "OK"}, "career_alignment": {"score": 70, "note": "Good"}, "location": {"status": "PASS", "note": "OK"}}, "strengths": ["S"], "gaps": ["G"], "recommendation": "Good."}'
-                    mock_get.return_value = mock
+                    mock_fit.return_value = mock
 
                     result = step_evaluate_fit(ctx, None, c)
                     assert "salary_benchmark" in result
@@ -222,7 +222,7 @@ class TestSalaryInFitEval:
     def test_no_salary_data_skips(self, tmp_path):
         """When salary data not found, fit eval should proceed without salary section."""
         from modules.pipeline import step_evaluate_fit
-        from rich.console import Console
+        from rich.console import Console  # pyright: ignore[reportMissingImports]
 
         run_dir = tmp_path / "TestNoSalary"
         run_dir.mkdir(parents=True)
@@ -239,12 +239,12 @@ class TestSalaryInFitEval:
             "master_resume": "### Experience\n\n**Firm** — Products.",
         }
 
-        with patch("modules.pipeline._get_fit_client") as mock_get:
+        with patch("modules.pipeline.create_fit_client_v2") as mock_fit:
             with patch("modules.pipeline._load_behavioral_profile", return_value=""):
                 with patch("modules.pipeline._get_salary_benchmark", return_value=None):
                     mock = MagicMock()
                     mock.generate.return_value = '{"dimensions": {"technical_skills": {"score": 60, "note": "OK"}, "experience_match": {"score": 60, "note": "OK"}, "behavioral_fit": {"score": 50, "note": "Neutral"}, "career_alignment": {"score": 60, "note": "OK"}, "location": {"status": "PASS", "note": "OK"}}, "strengths": ["S"], "gaps": ["G"], "recommendation": "OK."}'
-                    mock_get.return_value = mock
+                    mock_fit.return_value = mock
 
                     result = step_evaluate_fit(ctx, None, c)
                     assert "salary_benchmark" not in result or result["salary_benchmark"] is None
@@ -258,7 +258,7 @@ class TestSalaryInQA:
     def test_salary_data_in_qa_prompt(self, tmp_path):
         """When salary data exists, Q&A prompt should include salary context section."""
         from modules.pipeline import step_generate_qa
-        from rich.console import Console
+        from rich.console import Console  # pyright: ignore[reportMissingImports]
 
         run_dir = tmp_path / "TestSalaryQA"
         run_dir.mkdir(parents=True)
@@ -286,13 +286,13 @@ class TestSalaryInQA:
             },
         }
 
-        with patch("modules.pipeline._get_writing_client") as mock_get:
+        with patch("modules.pipeline.create_qa_client") as mock_qa:
             with patch("modules.pipeline.research_company", return_value=""):
                 with patch("modules.pipeline._load_behavioral_profile", return_value=""):
                     mock = MagicMock()
                     mock.generate.return_value = "### Q: Salary expectations?\n\n### A: Based on market data..."
                     mock.model_name.return_value = "gemini-3.1-flash-lite"
-                    mock_get.return_value = mock
+                    mock_qa.return_value = mock
 
                     with patch("modules.pipeline._load_voice_prefix", return_value=""):
                         with patch("modules.pipeline._load_qa_templates", return_value=""):
@@ -311,7 +311,7 @@ class TestSalaryInQA:
     def test_no_salary_in_qa_skips(self, tmp_path):
         """When no salary data exists, Q&A prompt should not include salary section."""
         from modules.pipeline import step_generate_qa
-        from rich.console import Console
+        from rich.console import Console  # pyright: ignore[reportMissingImports]
 
         run_dir = tmp_path / "TestNoSalaryQA"
         run_dir.mkdir(parents=True)
@@ -331,13 +331,13 @@ class TestSalaryInQA:
             "company_url": None,
         }
 
-        with patch("modules.pipeline._get_writing_client") as mock_get:
+        with patch("modules.pipeline.create_qa_client") as mock_qa:
             with patch("modules.pipeline.research_company", return_value=""):
                 with patch("modules.pipeline._load_behavioral_profile", return_value=""):
                     mock = MagicMock()
                     mock.generate.return_value = "### Q: Salary expectations?\n\n### A: [fill in]"
                     mock.model_name.return_value = "gemini-3.1-flash-lite"
-                    mock_get.return_value = mock
+                    mock_qa.return_value = mock
 
                     with patch("modules.pipeline._load_voice_prefix", return_value=""):
                         with patch("modules.pipeline._load_qa_templates", return_value=""):

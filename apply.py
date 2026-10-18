@@ -51,23 +51,47 @@ def parse_args(argv: list[str] | None = None):
     )
     parser.add_argument(
         "--provider",
-        choices=["gemini", "groq", "sambanova", "openrouter"],
-        help="LLM provider for ATS and free-tier steps (default: from LLM_PROVIDER env or gemini)",
+        choices=["openrouter", "gemini", "groq", "sambanova"],
+        help=(
+            "Legacy shared-provider override. B.1.5: every stage routes through "
+            "OpenRouter by default; per-stage *_PROVIDER env vars own each stage "
+            "(default: openrouter)"
+        ),
     )
     parser.add_argument(
         "--writing-model",
         choices=[
-            "gemini-2.5-pro", "gemini-3.1-flash-lite",
-            "llama-3.3-70b", "llama-3.1-405b",
-            "qwen3.5-397b-a17b",
-            "kimi-k2.6", "deepseek-chat",
+            "openai/gpt-6-luna",
+            "z-ai/glm-5.3-flash",
+            "qwen/qwen3.8-flash",
+            "deepseek/deepseek-v4.1-flash",
+            "anthropic/claude-sonnet-5.5",
         ],
-        help="Writing model for steps 3, 6, 8 (default: gemini-2.5-pro)",
+        help=(
+            "Explicit OpenRouter slug for the writing stages (3a/3b/3c and Q&A). "
+            "Overrides TAILOR_MODEL and QA_MODEL; the Auto Router is never used."
+        ),
     )
     parser.add_argument(
         "--skip-reviewer",
         action="store_true",
         help="Skip the adversarial draft review step for speed",
+    )
+    parser.add_argument(
+        "--skip-ats",
+        action="store_true",
+        help=(
+            "Skip the semantic ATS keyword check (recorded as intentionally "
+            "skipped, not as a failure)"
+        ),
+    )
+    parser.add_argument(
+        "--interview-prep",
+        action="store_true",
+        help=(
+            "Also generate interview prep. Off by default: interview prep is "
+            "post-application / on-demand work"
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -124,9 +148,11 @@ def build_steps(fill_form: bool = False):
         step_ats_check,
         step_apply_ats_edits,
         step_compile_pdf,
+        step_evaluate_sendability,
         step_generate_qa,
         step_generate_interview_prep,
         step_compile_cover_letter,
+        step_finalize_sendability,
         step_create_tracker_entry,
         step_run_form_filler,
         compute_pipeline_score,
@@ -150,9 +176,11 @@ def build_steps(fill_form: bool = False):
         ("ats_check", "Run ATS keyword check", step_ats_check),
         ("ats_apply", "Review & apply ATS edits", step_apply_ats_edits),
         ("compile", "Compile PDF", step_compile_pdf),
+        ("sendability", "Evaluate sendability (deterministic)", step_evaluate_sendability),
         ("qa", "Generate Q&A answers", step_generate_qa),
         ("interview_prep", "Generate interview prep", step_generate_interview_prep),
         ("cl", "Compile cover letter", step_compile_cover_letter),
+        ("finalize", "Finalize optional-stage warnings", step_finalize_sendability),
         ("score", "Compute pipeline score", _step_score),
         ("tracker", "Create tracker entry", step_create_tracker_entry),
     ]
@@ -191,7 +219,7 @@ def show_dry_run(ctx: dict, console: Console, steps):
 
     console.print(table)
     console.print(f"\nJob URL: {ctx['job_url']}")
-    console.print(f"Provider: {ctx.get('provider', 'gemini')} (cross-provider fallback enabled)")
+    console.print(f"Provider: {ctx.get('provider', 'openrouter')} (explicit per-stage routing)")
     if ctx.get("questions"):
         console.print(f"Questions: {len(ctx['questions'])}")
 
@@ -257,23 +285,18 @@ def run_pipeline_from_cli(args) -> int:
     fill_form = getattr(args, 'fill_form', False) and not getattr(args, 'skip_form', False)
     STEPS = build_steps(fill_form=fill_form)
     
-    # Resolve provider: CLI arg > env var > default
-    provider = args.provider or os.getenv("LLM_PROVIDER", "gemini")
+    # Resolve provider: CLI arg > env var > default. B.1.5 default is the
+    # OpenRouter gateway; Gemini is legacy and no longer the production default.
+    provider = args.provider or os.getenv("LLM_PROVIDER", "openrouter")
 
-    # Resolve writing model: CLI arg > env var > default
-    _WRITING_MODEL_TO_PROVIDER = {
-        "gemini-2.5-pro": "gemini",
-        "gemini-3.1-flash-lite": "gemini",
-        "llama-3.3-70b": "groq",
-        "llama-3.1-405b": "sambanova",
-        "qwen3.5-397b-a17b": "openrouter",
-        "kimi-k2.6": "opencode",
-        "deepseek-chat": "deepseek",
-    }
+    # B.1.5: --writing-model selects the explicit OpenRouter slug for the writing
+    # stages (resume patches + Q&A). It no longer drives a multi-entry chain.
     writing_model = getattr(args, 'writing_model', None)
     if writing_model:
-        os.environ["GEMINI_WRITING_MODEL"] = writing_model
-        os.environ["WRITING_PROVIDER"] = _WRITING_MODEL_TO_PROVIDER.get(writing_model, "gemini")
+        os.environ["TAILOR_PROVIDER"] = "openrouter"
+        os.environ["TAILOR_MODEL"] = writing_model
+        os.environ["QA_PROVIDER"] = "openrouter"
+        os.environ["QA_MODEL"] = writing_model
 
     # Build initial context
     auto_apply = getattr(args, 'auto_apply', False)
@@ -309,6 +332,8 @@ def run_pipeline_from_cli(args) -> int:
         "cover_letter_instructions": args.cover_letter_instructions or "",
         "auto_apply": auto_apply,
         "skip_reviewer": getattr(args, 'skip_reviewer', False),
+        "skip_ats": getattr(args, 'skip_ats', False),
+        "interview_prep_requested": getattr(args, 'interview_prep', False),
     }
 
     # Dry run
@@ -408,6 +433,7 @@ def _save_application_json(ctx: dict, console: Console):
 
         from datetime import datetime
         from pathlib import Path
+        from modules import sendability
 
         run_dir = ctx.get("run_dir", "")
         company_safe = ctx.get("company_safe", "")
@@ -445,6 +471,12 @@ def _save_application_json(ctx: dict, console: Console):
             elif res_pdf:
                 resume = str(res_pdf[0])
 
+        # Automatic tracker status comes from the deterministic sendability
+        # gate. HOLD (or a missing/failed evaluation) stays ``generated``.
+        promoted_status = sendability.promoted_tracker_status(
+            (ctx.get("sendability") or {}).get("status")
+        )
+
         app = {
             "company": ctx.get("job", {}).get("company", "?"),
             "role": ctx.get("job", {}).get("title", "?"),
@@ -452,7 +484,7 @@ def _save_application_json(ctx: dict, console: Console):
             "date": datetime.now().strftime("%Y-%m-%d"),
             "score": ctx.get("pipeline_score"),
             "score_label": ctx.get("pipeline_score_label"),
-            "status": "applied",
+            "status": promoted_status,
             "notes": "",
             "pdf_path": ctx.get("pdf_path", ""),
             "run_dir": run_dir,
@@ -463,11 +495,16 @@ def _save_application_json(ctx: dict, console: Console):
             "resume_content": resume_content,
         }
 
-        # Replace existing entry by URL (dedup on save)
+        # Replace existing entry by URL (dedup on save). The status is resolved
+        # forward-only: automatic promotion may move generated -> ready_to_apply,
+        # but applied/screening/interview/offer/rejected are never downgraded.
         url = app["url"]
         replaced = False
         for i, existing in enumerate(apps):
             if existing.get("url", "") == url:
+                app["status"] = sendability.resolve_tracker_status(
+                    existing.get("status"), promoted_status
+                )
                 apps[i] = app
                 replaced = True
                 console.print(f"  [dim]Updated existing tracker entry for {app['company']}[/dim]")

@@ -84,6 +84,10 @@ Rules for Part A edits:
 - `old_string` MUST exist verbatim in the draft
 - Include enough surrounding text to disambiguate (at least 40 characters)
 - Only suggest replacements grounded in the master resume — never fabricate
+- Canonical dates, titles, metrics, scope, and attribution are immutable. Do not broaden +28% EPM beyond Infinity Testing campaigns, 18,000+ beyond analytics/platform scale, or FORVIA €12M+ beyond the unified catalog outcome.
+- Preserve the approved Postscript anchors: post-launch ownership, Brand Center as an existing brand-voice control layer, merchant review/control, and product-specific quality criteria.
+- Do not introduce unsupported skills or JD-only claims such as PLS, usage-based pricing, healthcare experience, agentic systems, Voice AI, IVR, RAG, or ReAct.
+- `new_string` content must be plain text with LaTeX special characters escaped, especially `%`, `&`, `$`, `_`, and `#`.
 - If you're unsure an edit is correct, put it in Part B instead
 - Return empty array `[]` if there are no mechanical edits to make
 

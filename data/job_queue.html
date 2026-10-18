@@ -115,6 +115,14 @@
         background: #30363d;
         color: #8b949e;
       }
+      .tag-dk {
+        background: #30363d;
+        color: #8b949e;
+      }
+      .tag-fr {
+        background: #30363d;
+        color: #8b949e;
+      }
       .tag-remote {
         background: #1f6feb33;
         color: #79c0ff;
@@ -184,6 +192,8 @@
         <option value="">All countries</option>
         <option value="de">🇩🇪 Germany</option>
         <option value="es">🇪🇸 Spain</option>
+        <option value="dk">🇩🇰 Denmark</option>
+        <option value="fr">🇫🇷 France</option>
       </select>
       <button id="move-btn" onclick="moveToTracker()">
         📋 Move Selected to Tracker
@@ -255,43 +265,216 @@
       const JOBS = [
     // 🇩🇪 Germany
     // 🇩🇪 Germany — Growth PM
-    {company: "Hivlance", title: "Senior Product Manager", url: "https://hivlance.liveblog365.com/remote-jobs/senior-product-manager-89", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "Careernest", title: "Product Manager, Healthcare SaaS", url: "https://careernest.likesyou.org/remote-jobs/product-manager-healthcare-saas-patient-support-remote", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "Diversityjobsgroup", title: "VP of Product Growth", url: "https://diversityjobsgroup.com/job/vp-of-product-growth-fort-lauderdale/", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "company"},
-    {company: "Nucs Ai", title: "Senior Product Manager – Nucs AI – Berlin", url: "https://www.arbeitnow.com/jobs/companies/nucs-ai/remote-senior-product-manager-berlin-248138", companyUrl: "", location: "Berlin", country: "de", roleType: "growth", date: "2026-06-28", source: "arbeitnow"},
-    {company: "Ergo Group", title: "ERGO Group AG: Insurance Product Manager", url: "https://www.seo-for-jobs.com/companies/ergo-group-ag/10595308-insurance-product-manager", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "company"},
-    {company: "Job", title: "Senior Product Manager – Commerce & Payment", url: "http://apply.hp.com/careers/job/40914912?domain=hp.com&hl=enFor", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "2657353", title: "Product Manager (Betting / Sportsbook)", url: "https://2.halvolink.liveblog365.com/job/2657353", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "Felix 2 5Bbe8Bb6 3263 4A82 Af9B 85191483F0B9", title: "Senior Growth Product Manager @ Félix", url: "https://jobs.generalcatalyst.com/companies/felix-2-5bbe8bb6-3263-4a82-af9b-85191483f0b9/jobs/84448263-senior-growth-product-manager", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "company"},
-    {company: "Apply", title: "Senior Product Manager", url: "https://apply.workable.com/supersummary/j/4D114B10F5/", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "workable"},
-    {company: "Highlevel", title: "Remote Sr. Product Manager", url: "https://himalayas.app/companies/highlevel/jobs/sr-product-manager-creators", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "himalayas"},
-    {company: "Efinancial", title: "Principal Product Manager", url: "https://www.efinancialcareers.co.uk/jobs-United_Kingdom-Cardiff-Principal_Product_Manager_-_Growth.id24453249", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "company"},
-    {company: "2680134", title: "German Speaking Product Manager (Fully Remote After the ...", url: "https://2.halvolink.liveblog365.com/job/2680134", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "Euro", title: "Senior Product Manager", url: "https://www.eurojobs.com/jobs/12514533/job-12514533", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "company"},
-    {company: "2597952", title: "[Remote] Senior Product Manager, Monetization & Growth", url: "https://2.halvolink.liveblog365.com/job/2597952", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "2683726", title: "[Remote] Staff Product Manager", url: "https://2.halvolink.liveblog365.com/job/2683726", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "Theladders", title: "Senior Product Manager, Monetization & Growth", url: "https://www.theladders.com/job/senior-product-manager-m-dot-net-ization-growth-crunchbase-chicago-il_87337768", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "linkedin"},
-    {company: "6006519004", title: "Careers", url: "https://careers.playstation.com/senior-product-manager/job/6006519004", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-06-28", source: "company"},
+    {company: "Liqid", title: "Senior Product Manager – Digital Clients: Growth & Expansion", url: "https://jobs.ashbyhq.com/liqid-lig/d4b18b12-6162-404b-8d3f-79104f86dbc9", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Jobgether", title: "Senior Product Manager, User Acquisition [Remote Job] @Jobgether", url: "https://www.remoteitjobs.app/job/jobgether-senior-product-manager-user-acquisition-remote-eu", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Koro", title: "Senior Product Manager Post", url: "https://jobs.hvcapital.com/companies/koro/jobs/97321815-senior-product-manager-post-purchase-retention-f-m-d", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Unknown", title: "(Senior/Staff) Product Manager", url: "https://euremotejobs.com/job/senior-staff-product-manager-growth/", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Seniorpm", title: "Growth Product Manager Jobs in Europe", url: "https://seniorpmjobs.eu/role/growth-product-manager", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Xmlname", title: "(Senior) Product Manager (m/w/d)", url: "https://modaxo.wd3.myworkdayjobs.com/en-US/ebbloWesternEurope/job/XMLNAME--Senior--Product-Manager--m-w-d-_R59861", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Eu Startups", title: "Senior E", url: "https://www.eu-startups.com/job/senior-e-commerce-product-manager/", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Feeny", title: "(Senior/Staff) Product Manager", url: "https://feeny.ai/job/senior-staff-product-manager-growth-f-m-d-bunch-berlin-bw096pjgrd02", companyUrl: "", location: "Berlin", country: "de", roleType: "growth", date: "2026-10-18", source: "stepstone"},
+    {company: "Germanydev", title: "Principal Product Manager Growth Platform", url: "https://germanydevjobs.com/jobs/zalando-principal-product-manager-growth-platform-lounge-by-zalando-xb4qrei", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Aptenda", title: "Growth Product Manager job in Berlin", url: "https://aptenda.com/emploi/766279-growth-product-manager", companyUrl: "", location: "Berlin", country: "de", roleType: "growth", date: "2026-10-18", source: "stepstone"},
+    {company: "Bayern", title: "Product Manager Automation & Growth (m/w/d)", url: "https://www.bayern.jobs/job/product-manager-automation-growth-m-w-d-18310453", companyUrl: "", location: "München", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Unknown", title: "Product Manager M/F/D Job Opening in München", url: "https://careers.aises.org/job/product-manager-mfd/85653534/", companyUrl: "", location: "München", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Whatnot", title: "Product Manager, Growth", url: "https://jobs.a16z.com/jobs/whatnot/4244324a-7688-48e4-aacf-5b58d74b669a--product-manager-growth", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Woody", title: "[Hiring] Growth Product Manager Job", url: "https://www.woodyjobs.com/product/206764-growth-product-manager-7nxt-gmbh", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Jobgether", title: "Senior Product Manager, User Acquisition", url: "https://remote.com/jobs/jobgether-c1xcbjrw/senior-product-manager-user-acquisition-j1gwtdjs", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Efinancial", title: "Senior Product Manager", url: "https://www.efinancialcareers.com/jobs-Germany-Mitte-Senior_Product_Manager_-_Digital_Clients_Growth__Expansion.id24901858", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Ladders", title: "Senior Product Manager, Monetization Platform", url: "https://www.linkedin.com/jobs/view/senior-product-manager-monetization-platform-at-ladders-4476008366", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Feeny", title: "Senior Product Manager (Licensing & Billing) at n8n · Berlin, Germany", url: "https://feeny.ai/job/senior-product-manager-licensing-billing-n8n-berlin-4rm67qkb5yc2", companyUrl: "", location: "Berlin", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Remoshift", title: "Senior Product Manager (f/m/x)", url: "https://remoshift.com/job/senior-product-manager-f-m-x-d39d1456", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Job Boards", title: "Director of Product, Growth", url: "https://job-boards.greenhouse.io/getyourguide/jobs/8276108", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "greenhouse"},
+    {company: "Pegel", title: "Principal Product Manager Growth Platform", url: "https://pegel.berlin/jobs/principal-product-manager-growth-platform-lounge-by-zalando-all-genders-8ccba4a9", companyUrl: "", location: "Berlin", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Oneroadmap", title: "Product Manager – Global Services (m/f/d)", url: "https://www.oneroadmap.io/jobs/6accebce9df45668b4fb1a46", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Fides", title: "Product Manager (alle Geschlechter) bei Fides", url: "https://www.remoterocketship.com/de/unternehmen/fides-technology/stellen/product-manager-deutschland-remote/", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "stepstone"},
+    {company: "Workmundi", title: "Growth Product Manager — 7NXT GmbH", url: "https://workmundi.com/vaga/YXJiZWl0bm93Omdyb3d0aC1wcm9kdWN0LW1hbmFnZXItYmVybGluLTM4NDY2Ng", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Wuffes", title: "CRO Specialist / Experimentation Product Manager", url: "https://dailyremote.com/remote-job/cro-specialist-experimentation-product-manager-5759465", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "dailyremote"},
+    {company: "Wetter", title: "Senior CRM Product Manager with Focus on Braze & ...", url: "https://experimentationjobs.com/job/wetter-senior-crm-product-manager-konstanz-germany/", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Exmox", title: "exmox (Hamburg): Senior Product Manager (f/m/x)", url: "https://join.com/companies/exmox/16823299-senior-product-manager-f-m-x", companyUrl: "", location: "Hamburg", country: "de", roleType: "growth", date: "2026-10-18", source: "stepstone"},
+    {company: "Engine", title: "Senior Product Manager, Growth", url: "https://jobgether.com/offer/6acda64049c73d7b99749071-senior-product-manager-growth", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "jobgether"},
+    {company: "Automattic", title: "Senior Product Manager", url: "https://www.workingnomads.com/jobs/senior-product-manager-payments-automattic-careers-1953057", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "workingnomads"},
+    {company: "Gametime United", title: "Product Manager, Payments & Checkout", url: "https://www.workingnomads.com/jobs/product-manager-payments-checkout-gametime-united-1932690", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "workingnomads"},
+    {company: "Remotearmy", title: "Senior Product Manager, Checkout", url: "https://remotearmy.io/jobs/fKuyStPP-senior-product-manager-checkout", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Zicasso", title: "Senior Product Manager, Growth Experimentation", url: "https://www.flexjobs.com/gjw/zicasso/senior-product-manager-growth-experimentation/publicjobs?id=324299b4-f777-47de-9aa5-ece8080785d9", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Searchable", title: "Principal Product Manager", url: "https://jobs.ashbyhq.com/searchable/c5f50b43-5c1c-493b-a0fb-5a1ac1ecb825", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Remoterush", title: "[Remote] Senior Product Manager – Experimentation & Optimization (reputed company)", url: "https://remoterush.mysmartpros.com/job/2754108", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Plaid", title: "Senior Product Manager, Growth", url: "https://jobstash.xyz/senior-product-manager-growth-plaid/ig9Zzp", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Sncouse0026718B7D541A09D138912F9A7F63Eexternalenus3C5657614Ce840F4A3461997B117Afbc", title: "Senior Product Manager – Agent Marketplace", url: "https://careers.snowflake.com/us/en/job/SNCOUSE0026718B7D541A09D138912F9A7F63EEXTERNALENUS3C5657614CE840F4A3461997B117AFBC/Senior-Product-Manager-Agent-Marketplace", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Callings", title: "Product Manager, AI Monetization & Expansion San ...", url: "https://www.callings.ai/jobs/ead82ecd-1464-448a-a829-830585bd862a/product-manager-ai-monetization-expansion-san-francisco-unit-at-retool-inc-san-francisco", companyUrl: "", location: "Germany", country: "de", roleType: "growth", date: "2026-10-18", source: "linkedin"},
     // 🇩🇪 Germany — AI PM
-    {company: "Bulldogjob", title: "Senior AI Product Manager", url: "https://bulldogjob.com/companies/jobs/245644-senior-ai-product-manager-b2b-saas-martech-amsterdam-berlin-london-munich-warsaw-insider-one", companyUrl: "", location: "Berlin", country: "de", roleType: "ai", date: "2026-06-28", source: "linkedin"},
-    {company: "Efinancial", title: "(Senior) Product Manager", url: "https://www.efinancialcareers.com/jobs-Germany-Mitte-Senior_Product_Manager_-_Regulatory_Technology_mfx.id24451016", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-06-28", source: "company"},
-    {company: "Job", title: "Product Manager Enterprise Integrations", url: "https://apply.hp.com/careers/job/42226010?domain=hp.com&hl=ko", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-06-28", source: "linkedin"},
+    {company: "Efinancial", title: "Senior AI Product Manager", url: "https://www.efinancialcareers.com/jobs-Germany-Mitte-Senior_AI_Product_Manager.id24905890", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Bayern", title: "Senior Product Manager Cloud & AI (m/w/d)", url: "https://www.bayern.jobs/job/senior-product-manager-cloud-ai-m-w-d-18448439", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Lto", title: "AI Legal M&A Product Manager (w/m/d)", url: "https://www.lto.de/karriere/stellenmarkt/job/12966-ai-legal-m-a-product-manager-taylor-wessing", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Job", title: "Senior Product Manager, HPC and AI for Physics", url: "https://jobs.nvidia.com/careers/job/893397337648", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Jobs Radar", title: "Senior Product Manager", url: "https://jobs-radar.com/en/job/senior-product-manager-machine-learning-m-f-d-at-voize-ac757b", companyUrl: "", location: "Berlin", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Wallround", title: "AI Lead Product Manager", url: "https://earlystagestartups.com/jobs/ai-lead-product-manager-german-speaker-jobs-bei-wallround-08870f67", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "stepstone"},
+    {company: "N26", title: "Lead Technical Product Manager — Machine Learning Platform @ N26", url: "https://jobs.joinimagine.com/companies/n26/jobs/96678255-lead-technical-product-manager-machine-learning-platform", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Fides", title: "Product Manager (all genders)", url: "https://jobgether.com/offer/6ad18cd549c73d7b9985ea4d-product-manager-all-genders", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "jobgether"},
+    {company: "JetBrains", title: "Senior Product Manager (Air Context) at JetBrains · Amsterdam, Netherlands; Belgrade, Serbia; Berlin, Germany; Limassol, Cyprus; London, United Kingdom; Madrid, Spain; Munich, Germany; Prague, Czech Republic; Warsaw, Poland; Yerevan, Armenia · JobsRadar", url: "https://jobs-radar.com/en/job/senior-product-manager-jetbrains-context-at-jetbrains-b3b872", companyUrl: "", location: "Berlin", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Woody", title: "Senior AI Product Manager", url: "https://www.woodyjobs.com/product/206770-senior-ai-product-manager-ssc-hr-solutions", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Improvado", title: "AI Product Builder", url: "https://www.remocate.app/jobs/ai-product-builder-improvado", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Formul", title: "AI Product Builder (Martech)", url: "https://jobgether.com/offer/6acc548449c73d7b996f81c5-ai-product-builder-martech", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "jobgether"},
+    {company: "Careerwebsite", title: "Product Manager, Agentic AI Job Opening in Berlin", url: "https://www.careerwebsite.com/job/product-manager-agentic-ai/86145871/22351/", companyUrl: "", location: "Berlin", country: "de", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Storyteller", title: "AI Product Builder", url: "https://www.workingnomads.com/jobs/ai-product-builder-client-delivery-storyteller", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "workingnomads"},
+    {company: "Tendos", title: "Senior Product Manager", url: "https://wantapply.com/senior-product-manager-m-f-x-at-tendos-ai", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Bjak", title: "Product Manager", url: "https://findunlisted.link/jobs/155684", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Seniorpm", title: "AI Product Manager Jobs in Europe", url: "https://seniorpmjobs.eu/role/ai-product-manager", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Capgemini", title: "Director Product Owner", url: "https://www.capgemini.com/jobs/551611-en_GB_SAPBTP/", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Google", title: "Senior Product Manager, Agentic AI and Insights Platform", url: "https://www.choppingblock.ai/jobs/senior-product-manager-agentic-ai-and-insights-platform-at-google-1336417", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Getyourguide", title: "Lead Product Manager, User Platform", url: "https://www.getyourguide.careers/jobs/8284800", companyUrl: "", location: "Germany", country: "de", roleType: "ai", date: "2026-10-18", source: "company"},
     // 🇩🇪 Germany — Generalist PM
-    {company: "Omnidocs Group", title: "Senior Product Manager", url: "https://himalayas.app/companies/omnidocs-group/jobs/senior-product-manager", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-06-28", source: "himalayas"},
-    {company: "172112", title: "Senior Product Manager", url: "https://www.jobsinforex.com/job/172112/senior-product-manager-cards/", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-06-28", source: "company"},
-    {company: "Hirequill", title: "Product Manager", url: "https://hirequill.liveblog365.com/job/product-manager-saas-application-canada-remote", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-06-28", source: "linkedin"},
+    {company: "Soley 2", title: "Senior Product Manager", url: "https://startupjobs.htgf.de/companies/soley-2/jobs/97215412-senior-product-manager-productization-m-w-d", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Careerwebsite", title: "(Senior) Digital Product Manager (m/w/d) Job Opening in Berlin", url: "https://www.careerwebsite.com/job/senior-digital-product-manager-mwd/86006616/22351/", companyUrl: "", location: "Berlin", country: "de", roleType: "generalist", date: "2026-10-18", source: "stepstone"},
+    {company: "Builtin", title: "Senior Product Manager (all genders)", url: "https://builtin.com/job/senior-product-manager-all-genders/11672919", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "stepstone"},
+    {company: "Liqid", title: "Senior Product Manager – Digital Clients", url: "https://databerlin.net/jobs/senior-product-manager-digital-clients-growth-expansion-at-liqid", companyUrl: "", location: "Berlin", country: "de", roleType: "generalist", date: "2026-10-18", source: "stepstone"},
+    {company: "Spacecrew", title: "Senior Product Manager, Sovereign & Hybrid Deployments", url: "https://spacecrew.com/space-jobs/mvc27c1b-planet-senior-product-manager-sovereign-and-hybrid-deployments", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "stepstone"},
+    {company: "Pixxio", title: "Senior Product Manager B2B (d/w/m*)", url: "https://resuminder.com/jobs/70085308-senior-product-manager-b2b-d-w-m-at-pixxio", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Databerlin", title: "Product Manager Jobs in Berlin", url: "https://databerlin.net/jobs/category/product-manager", companyUrl: "", location: "Berlin", country: "de", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Patronus", title: "(Senior) Product Manager", url: "https://jobs.ashbyhq.com/patronus/7e325be2-c1de-43dc-af02-23db9427ffb0", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "JustPlay GmbH", title: "Senior Product Manager", url: "https://feeny.ai/job/senior-product-manager-meta-all-genders-justplay-gmbh-berlin-qjrk7228ry6d", companyUrl: "", location: "Berlin", country: "de", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Shecancode", title: "Principal Product Manager, Commerce", url: "https://shecancode.io/job/principal-product-manager-commerce-germany-remote/", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Traba", title: "Senior Product Manager (Marketplace)", url: "https://www.linkedin.com/jobs/view/senior-product-manager-marketplace-at-traba-4478533649", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Reddit", title: "Senior Product Manager, Ads", url: "https://www.workingnomads.com/jobs/senior-product-manager-ads-shopping-catalogs-reddit-1941448", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "workingnomads"},
+    {company: "477C B0B2 55446759Fc4A", title: "(Senior) Product Manager Smart Metering & Steering (m/f/d) bei 1KOMMA5˚", url: "https://remotedach.de/job/40784259-477c-4452-b0b2-55446759fc4a", companyUrl: "", location: "Germany", country: "de", roleType: "generalist", date: "2026-10-18", source: "remotely.de"},
 
     // 🇪🇸 Spain
     // 🇪🇸 Spain — Growth PM
-    {company: "Busco", title: "Sr. Product Manager (Argentina)", url: "https://www.buscojobs.com.ar/sr-product-manager-argentina-en-capital-federal-ID-12818502", companyUrl: "", location: "Spain", country: "es", roleType: "growth", date: "2026-06-28", source: "company"},
+    {company: "Preply", title: "Senior Product Manager", url: "https://feeny.ai/job/senior-product-manager-growth-preply-barcelona-6dy0c8h4ep4e", companyUrl: "", location: "Barcelona", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Empleo24", title: "Senior product manager, growth", url: "https://empleo24.es/senior-product_palma-c203831/2026-10-ingenio_i4239848368", companyUrl: "", location: "Palma", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Remoshift", title: "Senior Product Manager, User Acquisition · $230k — Jobgether", url: "https://remoshift.com/job/senior-product-manager-user-acquisition-151e89a2", companyUrl: "", location: "Spain", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Delivery Hero", title: "Senior Product Manager at Delivery Hero, Barcelona", url: "https://sottava.com/j/senior-product-manager-at-delivery-hero-83850", companyUrl: "", location: "Barcelona", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Empleo24", title: "Senior product manager", url: "https://empleo24.es/senior-product_madrid-c208388/2026-10-yara-iberian_i4247391295", companyUrl: "", location: "Madrid", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Delivery Hero", title: "Senior Product Manager at Delivery Hero · Barcelona, Spain", url: "https://newjob.tech/j/delivery-hero--senior-product-manager", companyUrl: "", location: "Barcelona", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Pmfarma", title: "SENIOR PRODUCT MANAGER", url: "https://www.pmfarma.com/app/empleo/oferta/laboratorios-bailleul/69073-senior-product-manager-marketing-pharma", companyUrl: "", location: "Spain", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Thehub", title: "Senior Product Manager, Netherlands Payroll", url: "https://thehub.io/jobs/6abc511eb6e7a316d0319af6", companyUrl: "", location: "Spain", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Career", title: "Senior Product Manager – Growth – Career Management Center UCSD Rady", url: "https://career.rady.ucsd.edu/jobs/harmonic-inc-senior-product-manager-growth/", companyUrl: "", location: "Spain", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Kerja Remote", title: "Growth Product Manager (CS Team)", url: "https://kerja-remote.com/jobs/growth-product-manager-cs-team-adapty", companyUrl: "", location: "Spain", country: "es", roleType: "growth", date: "2026-10-18", source: "linkedin"},
     // 🇪🇸 Spain — AI PM
-    {company: "Spain", title: "Senior Product Manager", url: "https://clarivate.wd3.myworkdayjobs.com/ja-JP/jobs/job/Spain---Barcelona/Senior-Product-Manager_JREQ135893-1", companyUrl: "", location: "Barcelona", country: "es", roleType: "ai", date: "2026-06-28", source: "company"},
-    {company: "Weloveproduct", title: "Director, Product Management", url: "https://weloveproduct.co/jobs/director-product-management-data-collection-transformation-and-ingest-or-spain-or-remote-grafana-labs-rhl9pb", companyUrl: "", location: "Spain", country: "es", roleType: "ai", date: "2026-06-28", source: "linkedin"},
-    {company: "Remote100K", title: "AI Product Manager @ YipitData", url: "https://remote100k.com/remote-job/yipitllc-ai-product-manager", companyUrl: "", location: "Spain", country: "es", roleType: "ai", date: "2026-06-28", source: "linkedin"},
+    {company: "Malaga", title: "Product Manager, SaaS & AI Job Details", url: "https://opportunities.vodafone.com/job/Malaga-Product-Manager%2C-SaaS-&-AI/1426554633/", companyUrl: "", location: "Malaga", country: "es", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Qida", title: "AI Product Builder", url: "https://seedtable.com/jobs/236130", companyUrl: "", location: "Spain", country: "es", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Codeway", title: "Product Manager, New Ventures", url: "https://jobs.ashbyhq.com/codeway/97286447-8222-40ff-ae48-e7a176bf43ef", companyUrl: "", location: "Spain", country: "es", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "F706B567F42090Fb1Fba8C8E31C588Ec", title: "Product Manager – Healthcare Marketplace & Ai en Barcelona", url: "https://www.jobted.es/job/f706b567f42090fb1fba8c8e31c588ec", companyUrl: "", location: "Barcelona", country: "es", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Afb20Ec2C1B69E19Aa7F647830Db0B1A", title: "Senior Product Manager en Barcelona", url: "https://www.jobted.es/job/afb20ec2c1b69e19aa7f647830db0b1a", companyUrl: "", location: "Barcelona", country: "es", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Db718C57Dfcaf9Afdfc9A259710B3720", title: "Senior Product Manager, Agentic Ai en Barcelona", url: "https://www.jobted.es/job/db718c57dfcaf9afdfc9a259710b3720", companyUrl: "", location: "Barcelona", country: "es", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Group", title: "Group Product Manager", url: "https://builtin.com/job/group-product-manager/11645615", companyUrl: "", location: "Spain", country: "es", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Farol", title: "Senior Product Manager, Agentic AI · IQVIA · Madrid", url: "https://faroljobs.com/es/empleo/763317-senior-product-manager-agentic-ai", companyUrl: "", location: "Madrid", country: "es", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "EverAI", title: "Senior Product Manager (Full Remote", url: "https://feeny.ai/job/senior-product-manager-full-remote-europe-everai-spain-dm0gbpjmf24d", companyUrl: "", location: "Spain", country: "es", roleType: "ai", date: "2026-10-18", source: "linkedin"},
     // 🇪🇸 Spain — Generalist PM
-    {company: "Hirqube", title: "Product Owner – Manager, Business and Program Management", url: "https://hirqube.liveblog365.com/remote-jobs/product-owner-manager-business-and-program-management-3", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-06-28", source: "linkedin"},
-    {company: "Dataiku", title: "Dataiku hiring Sr Product Manager", url: "https://himalayas.app/companies/dataiku/jobs/sr-product-manager-9044469391", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-06-28", source: "himalayas"},
-    {company: "Careernest", title: "Sr Product Designer", url: "https://careernest.likesyou.org/remote-jobs/sr-product-designer-fintech-100-remote-canada-east-coast-central", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-06-28", source: "linkedin"},
+    {company: "Builtin", title: "Senior Product Manager, PMS connectivity", url: "https://builtin.com/job/senior-product-manager-pms-connectivity/11629445", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Patchstack", title: "Senior Product Manager", url: "https://remoshift.com/job/senior-product-manager-865f3db7", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Getnetplatforms", title: "Product Owner", url: "https://job-boards.eu.greenhouse.io/getnetplatforms/jobs/5007404101", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-10-18", source: "greenhouse"},
+    {company: "6Cd4Ba41Fe8Ce36324Ca517625A4Ed60", title: "Product Manager (Devtools & Ai Reliability, Remote) en Madrid", url: "https://www.jobted.es/job/6cd4ba41fe8ce36324ca517625a4ed60", companyUrl: "", location: "Madrid", country: "es", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Plume", title: "Senior Product Manager", url: "https://www.thesaasjobs.com/jobs/772047174-senior-product-manager", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Jobsinforex", title: "Product Manager – Product Factory job in Barcelona, Spain", url: "https://www.jobsinforex.com/job/29449/product-manager-product-factory-barcelona/", companyUrl: "", location: "Barcelona", country: "es", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Enfuce", title: "Product Manager – Card Issuing", url: "https://kickstartremote.com/remote-jobs/product-manager-card-issuing-spain-remote-2084", companyUrl: "", location: "Spain", country: "es", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Iqvia", title: "Senior Product Manager, Agentic AI", url: "https://jobalert.world/jobs/senior-product-manager-agentic-ai-at-iqvia-mlaga-mlaga-provincia-65160", companyUrl: "", location: "Málaga", country: "es", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+
+    // 🇩🇰 Denmark
+    // 🇩🇰 Denmark — Growth PM
+    {company: "Arbejd", title: "Senior Product Manager, Identity & Access (OT & SaaS)", url: "https://www.arbejd.com/da/job/senior-product-manager-identity-access-ot-saas-744d2a63-7ce0-4b5d-8a8a-23f107f06722", companyUrl: "", location: "Denmark", country: "dk", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Euroremote", title: "Remote Product Management Jobs in Europe (29 open)", url: "https://euroremotejobs.com/job-category/remote-product-manager-jobs/", companyUrl: "", location: "Denmark", country: "dk", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "RemoteHunter", title: "Senior Product Manager, Growth", url: "https://www.linkedin.com/jobs/view/senior-product-manager-growth-at-remotehunter-4478439063", companyUrl: "", location: "Denmark", country: "dk", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    // 🇩🇰 Denmark — AI PM
+    {company: "Cip", title: "Product Manager, CTO Area", url: "https://cip.wd103.myworkdayjobs.com/en-US/CIPFS_Careers/job/Product-Manager--CTO-Area_JR103372", companyUrl: "", location: "Denmark", country: "dk", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Associate", title: "Associate Director Product manager (Denmark, Ballerup)", url: "https://www.arbejd.com/da/job/associate-director-product-manager-denmark-ballerup-ff9bf78f-345b-4b2b-8488-9e899f943edd", companyUrl: "", location: "Denmark", country: "dk", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "29F71Bf5 D73C 4F61 Ac16 0Afdc66Dfb99", title: "Product Manager, OI Activate at WPP – Copenhagen, Capital, Denmark", url: "https://www.thejobsmap.com/job/29f71bf5-d73c-4f61-ac16-0afdc66dfb99", companyUrl: "", location: "Copenhagen", country: "dk", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Thehub", title: "AI Product Engineer", url: "https://thehub.io/jobs/6ace412e8b15eb00131588ac", companyUrl: "", location: "Denmark", country: "dk", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Novo Nordisk", title: "Associate Director Product manager", url: "https://pharmajobber.com/job/novo-nordisk/associate-director-product-manager-bb61b5a1ba7b6", companyUrl: "", location: "Denmark", country: "dk", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Machina Labs", title: "Senior Product Manager, Machine Learning", url: "https://www.linkedin.com/jobs/view/senior-product-manager-machine-learning-at-machina-labs-4471566073", companyUrl: "", location: "Denmark", country: "dk", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Washington", title: "Sr. Digital Product Manager, Forecasting", url: "https://careers.amgen.com/en/job/washington/sr-digital-product-manager-forecasting/87/100194339296", companyUrl: "", location: "Denmark", country: "dk", roleType: "ai", date: "2026-10-18", source: "company"},
+    // 🇩🇰 Denmark — Generalist PM
+    {company: "Justjoin", title: "Senior Product Manager", url: "https://justjoin.it/job-offer/emagine-polska-senior-product-manager-copenhagen-pm", companyUrl: "", location: "Copenhagen", country: "dk", roleType: "generalist", date: "2026-10-18", source: "thehub"},
+    {company: "Nordic Investin Group", title: "Senior Technical Product Manager API Platform", url: "https://ecareer-1697612735.teamtailor.com/jobs/8533435-senior-technical-product-manager-api-platform", companyUrl: "", location: "Denmark", country: "dk", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Clichy", title: "Technical Product manager", url: "https://careers.loreal.com/en/job/clichy/technical-product-manager/3456/45862009280", companyUrl: "", location: "Denmark", country: "dk", roleType: "generalist", date: "2026-10-18", source: "company"},
+
+    // 🇫🇷 France
+    // 🇫🇷 France — Growth PM
+    {company: "Demploi", title: "Senior product manager, b2c growth & ai", url: "https://demploi.fr/senior-product_paris-c272118/2026-10-strategies_i4238935009", companyUrl: "", location: "Paris", country: "fr", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Voodoo", title: "Senior Data Product Manager", url: "https://feeny.ai/job/senior-data-product-manager-growth-voodoo-paris-wqzddz45ez8k", companyUrl: "", location: "Paris", country: "fr", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Collective", title: "Product Manager Growth", url: "https://www.collective.work/jobs/fr/product-manager-growth-akcq", companyUrl: "", location: "France", country: "fr", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Luni", title: "Product Manager", url: "https://experimentationjobs.com/job/luni-product-manager-france/", companyUrl: "", location: "France", country: "fr", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Jobintree", title: "Offre emploi Product Manager", url: "https://www.jobintree.com/emplois/84452037.html", companyUrl: "", location: "Paris", country: "fr", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Demploi", title: "Senior product manager", url: "https://demploi.fr/senior-product_paris-c272118/2026-10-ingenio_i4239596398", companyUrl: "", location: "Paris", country: "fr", roleType: "growth", date: "2026-10-18", source: "linkedin"},
+    {company: "Voodoo", title: "Senior Product Manager", url: "https://jobs.ashbyhq.com/voodoo/c0f28476-2ff1-4206-b344-530c9f36a73a", companyUrl: "", location: "France", country: "fr", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Groupe Tf1", title: "Product Manager Core Experience H/F", url: "https://www.welcometothejungle.com/fr/companies/groupe-tf1/jobs/product-manager-core-experience-h-f_boulogne-sur-mer_z36os5gh", companyUrl: "", location: "France", country: "fr", roleType: "growth", date: "2026-10-18", source: "weloveproduct"},
+    // 🇫🇷 France — AI PM
+    {company: "Modjo", title: "AI Product Manager", url: "https://modjo.teamtailor.com/jobs/8559207-ai-product-manager", companyUrl: "", location: "France", country: "fr", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Hubvisory", title: "Senior AI Product Manager", url: "https://resuminder.com/jobs/70416285-senior-ai-product-manager-hf-at-hubvisory", companyUrl: "", location: "France", country: "fr", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Front", title: "Senior Product Manager", url: "https://feeny.ai/job/senior-product-manager-ai-front-paris-8ez15yz7x1y5", companyUrl: "", location: "Paris", country: "fr", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "LSEG", title: "Senior Product Manager, AI", url: "https://francedevjobs.com/jobs/lseg-senior-product-manager-ai-k1lzopz", companyUrl: "", location: "Paris", country: "fr", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Edf", title: "Product Manager outillage IA F/H", url: "https://www.edf.fr/edf-recrute/offre/detail/2026-183474", companyUrl: "", location: "France", country: "fr", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Hymaia", title: "Product Manager AI", url: "https://www.hymaia.com/en/nous-recrutons/product-manager-ai/", companyUrl: "", location: "France", country: "fr", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Job Boards", title: "Digital Senior Product Manager", url: "https://job-boards.greenhouse.io/decathlontechnology/jobs/5004201101", companyUrl: "", location: "France", country: "fr", roleType: "ai", date: "2026-10-18", source: "greenhouse"},
+    {company: "Bazeta", title: "Lead Product Manager · Bazeta", url: "https://bazeta.com/en/l/2574744-lead-product-manager", companyUrl: "", location: "France", country: "fr", roleType: "ai", date: "2026-10-18", source: "linkedin"},
+    {company: "Unframe", title: "Product Manager (English/French)", url: "https://job-boards.eu.greenhouse.io/unframe/jobs/5003497101", companyUrl: "", location: "France", country: "fr", roleType: "ai", date: "2026-10-18", source: "greenhouse"},
+    // 🇫🇷 France — Generalist PM
+    {company: "Qonto", title: "Senior Product Manager", url: "https://jobs.ashbyhq.com/qonto/59f86c3d-c13b-4d27-b1ee-6f607843fe47", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Plume 2", title: "Senior Product Manager @ Plume", url: "https://jobs.insightpartners.com/companies/plume-2/jobs/97207257-senior-product-manager", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Sunday", title: "Senior Product Manager", url: "https://sunday.teamtailor.com/jobs/8545629-senior-product-manager", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Total", title: "Product Manager (CCaaS)", url: "https://www.totaljobs.com/job/product-manager-ccaas-french-speaking/kaluza-job108181334", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Lesjoiesducode", title: "API & Platform Product Manager", url: "https://lesjoiesducode.fr/emploi/api-platform-product-manager-skello-paris-1030", companyUrl: "", location: "Paris", country: "fr", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Reshotel", title: "Product Manager, API & Intégrations, Banque (H/F) – Levallois", url: "https://www.reshotel.co/offre-emploi/1239174-product-manager-api-integrations-banque-h-f/", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Modjo", title: "Technical Product Manager", url: "https://thebench.jobs/jobs/technical-product-manager-at-modjo-paris-tmanager", companyUrl: "", location: "Paris", country: "fr", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Mirakl", title: "Product Manager", url: "https://feeny.ai/job/product-manager-platform-management-mirakl-labs-paris-23fzj31sh5qh", companyUrl: "", location: "Paris", country: "fr", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Collective", title: "Product Manager Partnership", url: "https://www.collective.work/jobs/fr/product-manager-partnership-jc2k", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Vendavo", title: "Principal Product Manager", url: "https://www.workingnomads.com/jobs/principal-product-manager-vendavo", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "workingnomads"},
+    {company: "Unframe 2 219D16D7 Da86 4593 8B2E Cbc015D954Dc", title: "Product Manager (English/French) @ Unframe", url: "https://jobs.tlv.partners/companies/unframe-2-219d16d7-da86-4593-8b2e-cbc015d954dc/jobs/96830187-product-manager-english-french", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Remotejobsworkfromhome", title: "Senior Product Manager, Smart Data Products [gn] Europe – Remote", url: "https://remotejobsworkfromhome.com/jobs/senior-product-manager-smart-data-products-gn-europe-actian-kgrxdjcy9e", companyUrl: "", location: "France", country: "fr", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Joveo", title: "Product Manager", url: "https://jobalert.world/jobs/product-manager-at-joveo-sandbox-paris-idf-france-65436", companyUrl: "", location: "Paris", country: "fr", roleType: "generalist", date: "2026-10-18", source: "linkedin"},
+    {company: "Scento", title: "Senior E", url: "https://wellfound.com/jobs/4860643-senior-e-commerce-product-manager", companyUrl: "", location: "Paris", country: "fr", roleType: "generalist", date: "2026-10-18", source: "wellfound"},
+
+    // 🌍 Remote
+    // 🌍 Remote — Growth PM
+    {company: "DistroKid", title: "Growth Product Manager (Senior to Staff)", url: "https://aplyr.ai/jobs/b9bb49a7d1f9/growth-product-manager-senior-to-staff", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "weworkremotely"},
+    {company: "Olth", title: "Senior Product Manager – Growth", url: "https://olthjobs.com/europe/senior-product-manager-growth/", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Jobcore", title: "Growth Product Manager – Customer Acquisition & Data‑Driven Growth Lead for German SMEs – Drive Impactful Financial Solutions", url: "https://jobcore.r5b.is-great.net/remote-jobs/growth-product-manager-customer-acquisition-datadriven-growth-lead-for-german-smes-drive-i", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "weworkremotely"},
+    {company: "Time Doctor", title: "Growth Product Manager", url: "https://www.remotenomadjobs.com/remote-jobs/growth-product-manager-6ad19caff66a5c5d56a15132", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "company"},
+    {company: "Inclusivelyremote", title: "Growth Product Manager", url: "https://inclusivelyremote.com/job/growth-product-manager-6/", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "jobspresso"},
+    {company: "Promin Apps", title: "Growth Product Manager", url: "https://soften.dev/jobs/growth-product-manager-274838", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "workingnomads"},
+    {company: "Monarch Money", title: "Product Manager (Senior/Staff/Principal)", url: "https://www.workingnomads.com/jobs/product-manager-seniorstaffprincipal-monarch-money-1950642", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "workingnomads"},
+    {company: "Ashby", title: "Product Manager, Onboarding and Growth", url: "https://dailyremote.com/remote-job/product-manager-onboarding-and-growth-5777665", companyUrl: "", location: "Remote", country: "remote", roleType: "growth", date: "2026-10-18", source: "dailyremote"},
+    // 🌍 Remote — AI PM
+    {company: "Remotenex", title: "Senior Product Manager", url: "https://remotenex.us/job/senior-product-manager-ai-100-remote-emea-1", companyUrl: "", location: "Remote", country: "remote", roleType: "ai", date: "2026-10-18", source: "remoteok"},
+    {company: "Remotejobsworkfromhome", title: "Forward Deployed Product Manager", url: "https://remotejobsworkfromhome.com/jobs/forward-deployed-product-manager-ai-agent-emea-cresta-831k13jnvh", companyUrl: "", location: "Remote", country: "remote", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Gurify", title: "AI Technical Product Manager (QVAC) (100% remote) — Dublin", url: "https://gurify.com/job/ai-technical-product-manager-qvac-100-remote-cd0e05afb840", companyUrl: "", location: "Remote", country: "remote", roleType: "ai", date: "2026-10-18", source: "remoteok"},
+    {company: "725A0188 8Bed 48A2 939F 6F5Adf59768E", title: "Sr. Product Manager, AI", url: "https://www.thejobsmap.com/job/725a0188-8bed-48a2-939f-6f5adf59768e", companyUrl: "", location: "Remote", country: "remote", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "International Tech Company", title: "Product Manager AI Technology Job", url: "https://secretremote.com/product-manager-ai-technology-41d1d3bb-645e-4fac-9113-e9211f08840e", companyUrl: "", location: "Remote", country: "remote", roleType: "ai", date: "2026-10-18", source: "nodesk"},
+    {company: "Ccf", title: "AI Product Manager", url: "https://ccf.wd1.myworkdayjobs.com/en-US/ClevelandClinicCareers/job/AI-Product-Manager_355250", companyUrl: "", location: "Remote", country: "remote", roleType: "ai", date: "2026-10-18", source: "company"},
+    {company: "Wfhbeacon", title: "Product Manager, AI (Remote)", url: "https://wfhbeacon.up.railway.app/job/product-manager-ai-remote", companyUrl: "", location: "Remote", country: "remote", roleType: "ai", date: "2026-10-18", source: "careervault"},
+    // 🌍 Remote — Generalist PM
+    {company: "Apply", title: "Senior Product Manager", url: "https://apply.workable.com/j/B02BBF085F", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "workable"},
+    {company: "Linro", title: "Product Manager (all genders)", url: "https://jobs.ashbyhq.com/linro/478af82d-a75e-439f-85e7-89e61054eaea", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Plum", title: "Senior Product Manager at Plume (remote, Europe) · Remotejobify", url: "https://remotejobify.app/jobs/c9376ac5-eb72-45aa-822e-22354f22e9ed/", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "remoteok"},
+    {company: "Clickhouse", title: "Senior Product Manager, Billing & Marketplaces", url: "https://thebench.jobs/jobs/senior-product-manager-billing-marketplaces-at-clickhouse", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Bloomreach", title: "Senior Product Manager", url: "https://dailyremote.com/remote-job/senior-product-manager-5775899", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "dailyremote"},
+    {company: "Jobcore", title: "Senior Product Manager (Chronosphere)", url: "https://jobcore.r5b.is-great.net/remote-jobs/senior-product-manager-chronosphere", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "remoteok"},
+    {company: "Zvoove", title: "Senior Product Manager (m/w/d)", url: "https://resuminder.com/jobs/70425752-senior-product-manager-m-w-d-zvoove-go-at-zvoove", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "remoteok"},
+    {company: "Arionkoder", title: "Product Manager (EU)", url: "https://feeny.ai/job/product-manager-eu-arionkoder-europe-2e1wry9dtzsf", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "wellfound"},
+    {company: "Nexus Mods", title: "Senior Product Manager", url: "https://4dayweek.io/job/senior-product-manager-at-nexus-mods-a21bbdba", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "4dayweek"},
+    {company: "Alirahealth", title: "Senior Product Manager", url: "https://alirahealth.wd3.myworkdayjobs.com/en-US/AliraHealth/job/Senior-Product-Manager_JR000613", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Twilio", title: "Senior Product Manager", url: "https://4dayweek.io/job/senior-product-manager-at-twilio-d2f165d8", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "4dayweek"},
+    {company: "Remotenex", title: "Product Manager – Platform & Fleet Management", url: "https://remotenex.us/job/product-manager-platform-fleet-management-1", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "jobspresso"},
+    {company: "Playlab AI", title: "Senior Product Manager", url: "https://www.flexjobs.com/gjw/playlab_ai/senior-product-manager/publicjobs?id=59d3b75d-22d8-41e7-bfe8-22c04f0cef63", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "First American", title: "Senior Product Manager Job", url: "https://www.flexjobs.com/gjw/first_american/senior-product-manager/publicjobs?id=a4ec76ab-4455-464f-b596-5cbabab4862e", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "RevenueCat", title: "Senior Product Manager, User Acquisition", url: "https://www.flexjobs.com/gjw/revenuecat/senior-product-manager-user-acquisition/publicjobs?id=0c2a7d9a-02f3-4081-986e-8189dff6d056", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "South Geeks", title: "Senior Product Manager", url: "https://www.flexjobs.com/gjw/south_geeks/senior-product-manager/publicjobs?id=5390d008-319e-4249-9767-dba33f3ffad5", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Euro", title: "Senior Technical Product Manager", url: "https://www.eurojobs.com/jobs/34231163/senior-technical-product-manager-keet-100-remote-34231163", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "Nebius", title: "Senior Technical Product Manager", url: "https://magnet.me/en/opportunity/1096566/senior-technical-product-manager---token-factory", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "nodesk"},
+    {company: "Emprego24", title: "Senior product manager (emea)", url: "https://emprego24.pt/senior-product_viana-do-castelo-c405341/2026-10-jobgether_i4242754194", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "nodesk"},
+    {company: "App", title: "Product Manager (all genders)", url: "https://app.rvc.global/vacancy/view/linro-product-manager-all-genders-remote-germany-551275", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "workingnomads"},
+    {company: "Lodgify", title: "Group Product Manager", url: "https://www.workingnomads.com/jobs/group-product-manager-lodgify", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "workingnomads"},
+    {company: "Flexi", title: "Director, Product Management", url: "https://freshjob.today/jobs/b9c464a0b17abf20/", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "flexa"},
+    {company: "Nuit", title: "Senior Product Manager, Payments & Finance", url: "https://jobgether.com/offer/6acfa04c49c73d7b997d2b00-senior-product-manager-payments-finance", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "jobgether"},
+    {company: "Emprego24", title: "Senior product manager", url: "https://emprego24.pt/senior-product_almada-c404196/2026-10-jobgether_i4247811865", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "jobgether"},
+    {company: "Deel", title: "Senior Product Manager II", url: "https://jobgether.com/offer/6acebf9149c73d7b99792ffd-senior-product-manager-ii---platform", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "jobgether"},
+    {company: "Forbes Advisor", title: "Technical Product Manager (Remote)", url: "https://jobgether.com/offer/6ad1b6c749c73d7b9986dd44-technical-product-manager-remote", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "jobgether"},
+    {company: "Remoterush", title: "Freelance Senior AI Product Manager", url: "https://remoterush.mysmartpros.com/job/2126797", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "oomple"},
+    {company: "Actiefai", title: "Freelance Group Product Manager, Future Platform", url: "https://www.actiefai.nl/opdrachten/freelance-group-product-manager-future-platform-d0a2e63e/", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "oomple"},
+    {company: "Jobyne", title: "Product Management Expert", url: "https://jobyne.com/job/product-management-expert-remote-634363075542130440", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "oomple"},
+    {company: "9Af807F1 80F3 B30E 4F5Ff69890B5", title: "Product Manager", url: "https://careers.veeva.com/job/9af807f1-80f3-4690-b30e-4f5ff69890b5/product-manager-veeva-clinical-operations-new-york-city-ny/", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "company"},
+    {company: "IP Fabric", title: "Senior Product Manager– Network Discovery", url: "https://dailyremote.com/remote-job/senior-product-manager-network-discovery-5753831", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "dailyremote"},
+    {company: "Aignostics", title: "Senior Product Manager", url: "https://dailyremote.com/remote-job/senior-product-manager-clinical-ai-d-f-m-5759706", companyUrl: "", location: "Remote", country: "remote", roleType: "generalist", date: "2026-10-18", source: "dailyremote"},
 ];
 
 
@@ -305,6 +488,56 @@
           generalist: "tag-generalist",
         };
         return `<span class="tag ${map[type] || ""}">${type}</span>`;
+      }
+
+      function createTag(className, label) {
+        const tag = document.createElement("span");
+        tag.className = `tag ${className}`;
+        tag.textContent = label;
+        return tag;
+      }
+
+      function createJobRow(j) {
+        const tr = document.createElement("tr");
+        const checkboxCell = document.createElement("td");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "row-checkbox";
+        checkbox.dataset.idx = JOBS.indexOf(j);
+        checkbox.addEventListener("change", updateMoveButton);
+        checkboxCell.appendChild(checkbox);
+
+        const companyCell = document.createElement("td");
+        const companyLink = document.createElement("a");
+        companyLink.href = j.companyUrl || j.url || "#";
+        companyLink.target = "_blank";
+        companyLink.rel = "noopener noreferrer";
+        companyLink.textContent = j.company || "?";
+        companyCell.appendChild(companyLink);
+        if (j.companyUrl) {
+          const boardLink = document.createElement("a");
+          boardLink.href = j.url || "#";
+          boardLink.target = "_blank";
+          boardLink.rel = "noopener noreferrer";
+          boardLink.className = "company-url-link";
+          boardLink.title = "Board listing";
+          boardLink.textContent = "🔗";
+          companyCell.appendChild(boardLink);
+        }
+        const roleClass = { growth: "tag-growth", ai: "tag-ai", generalist: "tag-generalist" };
+        companyCell.append(" ", createTag(roleClass[j.roleType] || "", j.roleType || ""));
+
+        const titleCell = document.createElement("td");
+        titleCell.textContent = j.title || "?";
+        const locationCell = document.createElement("td");
+        locationCell.append(j.location || "", " ");
+        const countryTags = { de: ["tag-de", "DE"], es: ["tag-es", "ES"], dk: ["tag-dk", "DK"], fr: ["tag-fr", "FR"] };
+        if (countryTags[j.country]) locationCell.appendChild(createTag(...countryTags[j.country]));
+        if ((j.location || "").toLowerCase().includes("remote")) locationCell.appendChild(createTag("tag-remote", "remote"));
+        const dateCell = document.createElement("td");
+        dateCell.textContent = j.date || "";
+        tr.append(checkboxCell, companyCell, titleCell, locationCell, dateCell);
+        return tr;
       }
 
       function render() {
@@ -347,25 +580,13 @@
 
         const tbody = document.getElementById("tbody");
         if (filtered.length === 0) {
-          tbody.innerHTML = "";
+          tbody.replaceChildren();
           document.getElementById("empty").style.display = "block";
           return;
         }
         document.getElementById("empty").style.display = "none";
 
-        tbody.innerHTML = filtered
-          .map(
-            (j) => `
-    <tr>
-      <td><input type="checkbox" class="row-checkbox" data-idx="${JOBS.indexOf(j)}" onchange="updateMoveButton()"></td>
-      <td><a href="${j.companyUrl || j.url}" target="_blank">${j.company || "?"}</a>${j.companyUrl ? `<a href="${j.url}" class="company-url-link" title="Board listing">🔗</a>` : ""} ${roleTag(j.roleType)}</td>
-      <td>${j.title || "?"}</td>
-      <td>${j.location || ""} ${j.country === "de" ? '<span class="tag tag-de">DE</span>' : ""}${j.country === "es" ? '<span class="tag tag-es">ES</span>' : ""}${(j.location || "").toLowerCase().includes("remote") ? '<span class="tag tag-remote">remote</span>' : ""}</td>
-      <td>${j.date || ""}</td>
-    </tr>
-  `,
-          )
-          .join("");
+        tbody.replaceChildren(...filtered.map(createJobRow));
       }
 
       function sortBy(col) {
@@ -419,7 +640,7 @@
               role: job.title,
               url: job.companyUrl || job.url,
               date: job.date,
-              status: "applied",
+              status: "generated",
               notes: `Source: ${job.source} | Location: ${job.location}`,
             });
             indicesToRemove.push(idx);

@@ -245,12 +245,12 @@ class TestDryRun:
     """
 
     def test_build_steps_all_present(self):
-        """All pipeline steps should be registered (15 steps with reviewer)."""
+        """All pipeline steps should be registered (17 steps with reviewer)."""
         from apply import build_steps
 
         steps = build_steps(fill_form=False)
         step_ids = [s[0] for s in steps]
-        assert len(steps) == 15, f"Expected 15 steps, got {len(steps)}"
+        assert len(steps) == 17, f"Expected 17 steps, got {len(steps)}"
         assert "scrape" in step_ids
         assert "resume" in step_ids
         assert "fit" in step_ids
@@ -262,6 +262,27 @@ class TestDryRun:
         assert "score" in step_ids
         assert "tracker" in step_ids
 
+    def test_sendability_runs_after_compile_before_optional_stages(self):
+        """Gate A.3: the gate must judge a finished resume, before optional work.
+
+        Gate A.4/A.4.1: optional-stage failures are folded in by a dedicated
+        finalization step that runs after all optional work and before scoring.
+        """
+        from apply import build_steps
+
+        step_ids = [s[0] for s in build_steps(fill_form=False)]
+        assert "sendability" in step_ids
+        assert (
+            step_ids.index("compile")
+            < step_ids.index("sendability")
+            < step_ids.index("qa")
+            < step_ids.index("interview_prep")
+            < step_ids.index("cl")
+            < step_ids.index("finalize")
+            < step_ids.index("score")
+            < step_ids.index("tracker")
+        )
+
     def test_form_filler_optional(self):
         """Form filler should only be included when --fill-form is passed."""
         from apply import build_steps
@@ -269,12 +290,12 @@ class TestDryRun:
         steps_default = build_steps(fill_form=False)
         step_ids = [s[0] for s in steps_default]
         assert "form" not in step_ids, "Form filler should be off by default"
-        assert len(steps_default) == 15
+        assert len(steps_default) == 17
 
         steps_enabled = build_steps(fill_form=True)
         step_ids_enabled = [s[0] for s in steps_enabled]
         assert "form" in step_ids_enabled, "Form filler should be included when requested"
-        assert len(steps_enabled) == 16
+        assert len(steps_enabled) == 18
 
     def test_dry_run_no_api_calls(self):
         """Dry run should not make any API calls."""

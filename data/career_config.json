@@ -16,8 +16,16 @@
     "No engineering collaboration or technical depth expected"
   ],
   "location": {
-    "preferred": ["Berlin", "Remote Europe", "Remote EMEA"],
-    "constraint": "Must be in Berlin or fully remote within European / EMEA time zones. Relocation within Europe considered for exceptional opportunities."
+    "preferred": [
+      "Berlin",
+      "Germany",
+      "Spain",
+      "Denmark",
+      "France",
+      "Remote Europe",
+      "Remote EMEA"
+    ],
+    "constraint": "Prefer Berlin, Germany, Spain, Denmark, France, or fully remote roles within European / EMEA time zones. Hybrid roles outside Berlin require relocation and should be treated as exceptional opportunities. Reject strict on-site roles outside Berlin and roles with incompatible time zones."
   },
   "behavioral_profile": {
     "configured": false,

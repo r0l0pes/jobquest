@@ -76,6 +76,41 @@ QUERY_CATALOG = [
     # Spanish language
     ("Senior Product Manager experimentación conversión España", "growth", "es", "infojobs"),
     ("Product Manager activación retención España", "growth", "es", "infojobs"),
+    # Growth PM — Denmark
+    ("Senior Growth Product Manager Denmark 2026", "growth", "dk", "linkedin"),
+    ("Product Manager Growth København", "growth", "dk", "thehub"),
+    ("Senior Product Manager monetisation Denmark", "growth", "dk", "linkedin"),
+    ("Product Manager activation retention Denmark", "growth", "dk", "linkedin"),
+    ("Growth Product Manager Copenhagen experimentation", "growth", "dk", "thehub"),
+    # AI PM — Denmark
+    ("Senior AI Product Manager Denmark 2026", "ai", "dk", "linkedin"),
+    ("AI Product Manager Copenhagen hiring", "ai", "dk", "linkedin"),
+    ("Product Manager generative AI Denmark", "ai", "dk", "linkedin"),
+    ("Product Manager agentic AI Copenhagen", "ai", "dk", "thehub"),
+    ("Senior Product Manager machine learning Denmark", "ai", "dk", "linkedin"),
+    # Generalist PM — Denmark
+    ("Senior Product Manager Denmark 2026", "generalist", "dk", "linkedin"),
+    ("Senior Product Manager København English", "generalist", "dk", "thehub"),
+    ("Technical Product Manager Denmark platform API", "generalist", "dk", "linkedin"),
+    ("Product Manager B2B SaaS Copenhagen", "generalist", "dk", "linkedin"),
+    # Growth PM — France
+    ("Senior Growth Product Manager France 2026", "growth", "fr", "linkedin"),
+    ("Product Manager Growth France expérimentation", "growth", "fr", "linkedin"),
+    ("Senior PM activation retention Paris", "growth", "fr", "linkedin"),
+    ("Product Manager conversion monétisation France", "growth", "fr", "weloveproduct"),
+    ("Growth Product Manager Paris remote Europe", "growth", "fr", "linkedin"),
+    # AI PM — France
+    ("Senior AI Product Manager France 2026", "ai", "fr", "linkedin"),
+    ("AI Product Manager Paris recrutement", "ai", "fr", "linkedin"),
+    ("Product Manager IA générative France", "ai", "fr", "linkedin"),
+    ("Product Manager agentic AI Paris", "ai", "fr", "linkedin"),
+    ("Senior Product Manager machine learning France", "ai", "fr", "linkedin"),
+    # Generalist PM — France
+    ("Senior Product Manager France 2026", "generalist", "fr", "linkedin"),
+    ("Senior Product Manager Paris English", "generalist", "fr", "linkedin"),
+    ("Technical Product Manager France platform API", "generalist", "fr", "linkedin"),
+    ("Product Manager B2B SaaS France", "generalist", "fr", "weloveproduct"),
+    ("Product Manager remote France Europe", "generalist", "fr", "linkedin"),
     # E-commerce / Marketplace
     ("Senior Product Manager ecommerce marketplace Germany", "generalist", "de", "linkedin"),
     ("Senior PM payments checkout Germany", "growth", "de", "linkedin"),
@@ -140,9 +175,12 @@ def load_exa_key():
     global EXA_API_KEY
     config_path = Path.home() / ".pi" / "web-search.json"
     if config_path.exists():
-        with open(config_path) as f:
-            cfg = json.load(f)
-        EXA_API_KEY = cfg.get("exaApiKey") or cfg.get("EXA_API_KEY")
+        try:
+            with config_path.open(encoding="utf-8") as f:
+                cfg = json.load(f)
+            EXA_API_KEY = cfg.get("exaApiKey") or cfg.get("EXA_API_KEY")
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"  [config warning] Could not read {config_path}: {exc}", file=sys.stderr)
     if not EXA_API_KEY:
         EXA_API_KEY = os.environ.get("EXA_API_KEY")
     if not EXA_API_KEY:
@@ -250,9 +288,9 @@ def infer_source(url: str, expected: str) -> str:
 
 def infer_location(title: str, url: str, country_hint: str) -> tuple[str | None, str | None]:
     """Try to extract location from title/URL. Returns (location, country).
-    Returns (None, None) if the location is outside DE/ES/EU-remote.
-    Uses a WHITELIST approach: only DE cities, ES cities, or explicit EU-remote signals.
-    Anything else (US, India, LATAM, APAC, generic remote without EU signal) is rejected."""
+    Returns (None, None) if the location is outside the four target countries or EU-remote.
+    Uses a WHITELIST approach: target-country cities, country hints, or explicit
+    EU-remote signals. Generic remote without an EU signal is rejected."""
     text = (title + " " + url).lower()
     # ── Whitelist: DE cities ──
     de_cities = ["berlin", "munich", "münchen", "hamburg", "cologne", "köln",
@@ -269,6 +307,19 @@ def infer_location(title: str, url: str, country_hint: str) -> tuple[str | None,
     for city in es_cities:
         if city in text:
             return (city.title(), "es")
+    # ── Whitelist: DK cities ──
+    dk_cities = ["copenhagen", "københavn", "aarhus", "odense", "aalborg",
+                 "silkeborg", "lyngby", "birkerød", "birkeroed"]
+    for city in dk_cities:
+        if city in text:
+            return (city.title(), "dk")
+    # ── Whitelist: FR cities ──
+    fr_cities = ["paris", "lyon", "marseille", "toulouse", "bordeaux",
+                 "lille", "nantes", "montpellier", "grenoble", "nice",
+                 "rennes", "strasbourg", "vélizy", "velizy"]
+    for city in fr_cities:
+        if city in text:
+            return (city.title(), "fr")
     # ── Explicit EU/EMEA remote signals (whitelist) ──
     eu_remote_signals = [
         "remote europe", "remote eu", "europe remote",
@@ -276,16 +327,17 @@ def infer_location(title: str, url: str, country_hint: str) -> tuple[str | None,
         "cet", "gmt+1", "gmt+2", "utc+1", "utc+2",
         "emea remote", "remote dach", "remote de",
         "remote germany", "remote spain", "remote españa",
-        "remote deutschland", "remote spanien",
+        "remote deutschland", "remote spanien", "remote danmark", "remote france",
+        "remote frankreich", "remote in denmark", "remote in france",
         "remote in europe", "europe based",
     ]
     for sig in eu_remote_signals:
         if sig in text:
             return ("Remote", "remote")
     # ── Non-target location exclusion ──
-    # Reject jobs from clearly non-DE/ES/EU locations before the country_hint
-    # fallback can accept them. Only fires when no DE/ES city or EU-remote
-    # signal matched above.
+    # Reject jobs from clearly non-target locations before the country_hint
+    # fallback can accept them. Only fires when no target-country city or
+    # EU-remote signal matched above.
     non_target_signals = [
         "united states", "usa", "new york", "los angeles", "chicago",
         "san francisco", "boston", "seattle", "austin", "miami",
@@ -307,11 +359,15 @@ def infer_location(title: str, url: str, country_hint: str) -> tuple[str | None,
     #    (just above) ensures non-EU jobs are still rejected.
     if country_hint == "remote":
         return ("Remote", "remote")
-    # ── Country hint fallback (only DE/ES) ──
+    # ── Country hint fallback (target countries only) ──
     if country_hint == "de":
         return ("Germany", "de")
     if country_hint == "es":
         return ("Spain", "es")
+    if country_hint == "dk":
+        return ("Denmark", "dk")
+    if country_hint == "fr":
+        return ("France", "fr")
     # ── Everything else: reject ──
     return (None, None)
 
@@ -598,7 +654,7 @@ def result_to_job(result: dict, role_type: str, country_hint: str, expected_sour
         company = extract_company_from_domain(url)
     clean = clean_title(title)
     location, country = infer_location(title, url, country_hint)
-    # Reject if location is outside DE/ES/EU-remote
+    # Reject if location is outside DE/ES/DK/FR/EU-remote
     if location is None or country is None:
         return None
     # Reject if company name is garbage (generic words, too short, or clearly not a company)
@@ -673,7 +729,13 @@ def group_jobs_for_output(jobs: list[dict]) -> str:
     """
     lines = []
     # Group by country then role
-    countries = [("de", "🇩🇪 Germany"), ("es", "🇪🇸 Spain"), ("remote", "🌍 Remote")]
+    countries = [
+        ("de", "🇩🇪 Germany"),
+        ("es", "🇪🇸 Spain"),
+        ("dk", "🇩🇰 Denmark"),
+        ("fr", "🇫🇷 France"),
+        ("remote", "🌍 Remote"),
+    ]
     roles = [("growth", "Growth PM"), ("ai", "AI PM"), ("generalist", "Generalist PM")]
     JS_KEYS = ["company", "title", "url", "companyUrl", "location",
                "country", "roleType", "date", "source"]

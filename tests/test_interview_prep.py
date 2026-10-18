@@ -9,13 +9,13 @@ import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-import pytest
+import pytest  # pyright: ignore[reportMissingImports]
 
 # Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -71,7 +71,7 @@ class TestOutputStructure:
     def test_generates_markdown_with_sections(self):
         """With mocked LLM, verify output file has company context, questions, STAR."""
         from modules.pipeline import step_generate_interview_prep
-        from rich.console import Console
+        from rich.console import Console  # pyright: ignore[reportMissingImports]
 
         console = Console()
 
@@ -87,12 +87,14 @@ class TestOutputStructure:
             "master_resume": "I am a PM with growth and AI experience.",
             "company_research": "TestCorp launched a new B2B analytics platform in Q1 2026.",
             "qa_answers": [],
+            # Gate A.4: interview prep is opt-in and off by default.
+            "interview_prep_requested": True,
         }
 
         # Create the output directory
         Path(ctx["run_dir"]).mkdir(parents=True, exist_ok=True)
 
-        # Mock the writing client to return a structured interview prep
+        # Mock the interview client to return a structured interview prep
         mock_client = MagicMock()
         mock_client.model_name.return_value = "mock-model"
         mock_client.generate.return_value = (
@@ -126,7 +128,7 @@ class TestOutputStructure:
             "- If no response after 2 weeks: [suggested follow-up]\n"
         )
 
-        with patch("modules.pipeline._get_writing_client", return_value=mock_client):
+        with patch("modules.pipeline.create_interview_client", return_value=mock_client):
             result = step_generate_interview_prep(ctx, mock_client, console)
 
         # Verify ctx was updated
@@ -151,7 +153,7 @@ class TestOutputStructure:
     def test_handles_missing_company_research(self):
         """When company_research is empty/missing, step still produces output."""
         from modules.pipeline import step_generate_interview_prep
-        from rich.console import Console
+        from rich.console import Console  # pyright: ignore[reportMissingImports]
 
         console = Console()
 
@@ -165,6 +167,8 @@ class TestOutputStructure:
             "company_safe": "NoResearchCo",
             "master_resume": "I am a PM.",
             # No company_research key
+            # Gate A.4: interview prep is opt-in and off by default.
+            "interview_prep_requested": True,
         }
 
         Path(ctx["run_dir"]).mkdir(parents=True, exist_ok=True)
@@ -185,7 +189,7 @@ class TestOutputStructure:
             "- Follow up after 2 weeks\n"
         )
 
-        with patch("modules.pipeline._get_writing_client", return_value=mock_client):
+        with patch("modules.pipeline.create_interview_client", return_value=mock_client):
             result = step_generate_interview_prep(ctx, mock_client, console)
 
         assert "interview_prep_path" in result

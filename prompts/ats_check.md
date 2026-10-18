@@ -39,7 +39,7 @@ Extract from the .tex file: summary text, each experience entry (role, company, 
 If a **Candidate Skill Inventory** is provided in the user message, use it as ground truth for N/A vs MISSING classification:
 - Keyword is in the inventory → candidate has this skill → use COVERED / SEMANTIC / LOW_VIS / MISSING (never N/A)
 - Keyword is NOT in the inventory → candidate doesn't have this skill → N/A
-- No inventory provided → use your best judgement based on the resume content
+- No inventory provided → do not assume the candidate has a skill from the JD. Mark it as N/A or GAP unless the resume itself contains clear evidence.
 
 For each keyword, classify using semantic matching:
 
@@ -80,10 +80,12 @@ Target coverage: 60-80% of must-have keywords.
 ### Step 6: Suggest Edits
 
 For each MISSING or LOW_VIS keyword the candidate actually has:
-- Find best existing bullet to modify (prefer recent roles, first bullets)
-- Change 5-10 words max per edit
-- Show before/after with rationale
-- Never insert more than 2 keywords per bullet
+- Find the best existing text to modify, preferably in a recent role.
+- Only suggest a localized edit when the exact current text exists in the resume and the replacement is supported by the master resume.
+- Change 5-10 words max per edit.
+- Show before/after with rationale.
+- Never insert more than 2 keywords per bullet.
+- Unsupported JD keywords remain gaps. Never create PLS, pricing models, healthcare experience, agentic systems, or other new candidate claims.
 
 Edit types: keyword_add, keyword_promote, semantic_to_exact, consistency_fix, abbreviation_fix
 
@@ -92,7 +94,9 @@ Edit types: keyword_add, keyword_promote, semantic_to_exact, consistency_fix, ab
 ### DO:
 - Use semantic matching but flag when exact terms are safer
 - Only propose edits for skills the candidate genuinely has
-- Keep edits minimal
+- Treat canonical dates, titles, metrics, scope, and attribution as immutable
+- Keep edits minimal and localized
+- Do not regenerate unrelated resume sections
 - Show clear before/after for every edit
 
 ### DO NOT:

@@ -3,18 +3,20 @@
 
 import subprocess
 import signal
-import json
 import os
 from pathlib import Path
-from datetime import datetime
 from threading import Lock
 
-import gradio as gr
+import gradio as gr  # pyright: ignore[reportMissingImports]
+
+try:
+    from modules.llm_client import STAGE_ROUTES  # single source of truth for routing
+except Exception:  # pragma: no cover - the UI must still start without routing metadata
+    STAGE_ROUTES = {}
 
 PROJECT_ROOT = Path(__file__).parent
 VENV_PYTHON = str(PROJECT_ROOT / "venv" / "bin" / "python")
 OUTPUT_DIR = PROJECT_ROOT / "output"
-STATS_FILE = PROJECT_ROOT / ".usage_stats.json"
 
 RESUME_VARIANTS = {
     "Growth PM": "2f40fd98-227b-8083-a78f-c61c38e55a12",
@@ -24,62 +26,74 @@ RESUME_VARIANTS = {
 }
 
 # Store running processes for each slot
-running_processes = {1: None, 2: None, 3: None}
+running_processes: dict[int, subprocess.Popen[str] | None] = {1: None, 2: None, 3: None}
 process_lock = Lock()
 
 
-def load_stats():
-    """Load usage stats from file."""
-    default = {
-        "date": datetime.now().strftime("%Y-%m-%d"),
-        "providers": {
-            "gemini": {"calls": 0, "apps": 0},
-            "groq": {"calls": 0, "apps": 0},
-            "sambanova": {"calls": 0, "apps": 0},
-        }
-    }
-    if STATS_FILE.exists():
-        try:
-            data = json.loads(STATS_FILE.read_text())
-            if data.get("date") != datetime.now().strftime("%Y-%m-%d"):
-                return default
-            if "providers" not in data:
-                data["providers"] = default["providers"]
-            for p in default["providers"]:
-                if p not in data["providers"]:
-                    data["providers"][p] = {"calls": 0, "apps": 0}
-            return data
-        except:
-            pass
-    return default
+# Stage metadata for the read-only routing panel: stage key, label, env prefix.
+# Mirrors modules.llm_client.STAGE_ROUTES and the <PREFIX>_* override convention
+# implemented by modules.llm_client._create_stage_client.
+STAGE_DISPLAY: list[tuple[str, str, str]] = [
+    ("fit", "Fit evaluation", "FIT"),
+    ("jd", "JD analysis", "JD"),
+    ("tailor", "Resume tailoring", "TAILOR"),
+    ("reviewer", "Adversarial review", "REVIEWER"),
+    ("ats", "ATS keyword check", "ATS"),
+    ("qa", "Q&A + cover letter", "QA"),
+]
+
+# Retired global-writing settings. The UI never sets or forwards these.
+RETIRED_MODEL_ENV = (
+    "WRITING_PROVIDER",
+    "WRITING_MODEL",
+    "GEMINI_WRITING_MODEL",
+    "LLM_PROVIDER",
+)
 
 
-def save_stats(stats):
-    """Save usage stats to file."""
-    STATS_FILE.write_text(json.dumps(stats, indent=2))
+def _active_route(stage: str, prefix: str) -> tuple[str, str, str, str]:
+    """Resolve a stage's active primary/fallback without building a client.
+
+    Read-only mirror of the <PREFIX>_* lookups in
+    modules.llm_client._create_stage_client. Building a real client needs API
+    keys, so it must not be required just to render the UI.
+    """
+    defaults = STAGE_ROUTES.get(stage, {})
+    return (
+        os.getenv(f"{prefix}_PROVIDER", defaults.get("provider", "openrouter")),
+        os.getenv(f"{prefix}_MODEL", defaults.get("model", "")),
+        os.getenv(f"{prefix}_FALLBACK_PROVIDER", defaults.get("fallback_provider", "")),
+        os.getenv(f"{prefix}_FALLBACK_MODEL", defaults.get("fallback_model", "")),
+    )
 
 
-def get_stats_display():
-    """Get formatted stats for display."""
-    stats = load_stats()
+def get_llm_routing_display() -> str:
+    """Read-only summary of the active per-stage LLM routing."""
+    if not STAGE_ROUTES:
+        return (
+            "### LLM Routing (read-only)\n\n"
+            "Routing metadata unavailable: `modules.llm_client.STAGE_ROUTES` did not import. "
+            "The pipeline still routes per stage through the OpenRouter gateway."
+        )
 
-    limits = {
-        "gemini": {"calls": 100, "label": "Gemini"},
-        "groq": {"calls": 1000, "label": "Groq"},
-        "sambanova": {"calls": 500, "label": "SambaNova"},
-    }
+    rows = []
+    for stage, label, prefix in STAGE_DISPLAY:
+        if stage not in STAGE_ROUTES:
+            continue
+        primary_provider, primary_model, fb_provider, fb_model = _active_route(stage, prefix)
+        primary = f"`{primary_provider} · {primary_model}`" if primary_model else "not set"
+        fallback = f"`{fb_provider} · {fb_model}`" if fb_model else "disabled"
+        rows.append(f"| {label} | {primary} | {fallback} |")
 
-    ats_parts = []
-    for provider, info in limits.items():
-        p_stats = stats["providers"].get(provider, {"calls": 0, "apps": 0})
-        calls = p_stats.get("calls", 0)
-        apps = p_stats.get("apps", 0)
-        pct = (calls / info["calls"]) * 100
-
-        status = "🟢" if pct < 80 else "🟡" if pct < 100 else "🔴"
-        ats_parts.append(f"{status} {info['label']}: {calls}/{info['calls']} ({apps} apps)")
-
-    return "**ATS step (5):** " + " | ".join(ats_parts) + " — **Writing steps (3,6,8):** Gemini Pro → Flash Lite → Groq → SambaNova → OpenRouter → Kimi → DeepSeek"
+    return (
+        "### LLM Routing (read-only)\n\n"
+        "Every stage routes through the **OpenRouter** gateway and is configured "
+        "**per stage**: one primary plus at most one declared fallback. "
+        "There is no global writing-model selector and no per-application model choice. "
+        "Override a stage with its own `_PROVIDER` / `_MODEL` / `_FALLBACK_*` env vars.\n\n"
+        "| Stage | Primary | Fallback |\n"
+        "|---|---|---|\n" + "\n".join(rows)
+    )
 
 
 def get_recent_outputs():
@@ -110,12 +124,12 @@ def stop_process(slot_num):
                 try:
                     process.terminate()
                     return "⏹️ Process terminated"
-                except:
+                except (OSError, ProcessLookupError):
                     pass
         return "No process to stop"
 
 
-def _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, slot_num):
+def _run_pipeline(job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply, slot_num):
     """Internal generator for running the pipeline."""
     global running_processes
 
@@ -138,36 +152,19 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
         if cover_letter_instructions and cover_letter_instructions.strip():
             cmd.extend(["--cover-letter-instructions", cover_letter_instructions.strip()])
 
+    if interview_prep:
+        cmd.append("--interview-prep")
+
     if auto_apply:
         cmd.append("--auto-apply")
 
     full_env = os.environ.copy()
-    full_env["LLM_PROVIDER"] = provider
     full_env["PYTHONUNBUFFERED"] = "1"
-
-    # Writing model selector (free-first, user-selectable)
-    writing_provider_map = {
-        "Gemini 2.5 Pro (free)": "gemini",
-        "Gemini 3.1 Flash Lite (free)": "gemini",
-        "Groq Llama 3.3 70B (free)": "groq",
-        "SambaNova Llama 3.1 405B (free)": "sambanova",
-        "OpenRouter Qwen 3.5 (free)": "openrouter",
-        "Kimi K2.6 (OpenCode · paid)": "opencode",
-        "DeepSeek V3.2 (paid)": "deepseek",
-    }
-    writing_model_map = {
-        "Gemini 2.5 Pro (free)": "gemini-2.5-pro",
-        "Gemini 3.1 Flash Lite (free)": "gemini-3.1-flash-lite",
-        "Groq Llama 3.3 70B (free)": "llama-3.3-70b",
-        "SambaNova Llama 3.1 405B (free)": "llama-3.1-405b",
-        "OpenRouter Qwen 3.5 (free)": "qwen/qwen3.5-397b-a17b",
-        "Kimi K2.6 (OpenCode · paid)": "kimi-k2.6",
-        "DeepSeek V3.2 (paid)": "deepseek-chat",
-    }
-    wm = writing_model or "Gemini 2.5 Pro (free)"
-    full_env["WRITING_PROVIDER"] = writing_provider_map.get(wm, "gemini")
-    full_env["GEMINI_WRITING_MODEL"] = writing_model_map.get(wm, "gemini-2.5-pro")
-    # Targeted edits (JSON patches) are now the default for all providers — much lower token usage
+    # Retired global-writing settings: never forwarded to the pipeline. Stage
+    # routing is owned by modules/llm_client.py::STAGE_ROUTES.
+    for retired in RETIRED_MODEL_ENV:
+        full_env.pop(retired, None)
+    # Targeted edits (JSON patches) are now the default for all providers, much lower token usage
     full_env["TARGETED_EDITS"] = "1"
 
     # Override master resume ID and set role variant for the subprocess
@@ -177,9 +174,8 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
     role_variant_map = {"Growth PM": "growth_pm", "Generalist": "generalist", "AI-PM": "ai_pm"}
     full_env["ROLE_VARIANT"] = role_variant_map.get(variant_label, variant_label.lower().replace(" ", "_"))
 
-    wm_label = writing_model or "Gemini 2.5 Pro"
     auto_label = " (auto-apply)" if auto_apply else ""
-    yield f"🚀 Starting with {provider} (ATS) · {wm_label} (writing) · {variant_label} resume{auto_label}...\n\n"
+    yield f"🚀 Starting {variant_label} resume run{auto_label} · LLM routing: OpenRouter, per stage...\n\n"
 
     try:
         process = subprocess.Popen(
@@ -201,40 +197,21 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
         running_processes[slot_num] = process
 
     output_lines = []
-    providers_used = set()
+    stdout = process.stdout
+    if stdout is None:
+        yield "❌ Pipeline started without a readable output stream"
+        process.kill()
+        return
 
     try:
-        for line in iter(process.stdout.readline, ''):
+        for line in iter(stdout.readline, ''):
             output_lines.append(line)
-            if "exhausted, trying next" in line.lower():
-                for p in ["gemini", "groq", "sambanova"]:
-                    if p in line.lower():
-                        providers_used.add(p)
             yield "".join(output_lines)
 
         process.wait()
     finally:
         with process_lock:
             running_processes[slot_num] = None
-
-    # Update stats
-    stats = load_stats()
-    if provider not in stats["providers"]:
-        stats["providers"][provider] = {"calls": 0, "apps": 0}
-
-    if process.returncode == 0:
-        calls_per_provider = 4 // max(1, len(providers_used) + 1)
-        stats["providers"][provider]["calls"] += calls_per_provider
-        stats["providers"][provider]["apps"] += 1
-        for p in providers_used:
-            if p != provider:
-                if p not in stats["providers"]:
-                    stats["providers"][p] = {"calls": 0, "apps": 0}
-                stats["providers"][p]["calls"] += calls_per_provider
-    else:
-        stats["providers"][provider]["calls"] += 2
-
-    save_stats(stats)
 
     if process.returncode == 0:
         output_lines.append("\n\n✅ **Complete!**")
@@ -247,14 +224,14 @@ def _run_pipeline(job_url, company_url, questions, provider, writing_model, resu
 
 
 # Create separate generator functions for each slot (can't use lambda with generators)
-def run_slot_1(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply):
-    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, 1)
+def run_slot_1(job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply):
+    yield from _run_pipeline(job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply, 1)
 
-def run_slot_2(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply):
-    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, 2)
+def run_slot_2(job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply):
+    yield from _run_pipeline(job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply, 2)
 
-def run_slot_3(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply):
-    yield from _run_pipeline(job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, 3)
+def run_slot_3(job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply):
+    yield from _run_pipeline(job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply, 3)
 
 
 def create_app_form(slot_num):
@@ -293,29 +270,14 @@ def create_app_form(slot_num):
                 lines=1,
             )
         with gr.Row():
-            auto_apply = gr.Checkbox(
-                label="Auto-apply (skip fit evaluation gate)",
+            interview_prep = gr.Checkbox(
+                label="Generate interview prep (post-apply · off by default)",
                 value=False,
             )
         with gr.Row():
-            writing_model = gr.Radio(
-                choices=[
-                    "Gemini 2.5 Pro (free)",
-                    "Gemini 3.1 Flash Lite (free)",
-                    "Groq Llama 3.3 70B (free)",
-                    "SambaNova Llama 3.1 405B (free)",
-                    "OpenRouter Qwen 3.5 (free)",
-                    "Kimi K2.6 (OpenCode · paid)",
-                    "DeepSeek V3.2 (paid)",
-                ],
-                value="Gemini 2.5 Pro (free)",
-                label="Writing model (steps 3, 6, 8)",
-            )
-        with gr.Row():
-            provider = gr.Radio(
-                choices=["gemini", "groq", "sambanova", "openrouter"],
-                value="gemini",
-                label="ATS provider (step 5)",
+            auto_apply = gr.Checkbox(
+                label="Auto-apply (skip fit evaluation gate)",
+                value=False,
             )
 
         with gr.Row():
@@ -341,7 +303,7 @@ def create_app_form(slot_num):
                 show_label=False,
             )
 
-    return job_url, company_url, questions, provider, writing_model, resume_variant, generate_cover_letter, cover_letter_instructions, auto_apply, submit_btn, stop_btn, output, console
+    return job_url, company_url, questions, resume_variant, generate_cover_letter, cover_letter_instructions, interview_prep, auto_apply, submit_btn, stop_btn, output, console
 
 
 def create_ui():
@@ -349,43 +311,42 @@ def create_ui():
     with gr.Blocks(title="JobQuest") as app:
         gr.Markdown("# 🎯 JobQuest")
 
-        with gr.Row():
-            stats_display = gr.Markdown(get_stats_display())
-            refresh_btn = gr.Button("🔄 Refresh", size="sm", scale=0)
+        with gr.Accordion("LLM Routing (read-only · OpenRouter gateway · per stage)", open=True):
+            gr.Markdown(get_llm_routing_display())
 
-        recent_display = gr.Markdown(get_recent_outputs())
+        with gr.Row():
+            recent_display = gr.Markdown(get_recent_outputs())
+            refresh_btn = gr.Button("🔄 Refresh", size="sm", scale=0)
 
         gr.Markdown("---")
 
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### Application 1")
-                j1, c1, q1, p1, wm1, r1, cl1, cli1, aa1, b1, s1, o1, con1 = create_app_form(1)
+                j1, c1, q1, r1, cl1, cli1, ip1, aa1, b1, s1, o1, con1 = create_app_form(1)
 
             with gr.Column():
                 gr.Markdown("### Application 2")
-                j2, c2, q2, p2, wm2, r2, cl2, cli2, aa2, b2, s2, o2, con2 = create_app_form(2)
+                j2, c2, q2, r2, cl2, cli2, ip2, aa2, b2, s2, o2, con2 = create_app_form(2)
 
             with gr.Column():
                 gr.Markdown("### Application 3")
-                j3, c3, q3, p3, wm3, r3, cl3, cli3, aa3, b3, s3, o3, con3 = create_app_form(3)
+                j3, c3, q3, r3, cl3, cli3, ip3, aa3, b3, s3, o3, con3 = create_app_form(3)
 
         # Run buttons - use dedicated generator functions (not lambdas)
-        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, p1, wm1, r1, cl1, cli1, aa1], outputs=[o1], concurrency_limit=None)
-        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, p2, wm2, r2, cl2, cli2, aa2], outputs=[o2], concurrency_limit=None)
-        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, p3, wm3, r3, cl3, cli3, aa3], outputs=[o3], concurrency_limit=None)
+        # No model/provider inputs: routing is stage-specific (STAGE_ROUTES).
+        b1.click(fn=run_slot_1, inputs=[j1, c1, q1, r1, cl1, cli1, ip1, aa1], outputs=[o1], concurrency_limit=None)
+        b2.click(fn=run_slot_2, inputs=[j2, c2, q2, r2, cl2, cli2, ip2, aa2], outputs=[o2], concurrency_limit=None)
+        b3.click(fn=run_slot_3, inputs=[j3, c3, q3, r3, cl3, cli3, ip3, aa3], outputs=[o3], concurrency_limit=None)
 
         # Stop buttons
         s1.click(fn=lambda: stop_process(1), outputs=[con1])
         s2.click(fn=lambda: stop_process(2), outputs=[con2])
         s3.click(fn=lambda: stop_process(3), outputs=[con3])
 
-        def _refresh():
-            return get_stats_display(), get_recent_outputs()
-
         refresh_btn.click(
-            fn=_refresh,
-            outputs=[stats_display, recent_display],
+            fn=get_recent_outputs,
+            outputs=[recent_display],
             concurrency_limit=None,
         )
 
@@ -400,5 +361,5 @@ if __name__ == "__main__":
         server_port=7860,
         share=False,
         inbrowser=False,
-        theme=gr.themes.Soft(),
+        theme=gr.themes.Soft(),  # pyright: ignore[reportPrivateImportUsage]
     )

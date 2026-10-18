@@ -226,6 +226,130 @@ class TestFitEvaluationPrompt:
         assert "json" in content.lower()
         assert "```json" in content
 
+    def test_prompt_preserves_no_fabrication_guard(self):
+        """The market context must never be usable to invent resume claims."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "never be used to invent resume claims" in content
+        assert "gap" in content
+
+    def test_prompt_contains_five_work_architectures(self):
+        """Sep 2026 deep phase: five architectures, not one 'modern PM'."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        for architecture in [
+            "ai application",
+            "ai platform",
+            "ai automation",
+            "growth",
+            "generalist",
+        ]:
+            assert architecture in content, f"Missing architecture: {architecture}"
+        # The technical track must still devalue tool fluency alone
+        assert "not sufficient" in content
+
+    def test_prompt_contains_gate_scale(self):
+        """Requirement intensity 0-4 must stay documented."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text()
+
+        assert "0-4 gate scale" in content
+        assert "prior proof demanded" in content.lower()
+
+    def test_prompt_requires_bundle_thinking(self):
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "bundles matter more than individual keywords" in content
+        assert "ai production" in content
+        assert "growth operator" in content
+
+    def test_prompt_treats_seniority_as_scope(self):
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "seniority is scope, not tenure" in content
+        assert "cross-squad" in content
+
+    def test_prompt_calibrates_ai_platform_as_gap(self):
+        """Candidate AI history is application/growth shaped, not platform."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "application and growth shaped" in content
+        assert "genuine gap" in content
+
+    def test_prompt_downgrades_unsupported_claims(self):
+        """Stale assumptions must not silently raise a score again."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "claims explicitly not supported" in content
+        assert "premium is not established" in content
+        assert "not a trend series" in content
+
+    def test_prompt_contains_current_eval_vocabulary(self):
+        """Load-bearing ML-grade vocabulary must not silently drift out."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        required = [
+            "rag",
+            "react",
+            "function-calling",
+            "multi-agent orchestration",
+            "fine-tuning",
+            "precision",
+            "recall",
+            "f1",
+            "hallucination",
+            "inference latency",
+            "retraining",
+        ]
+        for term in required:
+            assert term in content, f"Missing eval vocabulary: {term}"
+
+    def test_prompt_contains_updated_tool_stack(self):
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        for tool in ["cursor", "n8n", "zapier", "databricks", "bigquery"]:
+            assert tool in content, f"Missing tool: {tool}"
+
+    def test_prompt_has_corrected_ai_act_timeline(self):
+        """Digital Omnibus deferred Annex III high-risk to 2 Dec 2027."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text()
+
+        assert "2 December 2027" in content
+        assert "Annex III" in content
+        # The live obligations must still be described as live
+        assert "Article 50" in content or "Article 50 transparency" in content
+
+    def test_prompt_notes_unaided_interview_expectation(self):
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "without ai tools" in content
+        assert "disqualification" in content
+
+    def test_prompt_requires_archetype_choice_before_scoring(self):
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "do not average the two" in content
+
+    def test_prompt_retains_role_families(self):
+        """Generalist and Growth context must not be lost to AI edits."""
+        prompt_path = PROJECT_ROOT / "prompts" / "fit_evaluation.md"
+        content = prompt_path.read_text().lower()
+
+        assert "generalist" in content
+        assert "growth" in content
+        assert "plg" in content
+
 
 # ── Pipeline Import Tests ────────────────────────────────────────
 
@@ -251,25 +375,27 @@ class TestFitEvaluationIntegration:
 
         assert callable(_get_fit_client)
 
-    def test_fit_client_uses_flash_lite(self):
-        """_get_fit_client should use Gemini Flash-Lite (not the writing chain).
+    def test_fit_client_uses_the_explicit_fit_route(self):
+        """B.1.5: the fit stage owns its route (OpenRouter), not a Gemini walk.
 
-        Only runs if GEMINI_API_KEY is available.
+        Also asserts the bounded contract: one primary plus at most one declared
+        fallback, and that the hidden Gemini walk is not part of the route.
         """
-        import os
-        if not os.getenv("GEMINI_API_KEY"):
-            pytest.skip("GEMINI_API_KEY not set — skipping instantiation test")
-
-        from modules.llm_client import GeminiClient
+        from modules.llm_client import RoutedClient
         from modules.pipeline import _get_fit_client
 
         client = _get_fit_client()
-        assert isinstance(client, GeminiClient), (
-            f"Expected GeminiClient, got {type(client).__name__}"
+        assert isinstance(client, RoutedClient), (
+            f"Expected RoutedClient, got {type(client).__name__}"
         )
-        assert "flash-lite" in client.model_name().lower(), (
-            f"Expected flash-lite model, got {client.model_name()}"
+        routes = client.route_ids
+        assert 1 <= len(routes) <= 2, (
+            f"expected one primary + at most one fallback, got {routes}"
         )
+        assert all(r.startswith("openrouter/") for r in routes), (
+            f"Expected the OpenRouter fit route, got {routes}"
+        )
+        assert not any("gemini" in r for r in routes)
 
     def test_fit_client_docstrings_explain_revert(self):
         """Docstring should explain how to revert to writing chain."""

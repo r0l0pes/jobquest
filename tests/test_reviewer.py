@@ -75,15 +75,26 @@ class TestReviewerClient:
         from modules.llm_client import create_reviewer_client
         assert callable(create_reviewer_client)
 
-    def test_create_reviewer_client_returns_fallback_client(self):
-        """Should return a FallbackClient (not the writing chain)."""
-        from modules.llm_client import create_reviewer_client
-        # FallbackClient requires API keys — mock the internals
-        with patch('modules.llm_client.GeminiClient') as mock_gemini:
+    def test_create_reviewer_client_resolves_the_reviewer_stage_route(self):
+        """B.1.5: the reviewer resolves an explicit route, not a provider broadcast."""
+        from unittest.mock import patch
+
+        from modules.llm_client import LLMClient, RoutedClient, create_reviewer_client
+
+        class _Stub(LLMClient):
+            def generate(self, system_prompt, user_prompt, temperature=0.3):
+                return "stub"
+
+            def model_name(self):
+                return "stub"
+
+        with patch('modules.llm_client._create_single_client', return_value=_Stub()):
             client = create_reviewer_client()
-        assert client is not None, "create_reviewer_client() returned None"
-        assert "gemini" in client.model_name() or "fallback" in client.model_name(), (
-            f"Expected gemini-based fallback, got {client.model_name()}"
+        assert isinstance(client, RoutedClient)
+        routes = client.route_ids
+        assert len(routes) <= 2, f"expected at most one declared fallback, got {routes}"
+        assert all(r.startswith('openrouter/') for r in routes), (
+            f"expected the OpenRouter reviewer route, got {routes}"
         )
 
 

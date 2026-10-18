@@ -5,7 +5,7 @@ These tests cover the classification logic that currently has zero test coverage
 All tests are pure function calls — no file I/O, no subprocess, no API mocking.
 """
 
-import pytest
+import pytest  # pyright: ignore[reportMissingImports]
 from scripts.discover_jobs import (
     infer_location,
     extract_company_from_url,
@@ -364,12 +364,18 @@ class TestQueryCatalog:
         es_queries = [q for q in QUERY_CATALOG if q[2] == "es"]
         assert len(es_queries) >= 20
 
+    def test_has_dk_and_fr_queries(self):
+        dk_queries = [q for q in QUERY_CATALOG if q[2] == "dk"]
+        fr_queries = [q for q in QUERY_CATALOG if q[2] == "fr"]
+        assert len(dk_queries) >= 10, f"Expected >=10 DK queries, got {len(dk_queries)}"
+        assert len(fr_queries) >= 10, f"Expected >=10 FR queries, got {len(fr_queries)}"
+
     def test_all_entries_have_four_fields(self):
         for entry in QUERY_CATALOG:
             assert len(entry) == 4, f"Entry {entry[0][:50]} has {len(entry)} fields"
 
     def test_all_country_hints_are_valid(self):
-        valid = {"de", "es", "remote"}
+        valid = {"de", "es", "dk", "fr", "remote"}
         for entry in QUERY_CATALOG:
             assert entry[2] in valid, f"Bad hint: {entry[2]}"
 

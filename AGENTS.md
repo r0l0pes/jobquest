@@ -10,7 +10,7 @@ JobQuest is Rodrigo Lopes' automated job application pipeline. Paste a job URL �
 
 **Stack:** Python 3.14, Gradio 6, Playwright, Notion API, multi-provider LLM
 
-**Test count:** 186 tests (pytest tests/ -v)
+**Test count:** 377 tests (pytest tests/ -v)
 
 ---
 
@@ -22,7 +22,7 @@ source venv/bin/activate
 python apply.py "JOB_URL"                         # Run full pipeline
 python apply.py "JOB_URL" --skip-reviewer          # Skip adversarial review
 python apply.py --upskill                          # Skill gap analysis
-pytest tests/ -v                                   # 186 tests
+pytest tests/ -v                                   # 377 tests
 ```
 
 ---
@@ -36,7 +36,7 @@ pytest tests/ -v                                   # 186 tests
 | `prompts/` | LLM prompt templates (writing rules, fit eval, reviewer, behavioral profile) |
 | `modes/` | Pi agent instructions (discover, prep_interview, batch, upskill) |
 | `data/` | Queue HTML, tracker HTML, applications JSON, templates |
-| `tests/` | pytest suite (186 tests) |
+| `tests/` | pytest suite (377 tests) |
 
 ---
 
@@ -75,7 +75,7 @@ Free-first fallback chain defined in `modules/llm_client.py`. User selects prima
 5. **No em dashes.** Use commas, colons, or sentence breaks.
 6. **Voice rules in `rodrigo-voice-lite.md`.** Single source of truth for writing style.
 7. **Prompts as files.** Never inline prompt text — load from `prompts/*.md`.
-8. **Test after every change.** `pytest tests/ -v` — 186+ tests must pass.
+8. **Test after every change.** `pytest tests/ -v` — 377+ tests must pass.
 9. **Spec before build.** Write spec in `specs/` before touching code.
 10. **Verify with dry-run.** `python apply.py "URL" --dry-run` before marking done.
 11. **Tracker data on feat/webwright-fallback branch** — check for application records missing from main.
@@ -93,7 +93,7 @@ Pi reads mode files from `modes/`. To use:
 ## Running Tests
 
 ```bash
-pytest tests/ -v        # 186 tests in ~1.4s
+pytest tests/ -v        # 377 tests in ~10s (some files call real scrapers)
 pytest tests/ -v -k reviewer  # Filter reviewer tests
 pytest tests/ -v -k salary    # Filter salary benchmarking tests
 pytest tests/ -v -k upskill   # Filter upskill gap analysis tests

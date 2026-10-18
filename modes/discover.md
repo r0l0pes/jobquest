@@ -48,7 +48,7 @@ Senior PM – AI Agents, Senior PM – LLM, Senior PM – Machine Learning
 
 ## Target Locations
 
-All of Germany, all of Spain. No city restrictions.
+All of Germany, Spain, Denmark, and France. No city restrictions.
 Remote EU roles also accepted.
 
 Search each location separately with different keywords to surface different companies.
@@ -56,6 +56,15 @@ Never restrict searches to a single city — use country-wide terms:
 
 - Germany: "Germany" OR "Deutschland" OR "DE"
 - Spain: "Spain" OR "España" OR "ES"
+- Denmark: "Denmark" OR "Danmark" OR "DK" OR "Copenhagen" OR "København"
+- France: "France" OR "Frankreich" OR "FR" OR "Paris"
+
+Language notes: German, Spanish, French, and Danish local-language queries find
+companies that English queries miss. English-only roles are common at
+international technology employers in all four countries, but local language is
+frequently required for regulated, payroll, public-sector, and customer-facing
+roles (French most often, Danish and German for local-market roles, Spanish for
+local-market and customer-facing roles).
 
 ## Execution
 
@@ -112,6 +121,41 @@ Arc.dev
 "Senior Product Manager" Spain site:linkedin.com/jobs
 "Senior Product Manager" España remote site:infojobs.net
 
+# Growth PM — Denmark
+"Senior Growth Product Manager" Denmark site:linkedin.com/jobs
+"Product Manager Growth" Copenhagen site:thehub.io
+"Senior Product Manager" monetisation Denmark site:linkedin.com/jobs
+"Product Manager" activation retention Denmark site:thehub.io
+
+# AI PM — Denmark
+"Senior AI Product Manager" Denmark site:linkedin.com/jobs
+"AI Product Manager" Copenhagen hiring
+"Product Manager" generative AI Denmark site:linkedin.com/jobs
+"Product Manager" agentic AI Copenhagen site:thehub.io
+
+# Generalist PM — Denmark
+"Senior Product Manager" Denmark site:linkedin.com/jobs
+"Senior Product Manager" København English site:thehub.io
+"Technical Product Manager" Denmark platform API site:linkedin.com/jobs
+
+# Growth PM — France
+"Senior Growth Product Manager" France site:linkedin.com/jobs
+"Product Manager Growth" France expérimentation site:linkedin.com/jobs
+"Senior PM" activation retention Paris
+"Product Manager" conversion monétisation France
+
+# AI PM — France
+"Senior AI Product Manager" France site:linkedin.com/jobs
+"AI Product Manager" Paris recrutement
+"Product Manager IA générative" France
+"Product Manager" agentic AI Paris
+
+# Generalist PM — France
+"Senior Product Manager" France site:linkedin.com/jobs
+"Senior Product Manager" Paris English
+"Technical Product Manager" France platform API site:linkedin.com/jobs
+"Product Manager B2B SaaS" France site:weloveproduct.co
+
 # Startup-focused (cast wider net)
 site:wellfound.com "Product Manager" Germany
 site:berlinstartupjobs.com "Senior Product"
@@ -160,7 +204,8 @@ site:arc.dev "Product Manager" remote
 4. **Use different phrasings.** "Growth PM" vs "Product Manager Growth" vs
    "Senior PM Growth" return different results. Rotate.
 5. **Search in German and Spanish** alongside English. Local-language queries
-   find companies that English queries miss.
+   find companies that English queries miss. Also search Danish and French
+   for Copenhagen/Paris-centric and local-market roles.
 
 ## Output Format
 
@@ -173,7 +218,7 @@ Add discovered jobs to `data/job_queue.html` by appending entries to the
 
 Fields:
 
-- `country`: "de" or "es" (or "remote" for location-independent roles)
+- `country`: "de", "es", "dk", "fr", or "remote" for location-independent roles
 - `roleType`: "growth", "ai", or "generalist"
 - `date`: date the job was posted or discovered
 - `source`: platform where found (linkedin, stepstone, infojobs, wellfound,

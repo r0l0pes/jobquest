@@ -10,6 +10,8 @@ import json
 import os
 import re
 
+from modules import llm_telemetry
+
 from .base import JobDataSource
 
 
@@ -168,12 +170,12 @@ class StructuredExtractor(JobDataSource):
         Returns None if the LLM call fails or returns unparseable output.
         """
         try:
-            from modules.llm_client import create_ats_client
+            from modules.llm_client import create_jd_client
         except ImportError:
             return None
 
         try:
-            client = create_ats_client()
+            client = create_jd_client()
 
             prompt = (
                 f'Extract structured fields from this job description. '
@@ -189,19 +191,25 @@ class StructuredExtractor(JobDataSource):
                 f'Job Description:\n{description[:3000]}'
             )
 
-            raw = client.generate(
-                "You are a job posting parser. Extract structured data from "
-                "job descriptions. Return only JSON.",
-                prompt,
-                temperature=0.1,
-            )
+            # Gate B.1: this is the local-LLM fallback for JD structured
+            # extraction. It is only reached when Firecrawl's /extract returned
+            # nothing, so a Firecrawl success records no LLM telemetry at all.
+            with llm_telemetry.stage_context("jd_extraction", step_index=1) as st:
+                raw = client.generate(
+                    "You are a job posting parser. Extract structured data from "
+                    "job descriptions. Return only JSON.",
+                    prompt,
+                    temperature=0.1,
+                )
 
-            # Extract JSON from response (may be in code fence or bare)
-            json_match = re.search(r'\{[\s\S]*\}', raw)
-            if json_match:
-                parsed = json.loads(json_match.group(0))
+                # Extract JSON from response (may be in code fence or bare)
+                json_match = re.search(r'\{[\s\S]*\}', raw)
+                parsed = json.loads(json_match.group(0)) if json_match else None
+                st.set_parse_result(isinstance(parsed, dict))
                 if isinstance(parsed, dict):
                     return parsed
+                st.set_success(False)
+                st.set_degradation("optional_stage_failed")
         except Exception:
             pass
         return None
